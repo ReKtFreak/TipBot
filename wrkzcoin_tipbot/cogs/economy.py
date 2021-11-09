@@ -1,0 +1,2218 @@
+import sys, traceback
+import time, timeago
+import discord
+from discord.ext import commands
+
+from config import config
+from Bot import *
+
+class Economy(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
+ 
+ 
+    @commands.group(usage="economy <subcommand>", aliases=['eco'], description="Economy game commands.")
+    async def economy(self, ctx):
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        prefix = await get_guild_prefix(ctx)
+        if ctx.invoked_subcommand is None:
+            await ctx.send(f'{ctx.author.mention} Invalid {prefix}economy command.\n Please use {prefix}help economy')
+            return
+
+
+    @economy.command(usage="eco <sell> <item>", description="Sell an item.")
+    async def sell(self, ctx, *, item_name: str):
+        global TRTL_DISCORD
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy sell** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game economy** play.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+
+        # Getting list of work in the guild and re-act
+        market_factored = 1.0
+        get_userinfo = await store.economy_get_user(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator))
+        if get_userinfo and get_userinfo['numb_market'] >= 1:
+            market_factored = config.economy.market_price_factor
+
+        try:
+            get_fish_inventory_list = await store.economy_get_list_fish_caught(str(ctx.author.id), sold='NO', caught='YES')
+            get_user_harvested_crops = await store.economy_farm_user_planting_group_harvested(str(ctx.author.id))
+            get_fish_inventory_list_arr = [each_item['fish_name'].upper() for each_item in get_fish_inventory_list]
+            get_user_harvested_crops_arr = [each_item['plant_name'].upper() for each_item in get_user_harvested_crops]
+            if item_name.strip().upper() in get_fish_inventory_list_arr:
+                # Selling Fishes
+                if len(get_fish_inventory_list) > 0:
+                    selected_fishes = None
+                    for each_item in get_fish_inventory_list:
+                        if item_name.strip().upper() == each_item['fish_name'].upper() or item_name.strip() == each_item['fish_emoji']:
+                            selected_fishes = each_item
+                            break
+                    if selected_fishes is None:
+                        await ctx.send(f'{ctx.author.mention} You do not have `{item_name}` to sell.')
+                        await ctx.message.add_reaction(EMOJI_ERROR)
+                    else:
+                        # Have that item to sell
+                        if selected_fishes['Weights'] < selected_fishes['minimum_sell_kg']:
+                            await ctx.send('{} You do not have sufficient {} to sell. Minimum {:,.2f}kg, having {:,.2f}kg.'.format(ctx.author.mention, item_name, selected_fishes['minimum_sell_kg'], selected_fishes['Weights']))
+                            await ctx.message.add_reaction(EMOJI_ERROR)
+                        else:
+                            # Enough to sell. Update credit, and mark fish as sold
+                            # We round credit earning
+                            if ctx.author.id not in GAME_INTERACTIVE_ECO:
+                                GAME_INTERACTIVE_ECO.append(ctx.author.id)
+                            total_earn = int(float(selected_fishes['Weights']) * float(selected_fishes['credit_per_kg']) * market_factored)
+                            total_weight = float(selected_fishes['Weights'])
+                            get_userinfo['credit'] += total_earn
+                            selling_fishes = await store.economy_sell_fishes(selected_fishes['fish_id'], str(ctx.author.id), str(ctx.guild.id), total_weight, total_earn)
+                            if selling_fishes:
+                                await ctx.message.add_reaction(selected_fishes['fish_emoji'])
+                                msg = await ctx.message.reply('You sold {:,.2f}kg of {} for `{}` Credit(s) (`{:,.2f} Credit per kg`). Your credit now is: `{:,.2f}`.'.format(total_weight, item_name, total_earn, float(selected_fishes['credit_per_kg']) * market_factored, get_userinfo['credit']))
+                                if market_factored > 1:
+                                    await msg.add_reaction("🛒")
+                            else:
+                                await ctx.send(f'{ctx.author.mention} Internal error.')
+                                await ctx.message.add_reaction(EMOJI_ERROR)
+                else:
+                    await ctx.message.reply(f'{ctx.author.name}#{ctx.author.discriminator}, You do not have any fish to sell. Do fishing!')
+            elif item_name.strip().upper() in get_user_harvested_crops_arr:
+                # Selling vegetable in farm
+                if len(get_user_harvested_crops) > 0:
+                    selected_item = None
+                    for each_item in get_user_harvested_crops:
+                        if item_name.strip().upper() == each_item['plant_name'].upper() or item_name.strip() == each_item['plant_emoji']:
+                            selected_item = each_item
+                            break
+                    if selected_item is None:
+                        await ctx.send(f'{ctx.author.mention} You do not have `{item_name}` to sell.')
+                        await ctx.message.add_reaction(EMOJI_ERROR)
+                    else:
+                        # No minimum to sell
+                        # Enough to sell. Update credit, and mark fish as sold
+                        # We round credit earning
+                        if ctx.author.id not in GAME_INTERACTIVE_ECO:
+                            GAME_INTERACTIVE_ECO.append(ctx.author.id)
+                        total_earn = int(float(selected_item['total_products']) * float(selected_item['credit_per_item']) * market_factored)
+                        get_userinfo = await store.economy_get_user(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator))
+                        get_userinfo['credit'] += total_earn
+                        selling_item = await store.economy_farm_sell_item(selected_item['plant_id'], str(ctx.author.id), str(ctx.guild.id), total_earn, selected_item['total_products'])
+                        if selling_item:
+                            await ctx.message.add_reaction(selected_item['plant_emoji'])
+                            msg = await ctx.message.reply('You sold {:,.0f} of {} for `{}` Credit(s) (`{:,.2f} Credit per one`). Your credit now is: `{:,.2f}`.'.format(selected_item['total_products'], item_name, total_earn, float(selected_item['credit_per_item']) * market_factored, get_userinfo['credit']))
+                            if market_factored > 1:
+                                await msg.add_reaction("🛒")
+                        else:
+                            await ctx.send(f'{ctx.author.mention} Internal error.')
+                            await ctx.message.add_reaction(EMOJI_ERROR)
+                else:
+                    await ctx.message.reply(f'{ctx.author.name}#{ctx.author.discriminator}, You do not have any vegetable or fruit to sell. Plant and harvest!')
+            elif item_name.strip().upper() == "MILK":
+                # Selling milk
+                try:
+                    get_raw_milk = await store.economy_dairy_collected(str(ctx.author.id))
+                    ids = []
+                    qty_raw_milk = 0.0
+                    credit_sell = 0.0
+                    if get_raw_milk and len(get_raw_milk) > 0:
+                        for each in get_raw_milk:
+                            ids.append(each['id'])
+                            qty_raw_milk += float(each['collected_qty'])
+                            credit_sell += float(each['collected_qty']) * float(each['credit_per_item']) * market_factored
+                        if qty_raw_milk > 0:
+                            # has milk, sell all
+                            sell_milk = await store.economy_dairy_sell_milk(str(ctx.author.id), ids, credit_sell, qty_raw_milk)
+                            if sell_milk:
+                                get_userinfo['credit'] = float(get_userinfo['credit']) + float(credit_sell)
+                                msg = await ctx.message.reply('You sold {:,.2f} liter(s) of milk for `{:,.2f}` Credit(s). Your credit now is: `{:,.2f}`.'.format(qty_raw_milk, credit_sell, get_userinfo['credit']))
+                                if market_factored > 1:
+                                    await msg.add_reaction("🛒")
+                        else:
+                            await ctx.message.reply(f'{ctx.author.name}#{ctx.author.discriminator}, You do not have milk to sell!!')
+                    else:
+                        await ctx.message.reply(f'{ctx.author.name}#{ctx.author.discriminator}, You do not have milk to sell!')
+                except Exception as e:
+                    traceback.print_exc(file=sys.stdout)
+                    await logchanbot(traceback.format_exc())
+            elif item_name.strip().upper() == "EGG":
+                # Selling egg
+                try:
+                    get_eggs = await store.economy_egg_collected(str(ctx.author.id))
+                    ids = []
+                    qty_eggs = 0.0
+                    credit_sell = 0.0
+                    if get_eggs and len(get_eggs) > 0:
+                        for each in get_eggs:
+                            ids.append(each['id'])
+                            qty_eggs += float(each['collected_qty'])
+                            credit_sell += float(each['collected_qty']) * float(each['credit_per_item']) * market_factored
+                        if qty_eggs > 0:
+                            # has milk, sell all
+                            sell_milk = await store.economy_chickenfarm_sell_egg(str(ctx.author.id), ids, credit_sell, qty_eggs)
+                            if sell_milk:
+                                get_userinfo['credit'] = float(get_userinfo['credit']) + float(credit_sell)
+                                msg = await ctx.message.reply('You sold {:,.0f} chicken egg(s) for `{:,.2f}` Credit(s). Your credit now is: `{:,.2f}`.'.format(qty_eggs, credit_sell, get_userinfo['credit']))
+                                if market_factored > 1:
+                                    await msg.add_reaction("🛒")
+                        else:
+                            await ctx.message.reply(f'{ctx.author.name}#{ctx.author.discriminator}, You do not have chicken egg(s) to sell!!')
+                    else:
+                        await ctx.message.reply(f'{ctx.author.name}#{ctx.author.discriminator}, You do not have chicken egg(s) to sell!')
+                except Exception as e:
+                    traceback.print_exc(file=sys.stdout)
+                    await logchanbot(traceback.format_exc())
+            else:
+                await ctx.message.reply(f'{ctx.author.name}#{ctx.author.discriminator}, not valid to sell `{item_name}` or you do not have it!')
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+            await logchanbot(traceback.format_exc())
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+        return
+
+
+    @economy.command(usage="eco <buy> <item>", description="Buy an item.")
+    async def buy(self, ctx, *, item_name: str=None):
+        global TRTL_DISCORD
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        try:
+            if item_name is None:
+                item_name == "LIST"
+
+            # disable game for TRTL discord
+            if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+                return
+
+            serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+            if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+                prefix = serverinfo['prefix']
+                await ctx.message.add_reaction(EMOJI_ERROR)
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+                await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy buy** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+                return
+
+            if serverinfo['economy_channel']:
+                eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+                if not eco_channel:
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                    return
+                elif ctx.channel.id != int(serverinfo['economy_channel']):
+                    try:
+                        EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                        await ctx.message.add_reaction(EMOJI_ERROR)
+                        return
+                    except Exception as e:
+                        pass
+            else:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+                return
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+            await logchanbot(traceback.format_exc())
+
+
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game economy** play.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+
+        # Getting list
+        get_userinfo = await store.economy_get_user(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator))
+        if get_userinfo:
+            if get_userinfo['fishing_bait'] >= config.economy.max_bait_per_user and (item_name.upper() == "BAIT" or item_name == "🎣"):
+                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have maximum of baits already.')
+                return
+            elif get_userinfo['tree_seed'] >= config.economy.max_seed_per_user and (item_name.upper() == "SEED" or item_name == "🌱"):
+                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have maximum of seeds already.')
+                return
+            elif get_userinfo['numb_farm'] >= config.economy.max_farm_per_user and (item_name.upper() == "FARM" or item_name == "👨‍🌾"):
+                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have a `farm` already.')
+                return
+            elif get_userinfo['numb_chicken_farm'] >= config.economy.max_chickenfarm_per_user and (item_name.upper() == "CHICKENFARM" or item_name.upper() == "CHICKEN FARM"):
+                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have a `chicken farm` already.')
+                return
+            elif get_userinfo['numb_chicken_farm'] == 0 and (item_name.upper() == "CHICKEN" or item_name == "🐔"):
+                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have a `chicken farm`.')
+                return
+            elif get_userinfo['numb_chicken'] >= config.economy.max_chicken_per_user and (item_name.upper() == "CHICKEN" or item_name == "🐔"):
+                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have maximum of chicken already.')
+                return
+            elif get_userinfo['numb_tractor'] >= config.economy.max_tractor_per_user and (item_name.upper() == "TRACTOR" or item_name == "🚜"):
+                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have a `tractor` already.')
+                return
+            elif get_userinfo['numb_dairy_cattle'] >= config.economy.max_dairycattle_per_user and (item_name.upper() == "DAIRY CATTLE" or item_name == "DAIRYCATTLE"):
+                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have a dairy cattle already.')
+                return
+            elif get_userinfo['numb_dairy_cattle'] == 0 and item_name.upper() == "COW":
+                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have `dairy cattle`.')
+                return
+            elif get_userinfo['numb_farm'] == 0 and (item_name.upper() == "TRACTOR" or item_name == "🚜"):
+                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have a `farm`.')
+                return
+            elif get_userinfo['numb_boat'] >= config.economy.max_boat_per_user and (item_name.upper() == "BOAT" or item_name == "🚣"):
+                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have a `boat` already.')
+                return
+            elif get_userinfo['numb_cow'] >= config.economy.max_cow_per_user and (item_name.upper() == "COW" or item_name == "🐄"):
+                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have maximum of cows already.')
+                return
+            elif get_userinfo['numb_market'] >= config.economy.max_market_per_user and (item_name.upper() == "MARKET" or item_name == "🛒"):
+                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have a `market` already.')
+                return
+            else:
+                try:
+                    if item_name.upper() == "LIST":
+                        # List item
+                        get_shop_itemlist = await store.economy_shop_get_item_list()
+                        if get_shop_itemlist and len(get_shop_itemlist) > 0:
+                            e = discord.Embed(title="Shop Bot".format(ctx.author.name, ctx.author.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
+                            for each_item in get_shop_itemlist:
+                                remark_text = ""
+                                if each_item['remark'] and len(each_item['remark']) > 0:
+                                    remark_text = each_item['remark']
+                                fee_str = "💵" if each_item['item_name'] != "Credit" else "💎"
+                                e.add_field(name=each_item['item_name'] + " " + each_item['item_emoji'] + " Fee: {:,.2f}".format(each_item['credit_cost']) + fee_str, value="```Each: {}, Level: {}\n{}```".format(each_item['item_numbers'], each_item['limit_level'] if each_item['limit_level']>0 else 1, remark_text), inline=False)
+                            e.set_footer(text=f"User {ctx.author.name}#{ctx.author.discriminator}")
+                            e.set_thumbnail(url=ctx.author.display_avatar)
+                            msg = await ctx.send(embed=e)
+                            await msg.add_reaction(EMOJI_OK_BOX)
+                        else:
+                            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} there is no item in our shop.')
+                    elif item_name.upper() == "CREDIT":
+                        # Using gem instead of credit
+                        get_shop_item = await store.economy_shop_get_item(item_name)
+                        get_inventory_from_backpack = await store.economy_get_user_inventory(str(ctx.author.id), 'Gem')
+                        if len(get_inventory_from_backpack) > 0 and 'numbers' in get_inventory_from_backpack:
+                            get_userinfo['gem_credit'] += get_inventory_from_backpack['numbers'] 
+                        if get_shop_item:
+                            level = int((get_userinfo['exp']-10)**0.5) + 1
+                            needed_level = get_shop_item['limit_level']
+                            if get_userinfo['gem_credit'] <= 0 or get_userinfo['gem_credit'] < get_shop_item['credit_cost']:
+                                user_credit = get_userinfo['gem_credit']
+                                need_credit = get_shop_item['credit_cost']
+                                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have sufficient gem. Having only `{user_credit}`. Need `{need_credit}`.')
+                            elif level < get_shop_item['limit_level']:
+                                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Your level `{level}` is still low. Needed level `{str(needed_level)}`.')
+                            else:
+                                if ctx.author.id not in GAME_INTERACTIVE_ECO:
+                                    GAME_INTERACTIVE_ECO.append(ctx.author.id)
+                                # Make order
+                                add_item_numbers = get_shop_item['item_numbers']
+                                update_item = await store.discord_economy_userinfo_what(str(ctx.guild.id), str(ctx.author.id), get_shop_item['id'], item_name, 0, add_item_numbers)
+                                if update_item:
+                                    item_desc = get_shop_item['item_name'] + " " + get_shop_item['item_emoji'] + " x" + str(add_item_numbers)
+                                    await ctx.message.reply(f'{EMOJI_INFORMATION} You successfully purchased {item_desc}.')
+                        else:
+                            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} item `{item_name}` is not available.')
+                    else:
+                        # Check if enough credit
+                        # 1) Check price
+                        get_shop_item = await store.economy_shop_get_item(item_name)
+                        if get_shop_item:
+                            level = int((get_userinfo['exp']-10)**0.5) + 1
+                            needed_level = get_shop_item['limit_level']
+                            your_fishing_exp = get_userinfo['fishing_exp']
+                            need_fishing_exp = get_shop_item['fishing_exp']
+                            if get_userinfo['credit'] < get_shop_item['credit_cost']:
+                                user_credit = "{:,.2f}".format(get_userinfo['credit'])
+                                need_credit = "{:,.2f}".format(get_shop_item['credit_cost'])
+                                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have sufficient credit. Having only `{user_credit}`. Need `{need_credit}`.')
+                            elif level < get_shop_item['limit_level']:
+                                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Your level `{level}`  is still low. Needed level `{str(needed_level)}`.')
+                            elif need_fishing_exp > 0 and your_fishing_exp <  need_fishing_exp:
+                                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Your fishing exp `{your_fishing_exp}`  is still low. Needed fishing exp `{str(need_fishing_exp)}`.')
+                            else:
+                                if ctx.author.id not in GAME_INTERACTIVE_ECO:
+                                    GAME_INTERACTIVE_ECO.append(ctx.author.id)
+                                # Make order
+                                add_item_numbers = get_shop_item['item_numbers']
+                                if (item_name.upper() == "BAIT" or item_name == "🎣") and get_userinfo['fishing_bait'] + add_item_numbers > config.economy.max_bait_per_user:
+                                    add_item_numbers = config.economy.max_bait_per_user - get_userinfo['fishing_bait']
+                                elif (item_name.upper() == "SEED" or item_name == "🌱") and get_userinfo['tree_seed'] + add_item_numbers > config.economy.max_seed_per_user:
+                                    add_item_numbers = config.economy.max_seed_per_user - get_userinfo['tree_seed']
+                                update_item = None
+                                try:
+                                    update_item = await store.discord_economy_userinfo_what(str(ctx.guild.id), str(ctx.author.id), get_shop_item['id'], item_name, add_item_numbers, -get_shop_item['credit_cost'])
+                                except Exception as e:
+                                    traceback.print_exc(file=sys.stdout)
+                                    await logchanbot(traceback.format_exc())
+                                item_desc = get_shop_item['item_name'] + " " + get_shop_item['item_emoji'] + " x" + str(add_item_numbers)
+                                if update_item:
+                                    await ctx.message.reply(f'{EMOJI_INFORMATION} You successfully purchased {item_desc}.')
+                                else:
+                                    await ctx.message.reply(f'{EMOJI_INFORMATION} internal error {item_desc}.')
+                        else:
+                            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} item `{item_name}` is not available.')
+                except Exception as e:
+                    traceback.print_exc(file=sys.stdout)
+                    await logchanbot(traceback.format_exc())
+                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error.')
+            return
+
+
+    @economy.command(usage="eco <info> <member>", description="Get an economy information of a member.")
+    async def info(self, ctx, member: discord.Member = None):
+        global TRTL_DISCORD
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        if member is None:
+            member = ctx.author
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy work** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+
+        # Get all available work in the guild
+        get_worklist = await store.economy_get_guild_worklist(str(ctx.guild.id), True)
+        # Getting list of work in the guild and re-act
+        get_userinfo = await store.economy_get_user(str(member.id), '{}#{}'.format(member.name, member.discriminator))
+        if get_userinfo:
+            count_eating_record = await store.economy_get_guild_eating_list_record(str(ctx.guild.id), 12*3600)
+            if count_eating_record is None:
+                count_eating_record = []
+            allowed_eating_session = int(config.economy.max_guild_food*len(ctx.guild.members))
+            try:
+                get_inventory_from_backpack = await store.economy_get_user_inventory(str(member.id), 'Gem')
+                if get_inventory_from_backpack and 'numbers' in get_inventory_from_backpack:
+                    get_userinfo['gem_credit'] += get_inventory_from_backpack['numbers']
+                embed = discord.Embed(title="{}#{} - Credit {:,.2f}{}/ Gem: {:,.0f}{}".format(member.name, member.discriminator, get_userinfo['credit'], '💵', get_userinfo['gem_credit'], '💎'), description="Economy [Testing]")
+                embed.add_field(name="Health: {0:.2f}%".format(get_userinfo['health_current']/get_userinfo['health_total']*100), value='```{}```'.format(createBox(get_userinfo['health_current'], get_userinfo['health_total'], 20)), inline=False)
+                embed.add_field(name="Energy: {0:.2f}%".format(get_userinfo['energy_current']/get_userinfo['energy_total']*100), value='```{}```'.format(createBox(get_userinfo['energy_current'], get_userinfo['energy_total'], 20)), inline=False)
+                if get_userinfo['exp'] > 0:
+                    level = int((get_userinfo['exp']-10)**0.5) + 1
+                    next_level_exp = level**2 + 10
+                    current_level_exp = (level-1)**2 + 10
+                    embed.add_field(name="Level / Exp: {} / {:,.0f}".format(level, get_userinfo['exp']), value='```{} [{:,.0f}/{:,.0f}]```'.format(createBox(get_userinfo['exp']-current_level_exp, next_level_exp-current_level_exp, 20), get_userinfo['exp']-current_level_exp, next_level_exp-current_level_exp), inline=False)
+                try:
+                    get_activities_user_1w = await store.economy_get_user_activities_duration(str(ctx.author.id), 7*24*3600)
+                    embed.add_field(name="Last 1 week works", value=len(get_activities_user_1w), inline=True)
+                except:
+                    traceback.print_exc(file=sys.stdout)
+                # Get user inventory
+                get_user_inventory = await store.economy_get_user_inventory(str(member.id))
+                nos_items = sum(each_item['numbers'] for each_item in get_user_inventory if each_item['item_name'] != "Gem")
+                items_str = ''.join([each_item['item_emoji'] for each_item in get_user_inventory]) if len(get_user_inventory) > 0 else ''
+                embed.add_field(name="Backpack", value='{}/{} {}'.format(nos_items, config.economy.max_backpack_items, items_str), inline=True)
+                embed.add_field(name="Fishing Bait", value='{}/{}'.format(get_userinfo['fishing_bait'], config.economy.max_bait_per_user), inline=True)
+                embed.add_field(name="Fishing Exp", value='{:,.0f}'.format(get_userinfo['fishing_exp']), inline=True)
+                embed.add_field(name="Seed - Planted/Cut", value='{}/{} - {}/{}'.format(get_userinfo['tree_seed'], config.economy.max_seed_per_user, get_userinfo['tree_planted'], get_userinfo['tree_cut']), inline=True)
+                try:
+                    get_last_act = await store.economy_get_last_activities(str(member.id), False)
+                    get_work_id = await store.economy_get_workd_id(get_last_act['work_id'])
+                    if get_last_act:
+                        work_status = ''
+                        if get_last_act['status'] == 'ONGOING':
+                            work_status = 'Current work'
+                        else:
+                            work_status = 'Completed work'
+                        embed.add_field(name=work_status, value=get_work_id['work_name'], inline=True)
+                        if get_last_act['status'] == 'ONGOING':
+                            remaining_duration =  get_last_act['started'] + get_last_act['duration_in_second'] - int(time.time())
+                            if remaining_duration < 0: remaining_duration = 0
+                            embed.add_field(name='Can claim in', value=seconds_str(remaining_duration), inline=True)
+                    else:
+                        embed.add_field(name='Work', value='N/A', inline=True)
+                except:
+                    traceback.print_exc(file=sys.stdout)
+                embed.add_field(name="Guild's food quota 12h", value='{}/{}'.format(len(count_eating_record), allowed_eating_session), inline=True)
+                embed.add_field(name="Guild's population", value='{}*'.format(len(ctx.guild.members)), inline=True)
+                embed.set_thumbnail(url=member.display_avatar)
+                embed.set_footer(text=f"Requested by {ctx.author.name}#{ctx.author.discriminator}")
+                await ctx.send(embed=embed)
+            except:
+                traceback.print_exc(file=sys.stdout)
+                await logchanbot(traceback.format_exc())
+                error = discord.Embed(title=":exclamation: Error", description=" :warning: You need to mention the user you want this info for!", color=0xe51e1e)
+                await ctx.send(embed=error)
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error.')
+            return
+
+
+    @economy.command(usage="eco <items>", aliases=['item', 'backpack'], description="List items in backpack.")
+    async def items(self, ctx):
+        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy items** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+
+        # Getting list of work in the guild and re-act
+        get_userinfo = await store.economy_get_user(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator))
+        
+        # Get user inventory
+        get_user_inventory = await store.economy_get_user_inventory(str(ctx.author.id))
+        nos_items = sum(each_item['numbers'] for each_item in get_user_inventory if each_item['item_name'] != "Gem")
+        if get_user_inventory and nos_items == 0:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have any item in your backpack.')
+            return
+        elif get_user_inventory and len(get_user_inventory) > 0:
+            # list all of them
+            try:
+                if ctx.author.id not in GAME_INTERACTIVE_ECO:
+                    GAME_INTERACTIVE_ECO.append(ctx.author.id)
+                    # Add work if he needs to do
+                    e = discord.Embed(title="{}#{} Item in backpack".format(ctx.author.name, ctx.author.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
+                    all_item_backpack = {}
+                    if get_user_inventory and len(get_user_inventory) > 0:
+                        for each_item in get_user_inventory:
+                            if each_item['item_health'] > 0:
+                                e.add_field(name=each_item['item_name'] + " " + each_item['item_emoji'] + "x" +str(each_item['numbers']), value="```Health: {}```".format(each_item['item_health']), inline=False)
+                                all_item_backpack[str(each_item['item_emoji'])] = each_item['item_id']
+                            if each_item['item_energy'] > 0:
+                                e.add_field(name=each_item['item_name'] + " " + each_item['item_emoji'] + "x" +str(each_item['numbers']), value="```Energy: {}```".format(each_item['item_energy']), inline=False)
+                                all_item_backpack[str(each_item['item_emoji'])] = each_item['item_id']
+                            if each_item['item_gem'] > 0:
+                                pass
+                                #e.add_field(name=each_item['item_name'] + " " + each_item['item_emoji'] + "x" +str(each_item['numbers']), value="```Gem: {}```".format(each_item['item_gem']), inline=False)
+                        e.set_footer(text=f"User {ctx.author.name}#{ctx.author.discriminator}")
+                        e.set_thumbnail(url=ctx.author.display_avatar)
+                        msg = await ctx.send(embed=e)
+                        for key, value in all_item_backpack.items():
+                            await msg.add_reaction(key)
+                        await msg.add_reaction(EMOJI_OK_BOX)
+
+                        def check(reaction, user):
+                            return user == ctx.author and reaction.message.author == bot.user and reaction.message.id == msg.id
+                        while True:
+                            try:
+                                reaction, user = await bot.wait_for('reaction_add', timeout=60, check=check)
+                            except asyncio.TimeoutError:
+                                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                                await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
+                                try:
+                                    await msg.delete()
+                                except Exception as e:
+                                    pass
+                                break
+                                return
+                            if reaction.emoji and str(reaction.emoji) in all_item_backpack:
+                                try:
+                                    get_item_id = await store.economy_get_item_id(all_item_backpack[str(reaction.emoji)])
+                                    # Else, go on and Insert work to DB
+                                    add_energy = 0
+                                    add_energy_health_str = ""
+                                    if get_item_id['item_energy'] > 0:
+                                        add_energy = get_item_id['item_energy']
+                                        if get_userinfo['energy_current'] + add_energy > get_userinfo['energy_total']:
+                                            add_energy = get_userinfo['energy_total'] - get_userinfo['energy_current']
+                                        add_energy_health_str = "{} energy".format(add_energy)
+                                        total_energy = get_userinfo['energy_current'] + add_energy
+                                        total_energy_health_str = f"You have total `{total_energy}` energy."
+                                    add_health = 0
+                                    if get_item_id['item_health'] > 0:
+                                        add_health = get_item_id['item_health']
+                                        if get_userinfo['health_current'] + add_health > get_userinfo['health_total']:
+                                            add_health = get_userinfo['health_total'] - get_userinfo['health_current']
+                                        add_energy_health_str = "{} health".format(add_health)
+                                        total_health = get_userinfo['health_current'] + add_health
+                                        total_energy_health_str = f"You have total `{total_health}` health."
+                                    # Update userinfo
+                                    update_userinfo = await store.economy_item_update_used(str(ctx.author.id), all_item_backpack[str(reaction.emoji)], add_energy, add_health)
+                                    using_item = '{} {}'.format(get_item_id['item_name'], get_item_id['item_emoji'])
+                                    if update_userinfo:
+                                        await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} You used `{using_item}`. You gained `{add_energy_health_str}`. {total_energy_health_str}')
+                                        await msg.delete()
+                                        await ctx.message.add_reaction(reaction.emoji)
+                                    else:
+                                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error.')
+                                    if ctx.author.id in GAME_INTERACTIVE_ECO:
+                                        GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                                    break
+                                except Exception as e:
+                                    await logchanbot(traceback.format_exc())
+                            elif str(reaction.emoji) == EMOJI_OK_BOX:
+                                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                                return
+                    else:
+                        if ctx.author.id in GAME_INTERACTIVE_ECO:
+                            GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Sorry, there is no available work yet.')
+                        return
+            except Exception as e:
+                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                traceback.print_exc(file=sys.stdout)
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have anything in your backpack.')
+            return
+
+
+    @economy.command(usage="eco <lumber> <member>", aliases=['timber', 'wood'], description="List lumber.")
+    async def lumber(self, ctx, member: discord.Member = None):
+        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        if member is None:
+            member = ctx.author
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy lumber** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+        try:
+            get_lumber_inventory = await store.economy_get_timber_user(str(member.id), sold_timber='NO', sold_leaf='NO')
+            if len(get_lumber_inventory) > 0:
+                e = discord.Embed(title="{}#{} Lumber/Leaf".format(member.name, member.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
+                e.add_field(name="Timber / Leaf", value="{:,.2f}m3 / {:,.2f}kg".format(get_lumber_inventory['timber_vol'], get_lumber_inventory['leaf_kg']), inline=False)
+                e.set_footer(text=f"Requested by {ctx.author.name}#{ctx.author.discriminator}")
+                e.set_thumbnail(url=member.display_avatar)
+                msg = await ctx.message.reply(embed=e)
+                await msg.add_reaction(EMOJI_OK_BOX)
+            else:
+                await ctx.message.reply(f'{member.name}#{member.discriminator}, not having timber/leaves!')
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+        return
+
+
+    @economy.command(usage="eco <fish> <member>", aliases=['fishes'], description="Show fishes.")
+    async def fish(self, ctx, member: discord.Member = None):
+        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        if member is None:
+            member = ctx.author
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy fish** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+        try:
+            get_fish_inventory_list = await store.economy_get_list_fish_caught(str(member.id), sold='NO', caught='YES')
+            if len(get_fish_inventory_list) > 0:
+                e = discord.Embed(title="{}#{} Fishes".format(member.name, member.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
+                fishes_lists = ""
+                for each_item in get_fish_inventory_list:
+                    fishes_lists += each_item['fish_name'] + " " + each_item['fish_emoji'] + " x" +str(each_item['numbers']) + "={:,.2f}kg".format(each_item['Weights']) + "\n"
+                total_weight = sum(each_item['Weights'] for each_item in get_fish_inventory_list)
+                e.add_field(name="Fishes ({:,.2f}kg)".format(total_weight), value=fishes_lists, inline=False)
+                e.set_footer(text=f"Requested by {ctx.author.name}#{ctx.author.discriminator}")
+                e.set_thumbnail(url=member.display_avatar)
+                msg = await ctx.message.reply(embed=e)
+                await msg.add_reaction(EMOJI_OK_BOX)
+            else:
+                await ctx.message.reply(f'{member.name}#{member.discriminator}, not having fish!')
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+        return
+
+
+    @economy.command(usage="eco <plant> <crop name>", description="Plant a crop.")
+    async def plant(self, ctx, plant_name: str=None):
+        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        if plant_name is None: plant_name = "TREE"
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy plant** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+
+        # get farm plant list
+        plant_list_arr = await store.economy_farm_get_list_plants()
+        plant_list_names = [name['plant_name'].lower() for name in plant_list_arr]
+
+        if plant_name and plant_name.upper() == "LIST":
+            e = discord.Embed(title="Plant List", description="Economy [Testing]", timestamp=datetime.utcnow())
+            for each_crop in plant_list_arr:
+                e.add_field(name=each_crop['plant_name'] + " " + each_crop['plant_emoji'] + " Dur. : {}".format(seconds_str(each_crop['duration_harvest'])), value="Harvested: {} | Credit: {}".format(each_crop['number_of_item'], each_crop['credit_per_item']*each_crop['number_of_item']), inline=False)
+            e.set_footer(text=f"Requested by {ctx.author.name}#{ctx.author.discriminator}")
+            e.set_thumbnail(url=ctx.author.display_avatar)
+            msg = await ctx.message.reply(embed=e)
+            await msg.add_reaction(EMOJI_OK_BOX)
+            return
+            
+        # Getting list of work in the guild and re-act
+        get_userinfo = await store.economy_get_user(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator))
+        if get_userinfo and get_userinfo['tree_seed'] <= 0:
+            prefix = await get_guild_prefix(ctx)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have any seed. Please buy `{prefix}eco buy seed`.')
+            return
+
+        if get_userinfo['numb_farm'] == 0 and plant_name != "TREE":
+            await ctx.message.reply(f'{ctx.author.mention} You do not have any farm.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+        
+        try:
+            has_tractor = False
+            will_plant = 1
+            if get_userinfo['numb_tractor'] >= 1:
+                has_tractor = True
+                will_plant = config.economy.max_tractor_can_plant
+                if get_userinfo['tree_seed'] < will_plant:
+                    will_plant = get_userinfo['tree_seed']
+            check_planting_nos = await store.economy_farm_user_planting_check_max(str(ctx.author.id))
+            if check_planting_nos + will_plant > config.economy.max_farm_plant_per_user and has_tractor == True:
+                will_plant = config.economy.max_farm_plant_per_user - check_planting_nos
+            # If health less than 50%, stop
+            if get_userinfo['health_current']/get_userinfo['health_total'] < 0.5:
+                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Your health is having issue. Do some heatlh check.')
+                return
+            # If energy less than 20%, stop
+            if get_userinfo['energy_current']/get_userinfo['energy_total'] < 0.2:
+                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You have very small energy. Eat to powerup.')
+                return
+
+            if ctx.author.id in GAME_INTERACTIVE_ECO:
+                await ctx.send(f'{ctx.author.mention} You are ongoing with one **game economy** play.')
+                await ctx.message.add_reaction(EMOJI_ERROR)
+                return
+            else:
+                GAME_INTERACTIVE_ECO.append(ctx.author.id)
+
+            if plant_name not in plant_list_names and plant_name != "TREE":
+                plant_name_str = ", ".join(plant_list_names)
+                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} They are not available. Please use any of this `{plant_name_str}`.')
+                return
+            # TODO: check if user already has max planted
+            
+            if check_planting_nos >= config.economy.max_farm_plant_per_user and plant_name != "TREE":
+                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You planted maximum number of crops already.')
+                return
+            elif plant_name == "TREE":
+                await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
+                await asyncio.sleep(1.5)
+                exp_gained = config.economy.plant_exp_gained
+                energy_loss = exp_gained * 2
+                insert_item = await store.economy_insert_planting(str(ctx.author.id), str(ctx.guild.id), exp_gained, energy_loss)
+                if insert_item:
+                    msg = await ctx.message.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} Nice! You have planted a tree. You gained `{str(exp_gained)}` planting experience and spent `{str(energy_loss)}` energy.')
+            else:
+                # Not tree and not max, let's plant
+                # Using tractor, loss same energy but gain more experience
+                if has_tractor:
+                    await ctx.message.add_reaction("🚜")
+                else:
+                    await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
+                await asyncio.sleep(1.5)
+                exp_gained = config.economy.plant_exp_gained
+                energy_loss = exp_gained * 2
+                selected_crop = None
+                for each_item in plant_list_arr:
+                    if plant_name.upper() == each_item['plant_name'].upper() or plant_name == each_item['plant_emoji']:
+                        selected_crop = each_item
+                        break
+                crop_name = "`" + selected_crop['plant_name'] + "` " + selected_crop['plant_emoji']
+                insert_item = await store.economy_farm_insert_crop(selected_crop['id'], str(ctx.author.id), str(ctx.guild.id), 
+                                                                   selected_crop['duration_harvest']+int(time.time()), selected_crop['number_of_item'],
+                                                                   selected_crop['credit_per_item'], exp_gained, energy_loss, will_plant)
+                if insert_item:
+                    msg = await ctx.message.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} Nice! You have planted `{will_plant}` {crop_name} in your farm. '
+                                                  f'You gained `{str(exp_gained*will_plant)}` planting experience and spent `{str(energy_loss)}` energy. '
+                                                  f'You have {str(check_planting_nos+will_plant)} crop(s) in your farm now.')
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+            await logchanbot(traceback.format_exc())
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+        return
+
+
+    @economy.command(usage="eco <collect> <what>", aliases=['cl'], description="Collect collectible thing.")
+    async def collect(self, ctx, what: str = None):
+        global TRTL_DISCORD, GAME_INTERACTIVE_ECO, MAINTENANCE_OWNER
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        if what is None:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} What do you need to collect? Tell me that also!')
+            return
+        else:
+            what = what.upper()
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy collect** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+
+        get_userinfo = await store.economy_get_user(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator))
+        if what == "MILK" and get_userinfo and get_userinfo['numb_dairy_cattle'] == 0:
+            await ctx.message.reply(f'Not having any dairy cattle.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+        elif what == "MILK" and get_userinfo and get_userinfo['numb_cow'] == 0:
+            await ctx.message.reply(f'You do not have any cow.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+        elif what == "EGG" and get_userinfo and get_userinfo['numb_chicken_farm'] == 0:
+            await ctx.message.reply(f'Not having any chicken farm.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+        elif what == "EGG" and get_userinfo and get_userinfo['numb_chicken'] == 0:
+            await ctx.message.reply(f'You do not have any chicken.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+        elif what == "MILK":
+            try:
+                if ctx.author.id not in GAME_INTERACTIVE_ECO:
+                    GAME_INTERACTIVE_ECO.append(ctx.author.id)
+                total_can_collect = 0
+                qty_collect = 0.0
+                get_cows = await store.economy_dairy_cow_ownership(str(ctx.author.id))
+                id_collecting = []
+                if get_cows and len(get_cows) > 0:
+                    for each_cow in get_cows:
+                        if each_cow['possible_collect_date'] < int(time.time()):
+                            total_can_collect += 1
+                            qty_collect += config.economy.raw_milk_per_cow
+                            id_collecting.append(each_cow['id'])
+                    if total_can_collect > 0:
+                        insert_collecting = await store.economy_dairy_collecting(str(ctx.author.id), id_collecting, qty_collect, config.economy.credit_raw_milk_liter)
+                        if insert_collecting:
+                            msg = await ctx.message.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} Nice! You have collected `{qty_collect}` '
+                                                          f'liters of milk from `{total_can_collect}` cow(s).')
+                    else:
+                        await ctx.message.reply(f'You need to wait a bit longer. It\'s not time yet.')
+                        await ctx.message.add_reaction(EMOJI_ERROR)
+                else:
+                    await ctx.message.reply(f'You do not have any cow.')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+            except Exception as e:
+                traceback.print_exc(file=sys.stdout)
+                await logchanbot(traceback.format_exc())
+        elif what == "EGG":
+            try:
+                if ctx.author.id not in GAME_INTERACTIVE_ECO:
+                    GAME_INTERACTIVE_ECO.append(ctx.author.id)
+                total_can_collect = 0
+                qty_collect = 0.0
+                get_chickens = await store.economy_chicken_farm_ownership(str(ctx.author.id))
+                id_collecting = []
+                if get_chickens and len(get_chickens) > 0:
+                    for each_chicken in get_chickens:
+                        if each_chicken['possible_collect_date'] < int(time.time()):
+                            total_can_collect += 1
+                            qty_collect += config.economy.egg_per_chicken
+                            id_collecting.append(each_chicken['id'])
+                    if total_can_collect > 0:
+                        insert_collecting = await store.economy_egg_collecting(str(ctx.author.id), id_collecting, qty_collect, config.economy.credit_egg)
+                        if insert_collecting:
+                            msg = await ctx.message.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} Nice! You have collected `{qty_collect}` '
+                                                          f'egg(s) from `{total_can_collect}` chicken(s).')
+                    else:
+                        await ctx.message.reply(f'You need to wait a bit longer. It\'s not time yet.')
+                        await ctx.message.add_reaction(EMOJI_ERROR)
+                else:
+                    await ctx.message.reply(f'You do not have any chicken.')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+            except Exception as e:
+                traceback.print_exc(file=sys.stdout)
+                await logchanbot(traceback.format_exc())
+        else:
+            await ctx.message.reply(f'Sorry `{what}` is not available.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+        return
+
+
+    @economy.command(usage="eco <dairy> <member>", aliases=['cow'], description="Show dairy of a member.")
+    async def dairy(self, ctx, member: discord.Member = None):
+        global TRTL_DISCORD, GAME_INTERACTIVE_ECO, MAINTENANCE_OWNER
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+        
+        if member is None:
+            member = ctx.author
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy dairy** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+
+        # Getting list of work in the guild and re-act
+        get_userinfo = await store.economy_get_user(str(member.id), '{}#{}'.format(member.name, member.discriminator))
+        if get_userinfo and get_userinfo['numb_dairy_cattle'] == 0:
+            await ctx.message.reply(f'Not having any dairy cattle.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+        else:
+            try:
+                # Farm list
+                fence_left = "❎"
+                soil = "🟫"
+                fence_right = "❎"
+                fence_h = "❎"
+                cattle = ""
+                can_collect = []
+                total_can_collect = 0
+                can_harvest_string = "None"
+                cow_emoji = "🐄"
+                # Get all item in farms
+                get_cows = await store.economy_dairy_cow_ownership(str(member.id))
+                if get_cows and len(get_cows) > 0:
+                    cows_array_emoji = [cow_emoji]*len(get_cows)
+                    if len(cows_array_emoji) < config.economy.max_cow_per_user:
+                        cows_array_emoji = cows_array_emoji + [soil]*(config.economy.max_cow_per_user - len(cows_array_emoji))
+                    i=1
+                    for each_cow in cows_array_emoji:
+                        if (i-1) % 6 == 0:
+                            cattle += f"{fence_left}"
+                            cattle += f"{each_cow}"
+                        elif i > 0 and i % 6 == 0:
+                            cattle += f"{each_cow}"
+                            cattle += f"{fence_right}\n"
+                        else:
+                            cattle += f"{each_cow}"
+                        i += 1
+                    cattle = f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n" + cattle
+                    cattle += f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n"
+                    for each_cow in get_cows:
+                        if each_cow['possible_collect_date'] < int(time.time()):
+                            if "{}".format(cow_emoji) not in can_collect:
+                                can_collect.append("{}".format(cow_emoji))
+                            total_can_collect += 1
+                    if total_can_collect > 0:
+                        can_harvest_string = "\n".join(can_collect)
+                else:
+                    # Empty cattle
+                    cows_array_emoji = [soil]*(config.economy.max_cow_per_user)
+                    i=1
+                    for each_cow in cows_array_emoji:
+                        if (i-1) % 6 == 0:
+                            cattle += f"{fence_left}"
+                            cattle += f"{each_cow}"
+                        elif i > 0 and i % 6 == 0:
+                            cattle += f"{each_cow}"
+                            cattle += f"{fence_right}\n"
+                        else:
+                            cattle += f"{each_cow}"
+                        i += 1
+                    cattle = f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n" + cattle
+                    cattle += f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n"
+
+                e = discord.Embed(title="{}#{} Dairy Cattle".format(member.name, member.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
+                e.add_field(name="Dairy Cattle View", value=cattle, inline=False)
+                if total_can_collect > 0:
+                    e.add_field(name="Can Collect: {}".format(total_can_collect), value=can_harvest_string, inline=False)
+                try:
+                    get_raw_milk = await store.economy_dairy_collected(str(member.id))
+                    if get_raw_milk and len(get_raw_milk) > 0:
+                        qty_raw_milk = sum(each['collected_qty'] for each in get_raw_milk)
+                        e.add_field(name="Raw Milk Available", value=cow_emoji + " x" +str(len(get_raw_milk)) + "={:,.2f}".format(qty_raw_milk), inline=False)
+                except Exception as e:
+                    traceback.print_exc(file=sys.stdout)
+                e.set_footer(text=f"Requested by {ctx.author.name}#{ctx.author.discriminator}")
+                e.set_thumbnail(url=member.display_avatar)
+                msg = await ctx.message.reply(embed=e)
+                await msg.add_reaction(EMOJI_OK_BOX)
+            except Exception as e:
+                traceback.print_exc(file=sys.stdout)
+                await logchanbot(traceback.format_exc())
+
+
+    @economy.command(usage="eco <chicken> <member>", aliases=['egg', 'chickenfarm'], description="Show chicken farm of a member.")
+    async def chicken(self, ctx, member: discord.Member = None):
+        global TRTL_DISCORD, GAME_INTERACTIVE_ECO, MAINTENANCE_OWNER
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+        
+        if member is None:
+            member = ctx.author
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy chicken** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+
+        # Getting list of work in the guild and re-act
+        get_userinfo = await store.economy_get_user(str(member.id), '{}#{}'.format(member.name, member.discriminator))
+        if get_userinfo and get_userinfo['numb_chicken_farm'] == 0:
+            await ctx.message.reply(f'Not having a chicken farm.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+        else:
+            try:
+                # Farm list
+                fence_left = "❎"
+                soil = "🟫"
+                fence_right = "❎"
+                fence_h = "❎"
+                cattle = ""
+                can_collect = []
+                total_can_collect = 0
+                can_harvest_string = "None"
+                chicken_emoji = "🐔"
+                # Get all item in farms
+                get_chickens = await store.economy_chicken_farm_ownership(str(member.id))
+                if get_chickens and len(get_chickens) > 0:
+                    chickens_array_emoji = [chicken_emoji]*len(get_chickens)
+                    if len(chickens_array_emoji) < config.economy.max_chicken_per_user:
+                        chickens_array_emoji = chickens_array_emoji + [soil]*(config.economy.max_chicken_per_user - len(chickens_array_emoji))
+                    i=1
+                    for each_chicken in chickens_array_emoji:
+                        if (i-1) % 9 == 0:
+                            cattle += f"{fence_left}"
+                            cattle += f"{each_chicken}"
+                        elif i > 0 and i % 9 == 0:
+                            cattle += f"{each_chicken}"
+                            cattle += f"{fence_right}\n"
+                        else:
+                            cattle += f"{each_chicken}"
+                        i += 1
+                    cattle = f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n" + cattle
+                    cattle += f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n"
+                    for each_chicken in get_chickens:
+                        if each_chicken['possible_collect_date'] < int(time.time()):
+                            if "{}".format(chicken_emoji) not in can_collect:
+                                can_collect.append("{}".format(chicken_emoji))
+                            total_can_collect += 1
+                    if total_can_collect > 0:
+                        can_harvest_string = "\n".join(can_collect)
+                else:
+                    # Empty cattle
+                    chickens_array_emoji = [soil]*(config.economy.max_chicken_per_user)
+                    i=1
+                    for each_chicken in chickens_array_emoji:
+                        if (i-1) % 9 == 0:
+                            cattle += f"{fence_left}"
+                            cattle += f"{each_chicken}"
+                        elif i > 0 and i % 9 == 0:
+                            cattle += f"{each_chicken}"
+                            cattle += f"{fence_right}\n"
+                        else:
+                            cattle += f"{each_chicken}"
+                        i += 1
+                    cattle = f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n" + cattle
+                    cattle += f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n"
+
+                e = discord.Embed(title="{}#{} Chicken Farm".format(member.name, member.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
+                e.add_field(name="Chicken Farm View", value=cattle, inline=False)
+                if total_can_collect > 0:
+                    e.add_field(name="Chicken Can Collect: {}".format(total_can_collect), value=can_harvest_string, inline=False)
+                try:
+                    get_eggs = await store.economy_egg_collected(str(member.id))
+                    if get_eggs and len(get_eggs) > 0:
+                        qty_eggs = sum(each['collected_qty'] for each in get_eggs)
+                        e.add_field(name="Egg Available", value=chicken_emoji + " x" +str(len(get_eggs)) + "={:,.0f}".format(qty_eggs), inline=False)
+                except Exception as e:
+                    traceback.print_exc(file=sys.stdout)
+                e.set_footer(text=f"Requested by {ctx.author.name}#{ctx.author.discriminator}")
+                e.set_thumbnail(url=member.display_avatar)
+                msg = await ctx.message.reply(embed=e)
+                await msg.add_reaction(EMOJI_OK_BOX)
+            except Exception as e:
+                traceback.print_exc(file=sys.stdout)
+                await logchanbot(traceback.format_exc())
+
+
+    @economy.command(usage="eco <chicken> <farm>", aliases=['farms'], description="Show a member's form.")
+    async def farm(self, ctx, member: discord.Member = None):
+        global TRTL_DISCORD, GAME_INTERACTIVE_ECO, MAINTENANCE_OWNER
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+        
+        if member is None:
+            member = ctx.author
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy farm** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+
+        # Getting list of work in the guild and re-act
+        get_userinfo = await store.economy_get_user(str(member.id), '{}#{}'.format(member.name, member.discriminator))
+        if get_userinfo and get_userinfo['numb_farm'] == 0:
+            await ctx.message.reply(f'Not having any farm.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+        else:
+            try:
+                # Farm list
+                fence_left = "❎"
+                soil = "🟫"
+                fence_right = "❎"
+                fence_h = "❎"
+                farm = ""
+                can_harvest = []
+                total_can_harvest = 0
+                can_harvest_string = "None"
+                # Get all item in farms
+                get_user_crops = await store.economy_farm_user_planting_nogroup(str(member.id))
+                if get_user_crops and len(get_user_crops) > 0:
+                    crop_array_emoji = [each_item['plant_emoji'] for each_item in get_user_crops]
+                    if len(crop_array_emoji) < config.economy.max_farm_plant_per_user:
+                        crop_array_emoji = crop_array_emoji + [soil]*(config.economy.max_farm_plant_per_user - len(crop_array_emoji))
+                    i=1
+                    for each_crop in crop_array_emoji:
+                        if (i-1) % 9 == 0:
+                            farm += f"{fence_left}"
+                            farm += f"{each_crop}"
+                        elif i > 0 and i % 9 == 0:
+                            farm += f"{each_crop}"
+                            farm += f"{fence_right}\n"
+                        else:
+                            farm += f"{each_crop}"
+                        i += 1
+                    farm = f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n" + farm
+                    farm += f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n"
+                    for each_crop in get_user_crops:
+                        if each_crop['can_harvest_date'] < int(time.time()):
+                            if "{}{}".format(each_crop['plant_name'], each_crop['plant_emoji']) not in can_harvest:
+                                can_harvest.append("{}{}".format(each_crop['plant_name'], each_crop['plant_emoji']))
+                            total_can_harvest += 1
+                    if total_can_harvest > 0:
+                        can_harvest_string = "\n".join(can_harvest)
+                else:
+                    # Empty farm
+                    crop_array_emoji = [soil]*(config.economy.max_farm_plant_per_user)
+                    i=1
+                    for each_crop in crop_array_emoji:
+                        if (i-1) % 9 == 0:
+                            farm += f"{fence_left}"
+                            farm += f"{each_crop}"
+                        elif i > 0 and i % 9 == 0:
+                            farm += f"{each_crop}"
+                            farm += f"{fence_right}\n"
+                        else:
+                            farm += f"{each_crop}"
+                        i += 1
+                    farm = f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n" + farm
+                    farm += f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n"
+
+                e = discord.Embed(title="{}#{} Farm".format(member.name, member.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
+                e.add_field(name="Farm View", value=farm, inline=False)
+                if total_can_harvest > 0:
+                    e.add_field(name="Can Harvest: {}".format(total_can_harvest), value=can_harvest_string, inline=False)
+                try:
+                    get_user_harvested_crops = await store.economy_farm_user_planting_group_harvested(str(member.id))
+                    if get_user_harvested_crops and len(get_user_harvested_crops) > 0:
+                        harvested_lists = ""
+                        for each_item in get_user_harvested_crops:
+                            harvested_lists += each_item['plant_name'] + " " + each_item['plant_emoji'] + " x" +str(each_item['numbers']) + "={:,.0f}".format(each_item['total_products']) + "\n"
+                        e.add_field(name="Harvested Available", value=harvested_lists, inline=False)
+                except Exception as e:
+                    traceback.print_exc(file=sys.stdout)
+                e.set_footer(text=f"Requested by {ctx.author.name}#{ctx.author.discriminator}")
+                e.set_thumbnail(url=member.display_avatar)
+                msg = await ctx.message.reply(embed=e)
+                await msg.add_reaction(EMOJI_OK_BOX)
+            except Exception as e:
+                traceback.print_exc(file=sys.stdout)
+                await logchanbot(traceback.format_exc())
+
+
+    @economy.command(usage="eco <harvest>", aliases=['harvesting'], description="Harvest your farm.")
+    async def harvest(self, ctx):
+        global TRTL_DISCORD
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy harvest** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game economy** play.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return        
+
+        get_userinfo = await store.economy_get_user(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator))
+        if get_userinfo and get_userinfo['numb_farm'] == 0:
+            await ctx.message.reply(f'You do not have any farm.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+        try:
+            if ctx.author.id not in GAME_INTERACTIVE_ECO:
+                GAME_INTERACTIVE_ECO.append(ctx.author.id)
+            total_can_harvest = 0
+            can_harvest = []
+            havested_crops = ""
+            get_user_crops = await store.economy_farm_user_planting_nogroup(str(ctx.author.id))
+            if get_user_crops and len(get_user_crops) > 0:
+                for each_crop in get_user_crops:
+                    if each_crop['can_harvest_date'] < int(time.time()):
+                        # add crop ID for update status
+                        can_harvest.append(each_crop['id'])
+                        havested_crops += each_crop['plant_name'] + each_crop['plant_emoji'] + " "
+                        total_can_harvest += 1
+                if total_can_harvest == 0:
+                    await ctx.message.reply(f'All your crops are not able to harvest yet!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                else:
+                    # Let's update farming
+                    harvesting = await store.economy_farm_harvesting(str(ctx.author.id), can_harvest)
+                    if harvesting:
+                        await ctx.message.reply('You harvested {} crop(s) {}.'.format(total_can_harvest, havested_crops))
+            else:
+                await ctx.message.reply(f'You do not have any plant for harvesting yet. Please plant them!')
+                await ctx.message.add_reaction(EMOJI_ERROR)
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+            await logchanbot(traceback.format_exc())
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+        return
+
+
+    @economy.command(usage="eco <fishing>", description="Do fishing.")
+    async def fishing(self, ctx):
+        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy fishing** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+        
+        # If user has so many items and not use:
+        # Getting list of work in the guild and re-act
+        get_userinfo = await store.economy_get_user(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator))
+        if get_userinfo and get_userinfo['fishing_bait'] <= 0:
+            prefix = await get_guild_prefix(ctx)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have any bait. Please buy `{prefix}eco buy bait`.')
+            return
+
+        # If he has to much fishes
+        try:
+            get_fish_inventory_list = await store.economy_get_list_fish_caught(str(ctx.author.id), sold='NO', caught='YES')
+            if len(get_fish_inventory_list) > 0:
+                total_weight = sum(each_item['Weights'] for each_item in get_fish_inventory_list)
+                if float(total_weight) >= float(config.economy.fishing_max_store):
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You too much in storage (max. {config.economy.fishing_max_store}kg). Please sell some of them!')
+                    return
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+            await logchanbot(traceback.format_exc())
+
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game economy** play.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+        else:
+            GAME_INTERACTIVE_ECO.append(ctx.author.id)
+
+        try:
+            # If health less than 50%, stop
+            if get_userinfo['health_current']/get_userinfo['health_total'] < 0.5:
+                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Your health is having issue. Do some heatlh check.')
+                return
+            # If energy less than 20%, stop
+            if get_userinfo['energy_current']/get_userinfo['energy_total'] < 0.2:
+                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You have very small energy. Eat to powerup.')
+                return
+
+            has_boat = False
+            will_fishing = 1
+            if get_userinfo['numb_boat'] >= 1:
+                has_boat = True
+                will_fishing = config.economy.max_boat_can_fishing
+                if get_userinfo['fishing_bait'] < will_fishing:
+                    will_fishing = get_userinfo['fishing_bait']
+            loop_exp = 0
+            fishing_exp = get_userinfo['fishing_exp']
+            try:
+                loop_exp = math.floor(math.log10(fishing_exp**0.75)) - 1
+                if loop_exp < 0: loop_exp = 0
+            except Exception as e:
+                traceback.print_exc(file=sys.stdout)
+
+            selected_item_list = []
+            item_list = await store.economy_get_list_fish_items()
+            total_energy_loss = 0.0
+            total_exp = 0.0
+            numb_caught = 0
+            for x in range(0, will_fishing):
+                caught = "YES" if bool(random.getrandbits(1)) else "NO"
+                if caught == "NO":
+                    while loop_exp > 0 and caught == "NO":
+                        loop_exp -= 1
+                        caught = "YES" if bool(random.getrandbits(1)) else "NO"
+                random.shuffle(item_list)
+                selected_item = random.choice(item_list) if item_list and len(item_list) > 0 else None
+                # Get a selected fish
+                fish_strength = round(random.uniform(float(selected_item['fish_strength_min']), float(selected_item['fish_strength_max'])), 2)
+                fish_weight = round(random.uniform(float(selected_item['fish_weight_min']), float(selected_item['fish_weight_max'])), 2)
+                energy_loss = round(float(fish_strength)*config.economy.fishing_energy_loss_ratio, 2)
+                if caught == "YES":
+                    exp_gained = int(fish_weight*config.economy.fishing_exp_strength_ratio) + 1
+                    numb_caught += 1
+                else:
+                    exp_gained = 0
+                selected_item_list.append({'id': selected_item['id'], 
+                                           'user_id': str(ctx.author.id), 
+                                           'guild_id': str(ctx.guild.id), 
+                                           'fish_strength': fish_strength, 
+                                           'fish_weight': fish_weight, 
+                                           'exp_gained': exp_gained, 
+                                           'energy_loss': energy_loss, 
+                                           'caught': caught,
+                                           'fish_name': selected_item['fish_name'],
+                                           'fish_emoji': selected_item['fish_emoji'],
+                                           })
+                total_energy_loss += energy_loss
+                total_exp += exp_gained
+            total_energy_loss = round(total_energy_loss, 2)
+            total_exp = round(total_exp, 2)
+            if will_fishing > 0: 
+                if has_boat:
+                    await ctx.message.add_reaction("🚣")
+                else:
+                    await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
+                await asyncio.sleep(1.5)
+                insert_item = await store.economy_insert_fishing_multiple(selected_item_list, total_energy_loss, total_exp, str(ctx.author.id))
+                if numb_caught > 0:
+                    item_info_list = []
+                    total_weight = 0.0
+                    for each_fish in selected_item_list:
+                        if each_fish['caught'] == "YES":
+                            item_info_list.append(each_fish['fish_name'] + " " + each_fish['fish_emoji'] + " - weight: {:.2f}kg".format(each_fish['fish_weight']))
+                            total_weight += each_fish['fish_weight']
+                    item_info = "\n".join(item_info_list)
+                    item_info_with_weight = item_info + "\nTotal: {:.2f}kg".format(total_weight)
+                    await ctx.message.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} Nice! You have caught `{numb_caught}` fish(es): ```{item_info_with_weight}```You spent `{will_fishing}` bait(s). You gained `{str(total_exp)}` fishing experience and spent `{str(total_energy_loss)}` energy.')
+                else:
+                    # Not caught
+                    await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} Too bad! You lose {will_fishing} fish(es) and spent `{str(total_energy_loss)}` energy!')
+            else:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no fish.')
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+            await logchanbot(traceback.format_exc())
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+        return
+
+
+    @economy.command(usage="eco <woodcutting>", aliases=['cuttree', 'wc', 'cw'], description="Cut tree(s).")
+    async def woodcutting(self, ctx):
+        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy woodcutting** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+
+        get_userinfo = await store.economy_get_user(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator))
+        if get_userinfo and get_userinfo['tree_cut'] > 10:
+            if get_userinfo['tree_planted'] / get_userinfo['tree_cut'] < config.economy.ratio_plant_cut:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You have cut many trees than planting. Please plant some trees.')
+                return
+
+        # If health less than 50%, stop
+        if get_userinfo['health_current']/get_userinfo['health_total'] < 0.5:
+            if ctx.author.id in GAME_INTERACTIVE_ECO:
+                GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Your health is having issue. Do some heatlh check.')
+            return
+        # If energy less than 20%, stop
+        if get_userinfo['energy_current']/get_userinfo['energy_total'] < 0.5:
+            if ctx.author.id in GAME_INTERACTIVE_ECO:
+                GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You have very small energy. Eat to powerup.')
+            return
+
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game economy** play.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+        else:
+            GAME_INTERACTIVE_ECO.append(ctx.author.id)
+
+        try:
+            # Get list of items:
+            await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
+            await asyncio.sleep(1.0)
+            timber_volume = math.floor(random.uniform(config.economy.plant_volume_rand_min, config.economy.plant_volume_rand_max)) + 1
+            leaf_kg = math.floor(config.economy.leaf_per_volume * timber_volume) + 1
+            energy_loss = int(timber_volume/5) + 10
+            try:
+                insert_woodcut = await store.economy_insert_woodcutting(str(ctx.author.id), str(ctx.guild.id), timber_volume, leaf_kg, energy_loss)
+                if insert_woodcut:
+                    await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} You cut a tree. You got `{timber_volume}m3` of timber, '
+                                   f'`{leaf_kg}kg` of leaves. You spent `{energy_loss}` energy.')
+            except Exception as e:
+                traceback.print_exc(file=sys.stdout)
+                await logchanbot(traceback.format_exc())
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+            await logchanbot(traceback.format_exc())
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+        return
+
+    @economy.command(usage="eco search", description="Search collectible items.")
+    async def search(self, ctx):
+        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy search** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+        
+        # If user has so many items and not use:
+        # Getting list of work in the guild and re-act
+        get_userinfo = await store.economy_get_user(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator))
+        get_user_inventory = await store.economy_get_user_inventory(str(ctx.author.id))
+        nos_items = sum(each_item['numbers'] for each_item in get_user_inventory if each_item['item_name'] != "Gem")
+        if get_userinfo and nos_items >= config.economy.max_backpack_items:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There are many items in your backpack. Please use them first.')
+            return
+
+        # If user just searched recently;
+        get_last_searching = await store.economy_get_user_searched_item_list_record(str(ctx.author.id), config.economy.search_duration_lap)
+        if get_last_searching and len(get_last_searching) >= config.economy.search_duration_lap_nos_item:
+            remaining = config.economy.search_duration_lap - int(time.time()) + get_last_searching[0]['date']
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You just searched recently. Try again in `{seconds_str(remaining)}`.')
+            return
+
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game economy** play.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+        else:
+            GAME_INTERACTIVE_ECO.append(ctx.author.id)
+
+        try:
+            # Get list of items:
+            await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
+            await asyncio.sleep(1.0)
+            if random.randint(1,100) < config.economy.luck_search:
+                # You get luck
+                try:
+                    item_list = await store.economy_get_list_secret_items()
+                    selected_item = random.choice(item_list)
+                    insert_item = await store.economy_insert_secret_findings(selected_item['id'], str(ctx.author.id), str(ctx.guild.id), selected_item['item_health'], selected_item['item_energy'], selected_item['item_gem'], True)
+                    if insert_item:
+                        item_info = selected_item['item_name'] + " " + selected_item['item_emoji']
+                        if selected_item['item_health'] and selected_item['item_health'] > 0:
+                            item_info += " with {:,.2f} refillable health".format(selected_item['item_health'])
+                        if selected_item['item_energy'] and selected_item['item_energy'] > 0:
+                            item_info += " with {:,.2f} refillable energy".format(selected_item['item_energy'])
+                        if selected_item['item_gem'] and selected_item['item_gem'] > 0:
+                            item_info += " with {:,.0f} gem(s)".format(selected_item['item_gem'])
+                        await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} Nice! You have found a box and with {item_info} inside. You put it into your backpack.')
+                except Exception as e:
+                    traceback.print_exc(file=sys.stdout)
+                    await logchanbot(traceback.format_exc())
+            else:
+                # Get empty box
+                #economy_insert_secret_findings(item_id: int, user_id: str, guild_id: str, item_health: float, item_energy: float, item_gem: int, can_use: bool=True):
+                insert_item = await store.economy_insert_secret_findings(8, str(ctx.author.id), str(ctx.guild.id), 0, 0, 0, False)
+                if insert_item:
+                    await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} You found an empty box. Good luck next time!')
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+            await logchanbot(traceback.format_exc())
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+        return
+
+
+    @economy.command(usage="eco eat", description="Eat to gain energy.")
+    async def eat(self, ctx):
+        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy work** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game economy** play.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+
+        # If a user ate a lot already for the last 12h
+        user_eat_record = await store.economy_get_user_eating_list_record(str(ctx.author.id), 12*3600)
+        if user_eat_record and len(user_eat_record) > config.economy.max_user_eat:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You have eaten a lot already for the last 12h.')
+            return
+        
+        # If guild already has many food ordered last 12h
+        count_eating_record = await store.economy_get_guild_eating_list_record(str(ctx.guild.id), 12*3600)
+        allowed_eating_session = int(config.economy.max_guild_food*len(ctx.guild.members))
+        if count_eating_record and len(count_eating_record) > allowed_eating_session:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Restaurant out of food. There were allowed only **{str(allowed_eating_session)}** orders for the last 12h.')
+            return
+        
+        # Get all available work in the guild
+        get_foodlist = await store.economy_get_guild_foodlist(str(ctx.guild.id), True)
+        # Getting list of work in the guild and re-act
+        get_userinfo = await store.economy_get_user(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator))
+        if get_userinfo:
+            # If energy less than 20%, stop
+            if get_userinfo['energy_current']/get_userinfo['energy_total'] > 0.95:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You still have much energy.')
+                return
+            if ctx.author.id not in GAME_INTERACTIVE_ECO:
+                GAME_INTERACTIVE_ECO.append(ctx.author.id)
+                    # Add work if he needs to do
+                e = discord.Embed(title="{}#{} Food list in guild: {}".format(ctx.author.name, ctx.author.discriminator, ctx.guild.name), description="Economy [Testing]", timestamp=datetime.utcnow())
+                get_foodlist_guild = await store.economy_get_guild_foodlist(str(ctx.guild.id), False)
+                all_food_in_guild = {}
+                if get_foodlist_guild and len(get_foodlist_guild) > 0:
+                    for each_food in get_foodlist_guild:
+                        e.add_field(name=each_food['food_name'] + " " + each_food['food_emoji'], value="```Energy: {} / Cost: {}{}```".format(each_food['gained_energy'], num_format_coin(each_food['cost_expense_amount'], each_food['cost_coin_name']), each_food['cost_coin_name']), inline=False)
+                        all_food_in_guild[str(each_food['food_emoji'])] = each_food['food_id']
+                    e.set_footer(text=f"User {ctx.author.name}#{ctx.author.discriminator}")
+                    e.set_thumbnail(url=ctx.author.display_avatar)
+                    msg = await ctx.send(embed=e)
+                    for each_food in get_foodlist_guild:
+                        await msg.add_reaction(each_food['food_emoji'])
+
+                    def check(reaction, user):
+                        return user == ctx.author and reaction.message.author == bot.user and reaction.message.id == msg.id
+                    while True:
+                        try:
+                            reaction, user = await bot.wait_for('reaction_add', timeout=60, check=check)
+                        except asyncio.TimeoutError:
+                            if ctx.author.id in GAME_INTERACTIVE_ECO:
+                                GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                            await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
+                            try:
+                                await msg.delete()
+                            except Exception as e:
+                                pass
+                            break
+                            return
+                        if reaction.emoji and str(reaction.emoji) in all_food_in_guild:
+                            try:
+                                get_food_id = await store.economy_get_food_id(all_food_in_guild[str(reaction.emoji)])
+                                # Check balance:
+                                COIN_NAME = get_food_id['cost_coin_name'].upper()
+                                user_from = await store.sql_get_userwallet(str(ctx.author.id), COIN_NAME)
+                                if user_from is None:
+                                    if COIN_NAME in ENABLE_COIN_ERC:
+                                        w = await create_address_eth()
+                                        user_from = await store.sql_register_user(str(ctx.author.id), COIN_NAME, SERVER_BOT, 0, w)
+                                    elif COIN_NAME in ENABLE_COIN_TRC:
+                                        result = await store.create_address_trx()
+                                        user_from = await store.sql_register_user(str(ctx.author.id), COIN_NAME, SERVER_BOT, 0, result)
+                                    else:
+                                        user_from = await store.sql_register_user(str(ctx.author.id), COIN_NAME, SERVER_BOT, 0)
+                                userdata_balance = await store.sql_user_balance(str(ctx.author.id), COIN_NAME)
+                                xfer_in = 0
+                                if COIN_NAME not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                                    xfer_in = await store.sql_user_balance_get_xfer_in(str(ctx.author.id), COIN_NAME)
+                                if COIN_NAME in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                                    actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
+                                elif COIN_NAME in ENABLE_COIN_NANO:
+                                    actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
+                                    actual_balance = round(actual_balance / get_decimal(COIN_NAME), 6) * get_decimal(COIN_NAME)
+                                else:
+                                    actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
+
+                                # Negative check
+                                try:
+                                    if actual_balance < 0:
+                                        msg_negative = 'Negative balance detected:\nUser: '+str(ctx.author.id)+'\nCoin: '+COIN_NAME+'\nAtomic Balance: '+str(actual_balance)
+                                        await logchanbot(msg_negative)
+                                except Exception as e:
+                                    await logchanbot(traceback.format_exc())
+                                # End negative check
+                                food_name = get_food_id['food_name']
+                                if get_food_id['cost_expense_amount'] > actual_balance:
+                                    if ctx.author.id in GAME_INTERACTIVE_ECO:
+                                        GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                                    await ctx.message.add_reaction(EMOJI_ERROR)
+                                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to eat `{food_name}`.')
+                                    return
+                                # Else, go on and Insert work to DB
+                                add_energy = get_food_id['gained_energy']
+                                if get_userinfo['energy_current'] + add_energy > get_userinfo['energy_total']:
+                                    add_energy = get_userinfo['energy_total'] - get_userinfo['energy_current']
+                                total_energy = get_userinfo['energy_current'] + add_energy
+                                # economy_insert_eating(user_id: str, guild_id: str, cost_coin_name: str, cost_expense_amount: float, cost_decimal: float, gained_energy: float):
+                                insert_eating = await store.economy_insert_eating(str(ctx.author.id), str(ctx.guild.id), get_food_id['cost_coin_name'], 
+                                                                                    get_food_id['cost_expense_amount'], get_food_id['fee_ratio']*get_food_id['cost_expense_amount'], 
+                                                                                    get_food_id['cost_decimal'], add_energy)
+                                paid_money = '{} {}'.format(num_format_coin(get_food_id['cost_expense_amount'], get_food_id['cost_coin_name']), get_food_id['cost_coin_name'])
+                                if insert_eating:
+                                    await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} You paid `{paid_money}` and ate `{food_name}`. You gained `{add_energy}` energy. You have total `{total_energy}` energy.')
+                                    await msg.delete()
+                                    await ctx.message.add_reaction(reaction.emoji)
+                                else:
+                                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error.')
+                                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                                break
+                            except Exception as e:
+                                await logchanbot(traceback.format_exc())
+                        elif str(reaction.emoji) == EMOJI_OK_BOX:
+                            if ctx.author.id in GAME_INTERACTIVE_ECO:
+                                GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                            return
+                else:
+                    if ctx.author.id in GAME_INTERACTIVE_ECO:
+                        GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Sorry, there is no available work yet.')
+                    return
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error.')
+            return
+
+
+    @economy.command(usage="eco work [claim]", description="Work for more experience and thing.")
+    async def work(self, ctx, claim: str=None):
+        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        # disable game for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
+            prefix = serverinfo['prefix']
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Economy is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`')
+            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy work** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            return
+
+        if serverinfo['economy_channel']:
+            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            if not eco_channel:
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
+                return
+            elif ctx.channel.id != int(serverinfo['economy_channel']):
+                try:
+                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
+                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    return
+                except Exception as e:
+                    pass
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no economy channel yet.')
+            return
+
+        if ctx.author.id in GAME_INTERACTIVE_ECO:
+            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game economy** play.')
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            return
+
+        # Get all available work in the guild
+        get_worklist = await store.economy_get_guild_worklist(str(ctx.guild.id), True)
+        # Getting list of work in the guild and re-act
+        get_userinfo = await store.economy_get_user(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator))
+        if get_userinfo:
+            # If health less than 50%, stop
+            if get_userinfo['health_current']/get_userinfo['health_total'] < 0.5:
+                await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} Your health is having issue. Do some heatlh check.')
+                await asyncio.sleep(0.5)
+            elif get_userinfo['health_current']/get_userinfo['health_total'] < 0.3:
+                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Your health is having issue.')
+                return
+            # If energy less than 20%, stop
+            if get_userinfo['energy_current']/get_userinfo['energy_total'] < 0.2:
+                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You have very small energy. Eat to powerup.')
+                return
+            try:
+                get_last_act = await store.economy_get_last_activities(str(ctx.author.id), False)
+                if (get_last_act and get_last_act['status'] == 'COMPLETED') or get_last_act is None:
+                    if ctx.author.id not in GAME_INTERACTIVE_ECO:
+                        GAME_INTERACTIVE_ECO.append(ctx.author.id)
+                    # Add work if he needs to do
+                    e = discord.Embed(title="{}#{} Work list in guild: {}".format(ctx.author.name, ctx.author.discriminator, ctx.guild.name), description="Economy [Testing]", timestamp=datetime.utcnow())
+                    get_worklist_guild = await store.economy_get_guild_worklist(str(ctx.guild.id), False)
+                    all_work_in_guild = {}
+                    if get_worklist_guild and len(get_worklist_guild) > 0:
+                        for each_work in get_worklist_guild:
+                            plus_minus = "+" if each_work['reward_expense_amount'] > 0 else ""
+                            reward_string = plus_minus + num_format_coin(each_work['reward_expense_amount'], each_work['reward_coin_name']) + " " + each_work['reward_coin_name']
+                            e.add_field(name=each_work['work_name'] + " " + each_work['work_emoji'] + " ( Duration: {}) | {}".format(seconds_str(each_work['duration_in_second']), reward_string), value="```Exp: {}xp / Energy: {} / Health: {}```".format(each_work['exp_gained_loss'], each_work['energy_loss'], each_work['health_loss']), inline=False)
+                            all_work_in_guild[str(each_work['work_emoji'])] = each_work['work_id']
+                        e.set_footer(text=f"User {ctx.author.name}#{ctx.author.discriminator}")
+                        e.set_thumbnail(url=ctx.author.display_avatar)
+                        msg = await ctx.send(embed=e)
+                        for each_work in get_worklist_guild:
+                            await msg.add_reaction(each_work['work_emoji'])
+
+                        def check(reaction, user):
+                            return user == ctx.author and reaction.message.author == bot.user and reaction.message.id == msg.id
+                        while True:
+                            try:
+                                reaction, user = await bot.wait_for('reaction_add', timeout=60, check=check)
+                            except asyncio.TimeoutError:
+                                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                                await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
+                                try:
+                                    await msg.delete()
+                                except Exception as e:
+                                    pass
+                                break
+                                return
+                            if reaction.emoji and str(reaction.emoji) in all_work_in_guild:
+                                try:
+                                    # Insert work to DB
+                                    get_work_id = await store.economy_get_workd_id(all_work_in_guild[str(reaction.emoji)])
+                                    add_energy = get_work_id['exp_gained_loss']
+                                    if get_userinfo['energy_current'] + get_work_id['energy_loss'] > get_userinfo['energy_total'] and get_work_id['energy_loss'] > 0:
+                                        add_energy = get_userinfo['energy_total'] - get_userinfo['energy_current']
+                                    insert_activity = await store.economy_insert_activity(str(ctx.author.id), str(ctx.guild.id), all_work_in_guild[str(reaction.emoji)], 
+                                                                                          get_work_id['duration_in_second'], get_work_id['reward_coin_name'], 
+                                                                                          get_work_id['reward_expense_amount'], get_work_id['reward_expense_amount']*get_work_id['fee_ratio'], 
+                                                                                          get_work_id['reward_decimal'], add_energy, 
+                                                                                          get_work_id['health_loss'], get_work_id['energy_loss'])
+                                    if insert_activity:
+                                        additional_text = " You can claim in: `{}`.".format(seconds_str(get_work_id['duration_in_second']))
+                                        task_name = "{} {}".format(get_work_id['work_name'], get_work_id['work_emoji'])
+                                        await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} You started a new task - {task_name}! {additional_text}')
+                                        await msg.delete()
+                                        await ctx.message.add_reaction(reaction.emoji)
+                                    else:
+                                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error.')
+                                    if ctx.author.id in GAME_INTERACTIVE_ECO:
+                                        GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                                    break
+                                except Exception as e:
+                                    await logchanbot(traceback.format_exc())
+                            elif str(reaction.emoji) == EMOJI_OK_BOX:
+                                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                                return
+                    else:
+                        if ctx.author.id in GAME_INTERACTIVE_ECO:
+                            GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Sorry, there is no available work yet.')
+                        return
+                else:
+                    # He is not free
+                    if claim and claim.upper() == 'CLAIM':
+                        if ctx.author.id not in GAME_INTERACTIVE_ECO:
+                            GAME_INTERACTIVE_ECO.append(ctx.author.id)
+                        # Check if he can complete the last work
+                        if get_last_act and get_last_act['status'] == 'ONGOING' and get_last_act['started'] + get_last_act['duration_in_second'] <= int(time.time()):
+                            # Get guild's balance not ctx.guild
+                            played_guild = bot.get_guild(id=int(get_last_act['guild_id']))
+                            # Check guild's balance:
+                            COIN_NAME = get_last_act['reward_coin_name'].upper()
+                            guild_game = await store.sql_get_userwallet(get_last_act['guild_id'], COIN_NAME)
+                            if guild_game is None:
+                                if COIN_NAME in ENABLE_COIN_ERC:
+                                    w = await create_address_eth()
+                                    guild_game = await store.sql_register_user(get_last_act['guild_id'], COIN_NAME, SERVER_BOT, 0, w)
+                                elif COIN_NAME in ENABLE_COIN_TRC:
+                                    result = await store.create_address_trx()
+                                    guild_game = await store.sql_register_user(get_last_act['guild_id'], COIN_NAME, SERVER_BOT, 0, result)
+                                else:
+                                    guild_game = await store.sql_register_user(get_last_act['guild_id'], COIN_NAME, SERVER_BOT, 0)
+                            guilddata_balance = await store.sql_user_balance(get_last_act['guild_id'], COIN_NAME)
+                            xfer_in = 0
+                            if COIN_NAME not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                                xfer_in = await store.sql_user_balance_get_xfer_in(get_last_act['guild_id'], COIN_NAME)
+                            if COIN_NAME in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                                actual_balance = float(xfer_in) + float(guilddata_balance['Adjust'])
+                            elif COIN_NAME in ENABLE_COIN_NANO:
+                                actual_balance = int(xfer_in) + int(guilddata_balance['Adjust'])
+                                actual_balance = round(actual_balance / get_decimal(COIN_NAME), 6) * get_decimal(COIN_NAME)
+                            else:
+                                actual_balance = int(xfer_in) + int(guilddata_balance['Adjust'])
+
+                            # Negative check
+                            try:
+                                if actual_balance < 0:
+                                    msg_negative = 'Negative balance detected:\Guild: '+str(get_last_act['guild_id'])+'\nCoin: '+COIN_NAME+'\nAtomic Balance: '+str(actual_balance)
+                                    await logchanbot(msg_negative)
+                            except Exception as e:
+                                await logchanbot(traceback.format_exc())
+                            # End negative check
+                            if get_last_act['reward_amount'] > actual_balance:
+                                await ctx.message.add_reaction(EMOJI_ERROR)
+                                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} This guild runs out of balance to give reward.')
+                                await logchanbot(str(get_last_act['guild_id']) + ' runs out of balance for coin {COIN_NAME}. Stop rewarding.')
+                                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                                return
+                            # OK, let him claim
+                            try:
+                                add_energy = get_last_act['energy']
+                                if get_userinfo['energy_current'] + add_energy > get_userinfo['energy_total'] and add_energy > 0:
+                                    add_energy = get_userinfo['energy_total'] - get_userinfo['energy_current']
+                                add_health = get_last_act['health']
+                                if get_userinfo['health_current'] + add_health > get_userinfo['health_total'] and add_health > 0:
+                                    add_health = get_userinfo['health_total'] - get_userinfo['health_current']
+                                update_work = await store.economy_update_activity(get_last_act['id'], str(ctx.author.id), get_last_act['exp'], add_health, add_energy)
+                                if update_work:
+                                    completed_task = 'You completed task #{}\n'.format(get_last_act['id'])
+                                    completed_task += 'Gained Exp: {}\n'.format(get_last_act['exp'])
+                                    if get_last_act['reward_amount'] and get_last_act['reward_amount'] > 0:
+                                        completed_task += 'Reward Coin: {}{}\n'.format(num_format_coin(get_last_act['reward_amount'], get_last_act['reward_coin_name']), get_last_act['reward_coin_name'])
+                                    if get_last_act['health'] and get_last_act['health'] > 0:
+                                        completed_task += 'Gained Health: {}\n'.format(get_last_act['health'])
+                                    if get_last_act['energy'] and get_last_act['energy'] > 0:
+                                        completed_task += 'Gained energy: {}\n'.format(get_last_act['energy'])
+                                    if get_last_act['energy'] and get_last_act['energy'] < 0:
+                                        completed_task += 'Spent of energy: {}'.format(get_last_act['energy'])
+                                    await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} ```{completed_task}```')
+                                else:
+                                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error.')
+                            except:
+                                traceback.print_exc(file=sys.stdout)
+                                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error.')
+                        else:
+                            remaining = get_last_act['started'] + get_last_act['duration_in_second'] - int(time.time())
+                            additional_claim_msg = ""
+                            if remaining < 0:
+                                remaining = 0
+                                additional_claim_msg = "You shall claim it now!"
+                            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Sorry, you can not claim it now. Remaining time `{seconds_str(remaining)}`. {additional_claim_msg}')
+                    else:
+                        remaining = get_last_act['started'] + get_last_act['duration_in_second'] - int(time.time())
+                        additional_claim_msg = ""
+                        if remaining < 0:
+                            remaining = 0
+                            additional_claim_msg = "You shall claim it now!"
+                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Sorry, you are still busy with other activity. Remaining time `{seconds_str(remaining)}`. {additional_claim_msg}')
+                    if ctx.author.id in GAME_INTERACTIVE_ECO:
+                        GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                    return
+            except:
+                if ctx.author.id in GAME_INTERACTIVE_ECO:
+                    GAME_INTERACTIVE_ECO.remove(ctx.author.id)
+                traceback.print_exc(file=sys.stdout)
+                error = discord.Embed(title=":exclamation: Error", description=" :warning: internal error!")
+                await ctx.send(embed=error)
+        else:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error.')
+            return
+
+def setup(bot):
+    bot.add_cog(Economy(bot))
