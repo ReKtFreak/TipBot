@@ -27,7 +27,7 @@ class BotBalance(commands.Cog):
                 try: 
                     if ctx.channel.id != int(serverinfo['botchan']):
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        botChan = bot.get_channel(int(serverinfo['botchan']))
+                        botChan = self.bot.get_channel(int(serverinfo['botchan']))
                         await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
                         return
                 except ValueError:

@@ -15,7 +15,6 @@ class Faucet(commands.Cog):
     @commands.command(usage="take <info>", description="Claim a random coin faucet.")
     async def take(self, ctx, info: str=None):
         async def bot_faucet(ctx):
-            global TRTL_DISCORD
             get_game_stat = await store.sql_game_stat()
             table_data = [
                 ['TICKER', 'Available', 'Claimed / Game']
@@ -76,7 +75,7 @@ class Faucet(commands.Cog):
             table.padding_right = 0
             return table.table
 
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.send(f'{EMOJI_RED_NO} This command can not be in private.')
             return
@@ -165,7 +164,7 @@ class Faucet(commands.Cog):
             if serverinfo and serverinfo['botchan']:
                 if ctx.channel.id != int(serverinfo['botchan']):
                     try:
-                        botChan = bot.get_channel(int(serverinfo['botchan']))
+                        botChan = self.bot.get_channel(int(serverinfo['botchan']))
                         await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
                         await ctx.message.add_reaction(EMOJI_ERROR)
                     except Exception as e:

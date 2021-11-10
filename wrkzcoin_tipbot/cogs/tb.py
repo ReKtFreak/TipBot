@@ -112,7 +112,7 @@ class Tb(commands.Cog):
 
                 async with ctx.typing():
                     partial_img = functools.partial(async_sketch_image, img, random_img_name_svg, random_img_name_png)
-                    lines = await bot.loop.run_in_executor(None, partial_img)
+                    lines = await self.bot.loop.run_in_executor(None, partial_img)
                     try:
                         e = discord.Embed(timestamp=datetime.utcnow())
                         e.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar)
@@ -212,7 +212,7 @@ class Tb(commands.Cog):
 
                 async with ctx.typing():
                     partial_contour = functools.partial(create_line_drawing_image, img)
-                    img_contour = await bot.loop.run_in_executor(None, partial_contour)
+                    img_contour = await self.bot.loop.run_in_executor(None, partial_contour)
                     if img_contour is None:
                         await ctx.message.add_reaction(EMOJI_ERROR)
                         return

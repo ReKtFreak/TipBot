@@ -17,7 +17,7 @@ class Balance(commands.Cog):
     @commands.command(usage="balance <coin>", aliases=['bal'], description="Check your (coin's) tipjar's balance.")
     async def balance(self, ctx, coin: str = None):
         prefix = await get_guild_prefix(ctx)
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'balance')
         if account_lock:

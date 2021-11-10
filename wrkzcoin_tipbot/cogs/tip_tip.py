@@ -15,7 +15,6 @@ class TipTip(commands.Cog):
     ## TODO: Improve this usage.
     @commands.command(usage="tip <amount> [option]", description="Tip to user(s).")
     async def tip(self, ctx, amount: str, *args):
-        global TRTL_DISCORD, IS_RESTARTING, TX_IN_PROCESS
         secrettip = False
         fromDM = False
         # check if bot is going to restart
@@ -292,7 +291,7 @@ class TipTip(commands.Cog):
                 else:
                     if len(args) == 2 and args[1].isdigit():
                         try:
-                            member = bot.get_user(int(args[1]))
+                            member = self.bot.get_user(int(args[1]))
                             secrettip = True
                         except Exception as e:
                             await ctx.message.add_reaction(EMOJI_ERROR)

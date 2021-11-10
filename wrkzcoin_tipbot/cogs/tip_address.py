@@ -26,7 +26,7 @@ class TipAddress(commands.Cog):
                 try: 
                     if ctx.channel.id != int(serverinfo['botchan']):
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        botChan = bot.get_channel(int(serverinfo['botchan']))
+                        botChan = self.bot.get_channel(int(serverinfo['botchan']))
                         await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
                         return
                 except ValueError:
@@ -99,10 +99,10 @@ class TipAddress(commands.Cog):
                 await msg.add_reaction(EMOJI_CHECKMARK)
                 await msg.add_reaction(EMOJI_ZIPPED_MOUTH)
                 def check(reaction, user):
-                    return user == member and reaction.message.author == bot.user and reaction.message.id == msg.id and str(reaction.emoji) \
+                    return user == member and reaction.message.author == self.bot.user and reaction.message.id == msg.id and str(reaction.emoji) \
                     in (EMOJI_CHECKMARK, EMOJI_ZIPPED_MOUTH)
                 try:
-                    reaction, user = await bot.wait_for('reaction_add', timeout=120, check=check)
+                    reaction, user = await self.bot.wait_for('reaction_add', timeout=120, check=check)
                 except asyncio.TimeoutError:
                     await ctx.send(f'{ctx.author.mention} address requested timeout (120s) from {str(member.mention)}.')
                     try:

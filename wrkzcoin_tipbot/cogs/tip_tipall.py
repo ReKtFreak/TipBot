@@ -34,7 +34,7 @@ class TipTipAll(commands.Cog):
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         amount = amount.replace(",", "")
 
         try:
@@ -127,7 +127,7 @@ class TipTipAll(commands.Cog):
             MinTx = get_min_mv_amount(COIN_NAME)
             MaxTX = get_max_mv_amount(COIN_NAME)
 
-        # [x.guild for x in [g.members for g in bot.guilds] if x.id = useridyourelookingfor]
+        # [x.guild for x in [g.members for g in self.bot.guilds] if x.id = useridyourelookingfor]
         if option == "ONLINE":
             listMembers = [member for member in ctx.guild.members if member.status != discord.Status.offline and member.bot == False]
         elif option == "ALL":
@@ -149,7 +149,7 @@ class TipTipAll(commands.Cog):
         addresses = []
         for member in listMembers:
             # print(member.name) # you'll just print out Member objects your way.
-            if ctx.author.id != member.id and member.id != bot.user.id:
+            if ctx.author.id != member.id and member.id != self.bot.user.id:
                 user_to = await store.sql_get_userwallet(str(member.id), COIN_NAME)
                 if user_to is None:
                     if coin_family == "ERC-20":
@@ -285,7 +285,7 @@ class TipTipAll(commands.Cog):
             if len(listMembers) < max_mention:
                 # DM all user
                 for member in listMembers:
-                    if ctx.author.id != member.id and member.id != bot.user.id:
+                    if ctx.author.id != member.id and member.id != self.bot.user.id:
                         total_found += 1
                         if str(member.id) not in notifyList:
                             # random user to DM
@@ -310,7 +310,7 @@ class TipTipAll(commands.Cog):
                     if send_tipped_ping >= config.maxTipMessage:
                         total_found += 1
                     else:
-                        if ctx.author.id != member.id and member.id != bot.user.id:
+                        if ctx.author.id != member.id and member.id != self.bot.user.id:
                             if str(member.id) not in notifyList:
                                 list_user_mention.append("{}".format(member.mention))
                             else:

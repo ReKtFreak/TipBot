@@ -14,13 +14,10 @@ class Trade(commands.Cog):
 
     @commands.command(usage="sell <sell amount> <coin> <buy amount> <coin>", aliases=['selling'], description="Make an opened sell of a coin for another coin.")
     async def sell(self, ctx, sell_amount: str, sell_ticker: str, buy_amount: str, buy_ticker: str):
-        global IS_RESTARTING, ENABLE_TRADE_COIN, NOTIFY_TRADE_CHAN, TRTL_DISCORD
-
-        # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         try:
             if isinstance(ctx.message.channel, discord.DMChannel) == True:
                 pass
@@ -174,8 +171,7 @@ class Trade(commands.Cog):
 
 
     async def sell_process(ctx, real_amount_sell: float, sell_ticker: str, real_amount_buy: float, buy_ticker: str):
-        global NOTIFY_TRADE_CHAN
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
 
         sell_ticker = sell_ticker.upper()
         buy_ticker = buy_ticker.upper()
@@ -227,19 +223,18 @@ class Trade(commands.Cog):
                 await logchanbot(traceback.format_exc())
             # add message to trade channel as well.
             if ctx.message.channel.id != NOTIFY_TRADE_CHAN or isinstance(ctx.message.channel, discord.DMChannel) == True:
-                botLogChan = bot.get_channel(NOTIFY_TRADE_CHAN)
+                botLogChan = self.bot.get_channel(NOTIFY_TRADE_CHAN)
                 await botLogChan.send(get_message)
             return
 
 
     @commands.command(usage="buy <ref_number>", aliases=['buying'], description="Buy coin from a referenced number.")
     async def buy(self, ctx, ref_number: str):
-        global IS_RESTARTING, ENABLE_TRADE_COIN, NOTIFY_TRADE_CHAN, TRTL_DISCORD
         # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         try:
             if isinstance(ctx.message.channel, discord.DMChannel) == True:
                 pass
@@ -380,7 +375,7 @@ class Trade(commands.Cog):
                                     fee = str(num_format_coin(get_order_num['amount_get']-get_order_num['amount_get_after_fee'], get_order_num['coin_get']))
                                     fee += get_order_num['coin_get']
                                     if get_order_num['sell_user_server'] == SERVER_BOT:
-                                        member = bot.get_user(int(get_order_num['userid_sell']))
+                                        member = self.bot.get_user(int(get_order_num['userid_sell']))
                                         if member:
                                             try:
                                                 await member.send(f'A user has bought #**{ref_number}**\n```Sold: {sold}\nGet: {bought}```')
@@ -388,7 +383,7 @@ class Trade(commands.Cog):
                                                 pass
                                     # add message to trade channel as well.
                                     if ctx.message.channel.id != NOTIFY_TRADE_CHAN:
-                                        botLogChan = bot.get_channel(NOTIFY_TRADE_CHAN)
+                                        botLogChan = self.bot.get_channel(NOTIFY_TRADE_CHAN)
                                         await botLogChan.send(f'A user has bought #**{ref_number}**\n```Sold: {sold}\nGet: {bought}\nFee: {fee}```')
                                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                                     pass
@@ -407,12 +402,11 @@ class Trade(commands.Cog):
 
     @commands.command(usage="trade <coin/pair> <desc|asc>", aliases=['market'], description="Check market for opened orders.")
     async def trade(self, ctx, coin: str=None, option_order: str=None):
-        global ENABLE_TRADE_COIN, TRTL_DISCORD
         # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         try:
             if isinstance(ctx.message.channel, discord.DMChannel) == True:
                 pass
@@ -558,12 +552,11 @@ class Trade(commands.Cog):
 
     @commands.command(usage="cancel <ref_number|all>", description="Cancel an opened order or all.")
     async def cancel(self, ctx, order_num: str = 'ALL'):
-        global TRTL_DISCORD, ENABLE_TRADE_COIN
         # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         try:
             if isinstance(ctx.message.channel, discord.DMChannel) == True:
                 pass
@@ -637,12 +630,11 @@ class Trade(commands.Cog):
 
     @commands.command(usage="order <ref_number>", aliases=['order_num'], description="Check an opened order.")
     async def order(self, ctx, order_num: str):
-        global TRTL_DISCORD
         # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         try:
             if isinstance(ctx.message.channel, discord.DMChannel) == True:
                 pass
@@ -704,12 +696,11 @@ class Trade(commands.Cog):
 
     @commands.command(usage="myorder [coin]", aliases=['myorders'], description="Check your opened orders.")
     async def myorder(self, ctx, ticker: str = None):
-        global ENABLE_TRADE_COIN, TRTL_DISCORD
         # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         try:
             if isinstance(ctx.message.channel, discord.DMChannel) == True:
                 pass

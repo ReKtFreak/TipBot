@@ -25,9 +25,8 @@ class Economy(commands.Cog):
             return
 
 
-    @economy.command(usage="eco <sell> <item>", description="Sell an item.")
+    @economy.command(usage="eco sell <item>", description="Sell an item.")
     async def sell(self, ctx, *, item_name: str):
-        global TRTL_DISCORD
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -46,13 +45,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -208,9 +207,8 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco <buy> <item>", description="Buy an item.")
+    @economy.command(usage="eco buy <item>", description="Buy an item.")
     async def buy(self, ctx, *, item_name: str=None):
-        global TRTL_DISCORD
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -233,13 +231,13 @@ class Economy(commands.Cog):
                 return
 
             if serverinfo['economy_channel']:
-                eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+                eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
                 if not eco_channel:
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                     return
                 elif ctx.channel.id != int(serverinfo['economy_channel']):
                     try:
-                        EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                        EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                         await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                         await ctx.message.add_reaction(EMOJI_ERROR)
                         return
@@ -394,9 +392,8 @@ class Economy(commands.Cog):
             return
 
 
-    @economy.command(usage="eco <info> <member>", description="Get an economy information of a member.")
+    @economy.command(usage="eco info <member>", description="Get an economy information of a member.")
     async def info(self, ctx, member: discord.Member = None):
-        global TRTL_DISCORD
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -417,13 +414,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -500,9 +497,8 @@ class Economy(commands.Cog):
             return
 
 
-    @economy.command(usage="eco <items>", aliases=['item', 'backpack'], description="List items in backpack.")
+    @economy.command(usage="eco items", aliases=['item', 'backpack'], description="List items in backpack.")
     async def items(self, ctx):
-        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -521,13 +517,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -573,10 +569,10 @@ class Economy(commands.Cog):
                         await msg.add_reaction(EMOJI_OK_BOX)
 
                         def check(reaction, user):
-                            return user == ctx.author and reaction.message.author == bot.user and reaction.message.id == msg.id
+                            return user == ctx.author and reaction.message.author == self.bot.user and reaction.message.id == msg.id
                         while True:
                             try:
-                                reaction, user = await bot.wait_for('reaction_add', timeout=60, check=check)
+                                reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=check)
                             except asyncio.TimeoutError:
                                 if ctx.author.id in GAME_INTERACTIVE_ECO:
                                     GAME_INTERACTIVE_ECO.remove(ctx.author.id)
@@ -640,9 +636,8 @@ class Economy(commands.Cog):
             return
 
 
-    @economy.command(usage="eco <lumber> <member>", aliases=['timber', 'wood'], description="List lumber.")
+    @economy.command(usage="eco lumber <member>", aliases=['timber', 'wood'], description="List lumber.")
     async def lumber(self, ctx, member: discord.Member = None):
-        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -663,13 +658,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -696,9 +691,8 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco <fish> <member>", aliases=['fishes'], description="Show fishes.")
+    @economy.command(usage="eco fish <member>", aliases=['fishes'], description="Show fishes.")
     async def fish(self, ctx, member: discord.Member = None):
-        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -719,13 +713,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -756,9 +750,8 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco <plant> <crop name>", description="Plant a crop.")
+    @economy.command(usage="eco plant <crop name>", description="Plant a crop.")
     async def plant(self, ctx, plant_name: str=None):
-        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -778,13 +771,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -903,9 +896,8 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco <collect> <what>", aliases=['cl'], description="Collect collectible thing.")
+    @economy.command(usage="eco collect <what>", aliases=['cl'], description="Collect collectible thing.")
     async def collect(self, ctx, what: str = None):
-        global TRTL_DISCORD, GAME_INTERACTIVE_ECO, MAINTENANCE_OWNER
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -930,13 +922,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -1027,9 +1019,8 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco <dairy> <member>", aliases=['cow'], description="Show dairy of a member.")
+    @economy.command(usage="eco dairy <member>", aliases=['cow'], description="Show dairy of a member.")
     async def dairy(self, ctx, member: discord.Member = None):
-        global TRTL_DISCORD, GAME_INTERACTIVE_ECO, MAINTENANCE_OWNER
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -1050,13 +1041,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -1147,9 +1138,8 @@ class Economy(commands.Cog):
                 await logchanbot(traceback.format_exc())
 
 
-    @economy.command(usage="eco <chicken> <member>", aliases=['egg', 'chickenfarm'], description="Show chicken farm of a member.")
+    @economy.command(usage="eco chicken <member>", aliases=['egg', 'chickenfarm'], description="Show chicken farm of a member.")
     async def chicken(self, ctx, member: discord.Member = None):
-        global TRTL_DISCORD, GAME_INTERACTIVE_ECO, MAINTENANCE_OWNER
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -1170,13 +1160,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -1267,9 +1257,8 @@ class Economy(commands.Cog):
                 await logchanbot(traceback.format_exc())
 
 
-    @economy.command(usage="eco <chicken> <farm>", aliases=['farms'], description="Show a member's form.")
+    @economy.command(usage="eco farm", aliases=['farms'], description="Show a member's form.")
     async def farm(self, ctx, member: discord.Member = None):
-        global TRTL_DISCORD, GAME_INTERACTIVE_ECO, MAINTENANCE_OWNER
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -1290,13 +1279,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -1388,9 +1377,8 @@ class Economy(commands.Cog):
                 await logchanbot(traceback.format_exc())
 
 
-    @economy.command(usage="eco <harvest>", aliases=['harvesting'], description="Harvest your farm.")
+    @economy.command(usage="eco harvest", aliases=['harvesting'], description="Harvest your farm.")
     async def harvest(self, ctx):
-        global TRTL_DISCORD
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -1409,13 +1397,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -1468,9 +1456,8 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco <fishing>", description="Do fishing.")
+    @economy.command(usage="eco fishing", description="Do fishing.")
     async def fishing(self, ctx):
-        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -1489,13 +1476,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -1628,9 +1615,8 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco <woodcutting>", aliases=['cuttree', 'wc', 'cw'], description="Cut tree(s).")
+    @economy.command(usage="eco woodcutting", aliases=['cuttree', 'wc', 'cw'], description="Cut tree(s).")
     async def woodcutting(self, ctx):
-        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -1649,13 +1635,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -1713,9 +1699,9 @@ class Economy(commands.Cog):
             GAME_INTERACTIVE_ECO.remove(ctx.author.id)
         return
 
+
     @economy.command(usage="eco search", description="Search collectible items.")
     async def search(self, ctx):
-        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -1734,13 +1720,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -1811,7 +1797,6 @@ class Economy(commands.Cog):
 
     @economy.command(usage="eco eat", description="Eat to gain energy.")
     async def eat(self, ctx):
-        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -1830,13 +1815,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -1890,10 +1875,10 @@ class Economy(commands.Cog):
                         await msg.add_reaction(each_food['food_emoji'])
 
                     def check(reaction, user):
-                        return user == ctx.author and reaction.message.author == bot.user and reaction.message.id == msg.id
+                        return user == ctx.author and reaction.message.author == self.bot.user and reaction.message.id == msg.id
                     while True:
                         try:
-                            reaction, user = await bot.wait_for('reaction_add', timeout=60, check=check)
+                            reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=check)
                         except asyncio.TimeoutError:
                             if ctx.author.id in GAME_INTERACTIVE_ECO:
                                 GAME_INTERACTIVE_ECO.remove(ctx.author.id)
@@ -1983,7 +1968,6 @@ class Economy(commands.Cog):
 
     @economy.command(usage="eco work [claim]", description="Work for more experience and thing.")
     async def work(self, ctx, claim: str=None):
-        global TRTL_DISCORD, GAME_INTERACTIVE_ECO
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -2002,13 +1986,13 @@ class Economy(commands.Cog):
             return
 
         if serverinfo['economy_channel']:
-            eco_channel = bot.get_channel(int(serverinfo['economy_channel']))
+            eco_channel = self.bot.get_channel(int(serverinfo['economy_channel']))
             if not eco_channel:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find economy channel or invalid.')
                 return
             elif ctx.channel.id != int(serverinfo['economy_channel']):
                 try:
-                    EcoChan = bot.get_channel(int(serverinfo['economy_channel']))
+                    EcoChan = self.bot.get_channel(int(serverinfo['economy_channel']))
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {EcoChan.mention} is the economy channel!!!')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
@@ -2065,10 +2049,10 @@ class Economy(commands.Cog):
                             await msg.add_reaction(each_work['work_emoji'])
 
                         def check(reaction, user):
-                            return user == ctx.author and reaction.message.author == bot.user and reaction.message.id == msg.id
+                            return user == ctx.author and reaction.message.author == self.bot.user and reaction.message.id == msg.id
                         while True:
                             try:
-                                reaction, user = await bot.wait_for('reaction_add', timeout=60, check=check)
+                                reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=check)
                             except asyncio.TimeoutError:
                                 if ctx.author.id in GAME_INTERACTIVE_ECO:
                                     GAME_INTERACTIVE_ECO.remove(ctx.author.id)
@@ -2121,7 +2105,7 @@ class Economy(commands.Cog):
                         # Check if he can complete the last work
                         if get_last_act and get_last_act['status'] == 'ONGOING' and get_last_act['started'] + get_last_act['duration_in_second'] <= int(time.time()):
                             # Get guild's balance not ctx.guild
-                            played_guild = bot.get_guild(id=int(get_last_act['guild_id']))
+                            played_guild = self.bot.get_guild(id=int(get_last_act['guild_id']))
                             # Check guild's balance:
                             COIN_NAME = get_last_act['reward_coin_name'].upper()
                             guild_game = await store.sql_get_userwallet(get_last_act['guild_id'], COIN_NAME)

@@ -24,12 +24,11 @@ class Guild(commands.Cog):
     @commands.command(usage="setting <expression>", aliases=['settings', 'set'], description="Settings view and set for prefix, default coin. Requires permission manage_channels.")
     @commands.has_permissions(manage_channels=True)
     async def setting(self, ctx, *args):
-        global LIST_IGNORECHAN, MUTE_CHANNEL
         # Check if address is valid first
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.send('This command is not available in DM.')
             return
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         tickers = '|'.join(ENABLE_COIN).lower()
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         server_prefix = config.discord.prefixCmd
@@ -333,9 +332,9 @@ class Guild(commands.Cog):
             await ctx.send(f'{ctx.author.mention} Invalid {prefix}guild command.\n Please use {prefix}help guild')
             return
 
+
     @guild.command(usage="guild deposit <coin>", description="Get deposit address of a coin for your guild.")
     async def deposit(self, ctx, amount: str, coin: str):
-        global TRTL_DISCORD
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -510,8 +509,8 @@ class Guild(commands.Cog):
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     pass
             # TODO: notify guild owner, if fail, to logchannel
-            guild_found = bot.get_guild(id=ctx.guild.id)
-            if guild_found: user_found = bot.get_user(guild_found.owner.id)
+            guild_found = self.bot.get_guild(id=ctx.guild.id)
+            if guild_found: user_found = self.bot.get_user(guild_found.owner.id)
             if guild_found and user_found:
                 notifyList = await store.sql_get_tipnotify()
                 if str(guild_found.owner.id) not in notifyList:
@@ -544,7 +543,7 @@ class Guild(commands.Cog):
         else:
             changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'tip_message', tipmessage)
             changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'tip_message_by', "{}#{}".format(ctx.author.name, ctx.author.discriminator))
-            botLogChan = bot.get_channel(LOG_CHAN)
+            botLogChan = self.bot.get_channel(LOG_CHAN)
             try:
                 await ctx.send(f'{ctx.author.mention} Tip message for this guild is updated.')
             except Exception as e:
@@ -563,7 +562,7 @@ class Guild(commands.Cog):
         prefix = await get_guild_prefix(ctx)
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo['raffle_channel']:
-            raffle_chan = bot.get_channel(int(serverinfo['raffle_channel']))
+            raffle_chan = self.bot.get_channel(int(serverinfo['raffle_channel']))
             if not raffle_chan:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find raffle channel or invalid.') #Please set by {prefix}guild raffle set #channel
                 return
@@ -675,7 +674,6 @@ class Guild(commands.Cog):
 
     @guild.command(usage="guild raffle", aliases=['rfl'], description="Check current raffle.")
     async def raffle(self, ctx, subc: str=None):
-        global GAME_RAFFLE_QUEUE
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -683,7 +681,7 @@ class Guild(commands.Cog):
         prefix = await get_guild_prefix(ctx)
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo['raffle_channel']:
-            raffle_chan = bot.get_channel(int(serverinfo['raffle_channel']))
+            raffle_chan = self.bot.get_channel(int(serverinfo['raffle_channel']))
             if not raffle_chan:
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Can not find raffle channel or invalid.') #Please set by {prefix}guild raffle set #channel
                 return
@@ -853,7 +851,7 @@ class Guild(commands.Cog):
         time_lap = 20 # seconds
         announce_lap = 3600 # seconds
         to_close_fromopen = 300 # second
-        while not bot.is_closed():
+        while not self.bot.is_closed():
             await asyncio.sleep(time_lap)
             # Announce every announce_lap in raffle channel if there is any raffle opened
             # Get all list of raffle
@@ -887,7 +885,7 @@ class Guild(commands.Cog):
                                     msg_raffle = "Cancelled raffle #{} in guild {}: **Shortage of users**. User entry fee refund!".format(each_raffle['id'], each_raffle['guild_name'])
                                     serverinfo = await store.sql_info_by_server(each_raffle['guild_id'])
                                     if serverinfo['raffle_channel']:
-                                        raffle_chan = bot.get_channel(int(serverinfo['raffle_channel']))
+                                        raffle_chan = self.bot.get_channel(int(serverinfo['raffle_channel']))
                                         if raffle_chan:
                                             await raffle_chan.send(msg_raffle)
                                     await logchanbot(msg_raffle)                                
@@ -899,7 +897,7 @@ class Guild(commands.Cog):
                                         msg_raffle += "Raffle will start in **{}**".format(seconds_str(to_close_fromopen))
                                         serverinfo = await store.sql_info_by_server(each_raffle['guild_id'])                                        
                                         if serverinfo['raffle_channel']:
-                                            raffle_chan = bot.get_channel(int(serverinfo['raffle_channel']))
+                                            raffle_chan = self.bot.get_channel(int(serverinfo['raffle_channel']))
                                             if raffle_chan:
                                                 await raffle_chan.send(msg_raffle)
                                                 try:
@@ -925,7 +923,7 @@ class Guild(commands.Cog):
                                     msg_raffle = "Cancelled raffle #{} in guild {}: shortage of users. User entry fee refund!".format(each_raffle['id'], each_raffle['guild_id'])
                                     serverinfo = await store.sql_info_by_server(each_raffle['guild_id'])
                                     if serverinfo['raffle_channel']:
-                                        raffle_chan = bot.get_channel(int(serverinfo['raffle_channel']))
+                                        raffle_chan = self.bot.get_channel(int(serverinfo['raffle_channel']))
                                         if raffle_chan:
                                             await raffle_chan.send(msg_raffle)
                                     await logchanbot(msg_raffle)
@@ -976,7 +974,7 @@ class Guild(commands.Cog):
                                                                                                                    num_format_coin(won_amounts[2], each_raffle['coin_name']), each_raffle['coin_name'])
                                     serverinfo = await store.sql_info_by_server(each_raffle['guild_id'])
                                     if serverinfo['raffle_channel']:
-                                        raffle_chan = bot.get_channel(int(serverinfo['raffle_channel']))
+                                        raffle_chan = self.bot.get_channel(int(serverinfo['raffle_channel']))
                                         if raffle_chan:
                                             await raffle_chan.send(embed=embed)
                                     await logchanbot(msg_raffle)
@@ -988,7 +986,7 @@ class Guild(commands.Cog):
                                             await logchanbot(traceback.format_exc())
                                         try:
                                             # Find user
-                                            user_found = bot.get_user(int(each_entry))
+                                            user_found = self.bot.get_user(int(each_entry))
                                             if user_found:
                                                 try:
                                                     await user_found.send(embed=embed)
@@ -1018,7 +1016,7 @@ class Guild(commands.Cog):
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo['botchan']:
             try: 
-                botLogChan = bot.get_channel(LOG_CHAN)
+                botLogChan = self.bot.get_channel(LOG_CHAN)
                 if ctx.channel.id == int(serverinfo['botchan']):
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.channel.mention} is already the bot channel here!')
                     return
@@ -1057,7 +1055,7 @@ class Guild(commands.Cog):
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.channel.mention} please mention a game name within this list: {config.game.game_list}.')
                 return
             else:
-                botLogChan = bot.get_channel(LOG_CHAN)
+                botLogChan = self.bot.get_channel(LOG_CHAN)
                 serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
                 index_game = "game_" + game + "_channel"
                 if serverinfo[index_game]:
@@ -1280,7 +1278,7 @@ class Guild(commands.Cog):
     @commands.command(usage='mbalance [coin]', aliases=['mbal'], description="Get your guild's balance.")
     async def mbalance(self, ctx, coin: str = None):
         prefix = await get_guild_prefix(ctx)
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'mbalance')
         if account_lock:

@@ -11,6 +11,7 @@ class Admin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+
     @commands.group(usage="admin <subcommand>", hidden = True, description="Various admin commands.")
     @commands.is_owner()
     async def admin(self, ctx):
@@ -74,7 +75,7 @@ class Admin(commands.Cog):
             return
 
         # check if bot can find user
-        member = bot.get_user(int(to_userid))
+        member = self.bot.get_user(int(to_userid))
         if member is None:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} I cannot find user with userid **{to_userid}**.')
@@ -151,7 +152,6 @@ class Admin(commands.Cog):
     @commands.is_owner()
     @admin.command(usage="tradeable <coin>", aliases=['trade'], description="Tradeable YES/NO.")
     async def tradeable(self, ctx, coin: str):
-        global ENABLE_TRADE_COIN
         COIN_NAME = coin.upper()
         if COIN_NAME not in ENABLE_TRADE_COIN:
             await ctx.send(f'{EMOJI_ERROR} **{COIN_NAME}** is not in our tradable list.')
@@ -246,10 +246,10 @@ class Admin(commands.Cog):
                     sum_user += 1
                     try:
                         if each_user_id['user_server'] == SERVER_BOT:
-                            member = bot.get_user(int(each_user_id['user_id']))
+                            member = self.bot.get_user(int(each_user_id['user_id']))
                             if not member:
                                 # get guild
-                                get_guild = bot.get_guild(id=int(each_user_id['user_id']))
+                                get_guild = self.bot.get_guild(id=int(each_user_id['user_id']))
                                 if not get_guild:
                                     sum_unfound_user += 1
                                     sum_unfound_balance += actual_balance
@@ -280,8 +280,7 @@ class Admin(commands.Cog):
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
             return
 
-        global SAVING_ALL
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         COIN_NAME = coin.upper()
         if is_maintenance_coin(COIN_NAME):
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)
@@ -345,13 +344,12 @@ class Admin(commands.Cog):
     @commands.is_owner()
     @admin.command(usage="debug", aliases=['debugging'], description="Debug ON/OFF")
     async def debug(self, ctx):
-        global IS_DEBUG
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
             return
 
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         if IS_DEBUG:
             IS_DEBUG == False
             await ctx.send(f'{EMOJI_REFRESH} {ctx.author.mention} Switch debug from **ON** to **OFF**')
@@ -365,13 +363,12 @@ class Admin(commands.Cog):
     @commands.is_owner()
     @admin.command(usage="shutdown", aliases=['restart'], description="Restart bot.")
     async def shutdown(self, ctx):
-        global IS_RESTARTING
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
             return
 
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         if IS_RESTARTING:
             await ctx.send(f'{EMOJI_REFRESH} {ctx.author.mention} I already got this command earlier.')
             return
@@ -380,7 +377,7 @@ class Admin(commands.Cog):
         await ctx.send(f'{EMOJI_REFRESH} {ctx.author.mention} .. I will restarting in 30s.. back soon.')
         await botLogChan.send(f'{EMOJI_REFRESH} {ctx.author.name}#{ctx.author.discriminator} called `restart`. I am restarting in 30s and will back soon hopefully.')
         await asyncio.sleep(30)
-        await bot.logout()
+        await self.bot.logout()
 
 
     @commands.is_owner()
@@ -490,7 +487,6 @@ class Admin(commands.Cog):
     @commands.is_owner()
     @admin.command(usage="baluser <userid> [yes]", description="Get balance of a user.")
     async def baluser(self, ctx, user_id: str, create_wallet: str = None):
-        global IS_DEBUG
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -501,7 +497,7 @@ class Admin(commands.Cog):
         # check if there is that user
         try:
             user_id = int(user_id)
-            member = bot.get_user(user_id)
+            member = self.bot.get_user(user_id)
             if member is None:
                 await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} I cannot find that user in discord. Let me find in other!')
                 # Check telegram
@@ -655,8 +651,8 @@ class Admin(commands.Cog):
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
         else:
-            main_member = bot.get_user(int(main_id))
-            roach_user = bot.get_user(int(user_id))
+            main_member = self.bot.get_user(int(main_id))
+            roach_user = self.bot.get_user(int(user_id))
             if main_member and roach_user:
                 add_roach = await store.sql_roach_add(main_id, user_id, roach_user.name+"#"+roach_user.discriminator, main_member.name+"#"+main_member.discriminator)
                 if add_roach:
@@ -675,9 +671,6 @@ class Admin(commands.Cog):
     @commands.is_owner()
     @admin.command(usage="cleartx", description="Clear pending tx.")
     async def cleartx(self, ctx):
-        global TX_IN_PROCESS, GAME_INTERACTIVE_PRGORESS, GAME_SLOT_IN_PRGORESS, \
-        GAME_DICE_IN_PRGORESS, GAME_MAZE_IN_PROCESS, CHART_TRADEVIEW_IN_PROCESS, \
-        GAME_INTERACTIVE_ECO
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')

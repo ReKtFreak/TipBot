@@ -14,7 +14,6 @@ class TipDonate(commands.Cog):
 
     @commands.command(usage="donate <amount> <coin>", description="Donate amount coin to TipBot dev.")
     async def donate(self, ctx, amount: str, coin: str=None):
-        global IS_RESTARTING, TX_IN_PROCESS
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
@@ -35,7 +34,7 @@ class TipDonate(commands.Cog):
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         donate_msg = ''
         if amount.upper() == "LIST":
             # if .donate list

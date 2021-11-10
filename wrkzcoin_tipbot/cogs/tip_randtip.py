@@ -34,7 +34,7 @@ class TipRandomTip(commands.Cog):
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         amount = amount.replace(",", "")
 
         try:
@@ -185,12 +185,12 @@ class TipRandomTip(commands.Cog):
                 rand_user_id = random.choice(message_talker)
                 max_loop = 0
                 while True:
-                    rand_user = bot.get_user(rand_user_id)
+                    rand_user = self.bot.get_user(rand_user_id)
                     if rand_user and rand_user != ctx.author and rand_user.bot == False and rand_user in ctx.guild.members:
                         break
                     else:
                         rand_user_id = random.choice(message_talker)
-                        rand_user = bot.get_user(rand_user_id)
+                        rand_user = self.bot.get_user(rand_user_id)
                     max_loop += 1
                     if max_loop >= 10:
                         await ctx.message.add_reaction(EMOJI_ERROR)
@@ -348,7 +348,7 @@ class TipRandomTip(commands.Cog):
             if randtip_public_respond == False and serverinfo and 'botchan' in serverinfo and serverinfo['botchan']:
                 # It has bot channel, let it post in bot channel
                 try:
-                    bot_channel = bot.get_channel(int(serverinfo['botchan']))
+                    bot_channel = self.bot.get_channel(int(serverinfo['botchan']))
                     msg = await bot_channel.send(
                                 f'{rand_user.name}#{rand_user.discriminator} got a random tip of {num_format_coin(real_amount, COIN_NAME)} '
                                 f'{COIN_NAME} from {ctx.author.name}#{ctx.author.discriminator} in {ctx.channel.mention}')

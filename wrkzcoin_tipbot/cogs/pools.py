@@ -16,7 +16,6 @@ class Pools(commands.Cog):
     @commands.command(usage="pools <coin>", aliases=['pool'], description="Check hashrate of a coin.")
     async def pools(self, ctx, coin: str):
         async def get_miningpoolstat_coin(coin: str):
-            global redis_conn, redis_expired
             COIN_NAME = coin.upper()
             key = "TIPBOT:MININGPOOLDATA:" + COIN_NAME
             if redis_conn and redis_conn.exists(key):

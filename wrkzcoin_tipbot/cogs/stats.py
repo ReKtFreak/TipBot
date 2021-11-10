@@ -14,7 +14,6 @@ class Stats(commands.Cog):
 
     @commands.command(usage="stats <coin|bot>", aliases=['stat'], description="Get Bot's statistic.")
     async def stats(self, ctx, coin: str = None):
-        global TRTL_DISCORD, NOTICE_COIN
         COIN_NAME = None
         serverinfo = None
         if coin is None and isinstance(ctx.message.channel, discord.DMChannel) == False:
@@ -53,9 +52,9 @@ class Stats(commands.Cog):
             embed.add_field(name="Guilds", value='{:,.0f}'.format(len(bot.guilds)), inline=True)
             embed.add_field(name="Shards", value='{:,.0f}'.format(self.bot.shard_count), inline=True)
             try:
-                embed.add_field(name="Total Online", value='{:,.0f}'.format(sum(1 for m in bot.get_all_members() if m.status == discord.Status.online)), inline=True)
-                embed.add_field(name="Users", value='{:,.0f}'.format(sum(1 for m in bot.get_all_members() if m.bot == False)), inline=True)
-                embed.add_field(name="Bots", value='{:,.0f}'.format(sum(1 for m in bot.get_all_members() if m.bot == True)), inline=True)
+                embed.add_field(name="Total Online", value='{:,.0f}'.format(sum(1 for m in self.bot.get_all_members() if m.status == discord.Status.online)), inline=True)
+                embed.add_field(name="Users", value='{:,.0f}'.format(sum(1 for m in self.bot.get_all_members() if m.bot == False)), inline=True)
+                embed.add_field(name="Bots", value='{:,.0f}'.format(sum(1 for m in self.bot.get_all_members() if m.bot == True)), inline=True)
             except Exception as e:
                 pass
             embed.add_field(name="Total faucet claims", value=total_claimed, inline=True)

@@ -15,7 +15,6 @@ class About(commands.Cog):
 
     @commands.command(usage="disclaimer", description="Show disclaimer.")
     async def disclaimer(self, ctx):
-        global DISCLAIM_MSG
         await ctx.send(f'{EMOJI_INFORMATION} **THANK YOU FOR USING** {DISCLAIM_MSG_LONG}')
         return
 

@@ -12,10 +12,9 @@ class CoinGecko(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+
     @commands.command(usage="cg", aliases=['coingecko'], description="Get coin information from CoinGecko.")
     async def cg(self, ctx, ticker: str):
-        global TRTL_DISCORD
-        # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 

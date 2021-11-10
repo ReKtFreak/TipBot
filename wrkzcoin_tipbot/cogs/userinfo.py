@@ -14,7 +14,6 @@ class Userinfo(commands.Cog):
 
     @commands.command(usage="userinfo <member>", description="Get user info in discord server.")
     async def userinfo(self, ctx, member: discord.Member = None):
-        global TRTL_DISCORD
         if isinstance(ctx.channel, discord.DMChannel) == True:
             await ctx.send(f'{ctx.author.mention} This command can not be in Direct Message.')
             return

@@ -15,7 +15,6 @@ class TipMtip(commands.Cog):
     @commands.command(usage="mtip <amount> [arg]", aliases=['gtip', 'modtip', 'guildtip'], description="Moderator tip.")
     @commands.has_permissions(manage_channels=True)
     async def mtip(self, ctx, amount: str, *args):
-        global TRTL_DISCORD, IS_RESTARTING, TX_IN_PROCESS
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
@@ -41,7 +40,7 @@ class TipMtip(commands.Cog):
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         amount = amount.replace(",", "")
 
         try:
@@ -461,7 +460,7 @@ class TipMtip(commands.Cog):
                     f'was sent to {member.name}#{member.discriminator} in server `{ctx.guild.name}`\n')
             except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                 await store.sql_toggle_tipnotify(str(ctx.author.id), "OFF")
-            if bot.user.id != member.id and str(member.id) not in notifyList:
+            if self.bot.user.id != member.id and str(member.id) not in notifyList:
                 try:
                     await member.send(
                         f'{EMOJI_MONEYFACE} You got a guild tip of {num_format_coin(real_amount, COIN_NAME)} '

@@ -35,7 +35,7 @@ class TipTipTo(commands.Cog):
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         amount = amount.replace(",", "")
         try:
             amount = Decimal(amount)

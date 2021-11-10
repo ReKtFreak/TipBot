@@ -23,7 +23,6 @@ class Voucher(commands.Cog):
 
     @voucher.command(usage="voucher make <amount> <coin> <comment>", aliases=['gen'], description="Make a voucher and share to other friends.")
     async def make(self, ctx, amount: str, coin: str, *, comment):
-        global IS_RESTARTING, TRTL_DISCORD, TX_IN_PROCESS
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
@@ -494,7 +493,7 @@ class Voucher(commands.Cog):
         return
 
 
-    @voucher.command(usage="getunclaim", description="Get a list of unclaimed vouchers as a file.")
+    @voucher.command(usage="voucher getunclaim", description="Get a list of unclaimed vouchers as a file.")
     async def getunclaim(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
@@ -525,7 +524,7 @@ class Voucher(commands.Cog):
         return
 
 
-    @voucher.command(usage="getclaim", description="Get a list of claimed vouchers as a file.")
+    @voucher.command(usage="voucher getclaim", description="Get a list of claimed vouchers as a file.")
     async def getclaim(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 

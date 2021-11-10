@@ -100,8 +100,7 @@ class Help(commands.Cog):
                 embed.set_footer(text=f"Help requested by {ctx.author.name}#{ctx.author.discriminator}")
             return embed
         try:
-            global LOG_CHAN
-            botLogChan = bot.get_channel(LOG_CHAN)
+            botLogChan = self.bot.get_channel(LOG_CHAN)
             prefix = await get_guild_prefix(ctx)
 
             if not re.match('^[a-zA-Z0-9-_ ]+$', section):
@@ -116,7 +115,7 @@ class Help(commands.Cog):
                     if serverinfo and serverinfo['botchan']:
                         if ctx.channel.id != int(serverinfo['botchan']):
                             await ctx.message.add_reaction(EMOJI_ERROR)
-                            botChan = bot.get_channel(int(serverinfo['botchan']))
+                            botChan = self.bot.get_channel(int(serverinfo['botchan']))
                             if botChan:
                                 await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
                             else:
@@ -160,8 +159,8 @@ class Help(commands.Cog):
                         in (EMOJI_HELP_HOUSE, EMOJI_HELP_GUILD, EMOJI_HELP_TIP, EMOJI_HELP_GAME, EMOJI_HELP_TOOL, EMOJI_HELP_NOTE, EMOJI_HELP_CG, EMOJI_OK_BOX)
 
                     done, pending = await asyncio.wait([
-                                        bot.wait_for('reaction_remove', timeout=90, check=check),
-                                        bot.wait_for('reaction_add', timeout=90, check=check)
+                                        self.bot.wait_for('reaction_remove', timeout=90, check=check),
+                                        self.bot.wait_for('reaction_add', timeout=90, check=check)
                                     ], return_when=asyncio.FIRST_COMPLETED)
                     try:
                         # stuff = done.pop().result()
@@ -203,10 +202,9 @@ class Help(commands.Cog):
             traceback.print_exc(file=sys.stdout)
 
 
-    # TODO:
+    # TODO: improve re-act
     async def help_setting(message, prefix):
-        global LOG_CHAN
-        botLogChan = bot.get_channel(LOG_CHAN)
+        botLogChan = self.bot.get_channel(LOG_CHAN)
         embed = discord.Embed(title=f"List of SETTING command {message.guild.name}", description="Required Managed Channel Permission", timestamp=datetime.utcnow())
         if isinstance(message.channel, discord.DMChannel) == True:
             await message.add_reaction(EMOJI_ERROR) 

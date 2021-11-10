@@ -95,7 +95,6 @@ class Games(commands.Cog):
 
     @game.command(usage="game blackjack", aliases=['bj'], description="Blackjack, original code by Al Sweigart al@inventwithpython.com.")
     async def blackjack(self, ctx):
-        global GAME_SLOT_REWARD, GAME_COIN, BOT_INVITELINK, GAME_INTERACTIVE_PRGORESS, IS_RESTARTING
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -344,7 +343,6 @@ class Games(commands.Cog):
 
     @game.command(usage="game slot", aliases=['slots'], description="Play a slot game.")
     async def slot(self, ctx):
-        global GAME_SLOT_REWARD, GAME_COIN, BOT_INVITELINK, GAME_SLOT_IN_PRGORESS
         botLogChan = self.bot.get_channel(LOG_CHAN)
         # bot check in the first place
         if ctx.author.bot == True:
@@ -492,7 +490,6 @@ class Games(commands.Cog):
 
     @game.command(usage="game bagel", aliases=['bagel1'], description="Bagels, a deductive logic game.")
     async def bagel(self, ctx):
-        global GAME_INTERACTIVE_PRGORESS, GAME_COIN, GAME_SLOT_REWARD, BOT_INVITELINK, IS_RESTARTING
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -692,7 +689,6 @@ class Games(commands.Cog):
 
     @game.command(usage="game bagel2", aliases=['bagels2'], description="Bagels, a deductive logic game.")
     async def bagel2(self, ctx):
-        global GAME_INTERACTIVE_PRGORESS, GAME_COIN, GAME_SLOT_REWARD, BOT_INVITELINK, IS_RESTARTING
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -916,9 +912,9 @@ class Games(commands.Cog):
         if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
             GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
 
+
     @game.command(usage="game bagel3", aliases=['bagels3'], description="Bagels, a deductive logic game.")
     async def bagel3(self, ctx):
-        global GAME_INTERACTIVE_PRGORESS, GAME_COIN, GAME_SLOT_REWARD, BOT_INVITELINK, IS_RESTARTING
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -1153,7 +1149,6 @@ class Games(commands.Cog):
 
     @game.command(usage="game maze", aliases=['mazes'], description="Interactive 2D ascii maze game.")
     async def maze(self, ctx):
-        global GAME_INTERACTIVE_PRGORESS, GAME_COIN, GAME_SLOT_REWARD, BOT_INVITELINK, GAME_MAZE_IN_PROCESS, IS_RESTARTING
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -1380,7 +1375,6 @@ class Games(commands.Cog):
 
     @game.command(usage="game hangman", aliases=['hm'], description="Old hangman game.")
     async def hangman(self, ctx):
-        global GAME_INTERACTIVE_PRGORESS, GAME_COIN, GAME_SLOT_REWARD, HANGMAN_WORDS, IS_RESTARTING
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -1580,9 +1574,9 @@ class Games(commands.Cog):
         if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
             GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
 
+
     @game.command(usage="game dice", aliases=['dices'], description="Simple dice game.")
     async def dice(self, ctx):
-        global GAME_INTERACTIVE_PRGORESS, GAME_COIN, GAME_SLOT_REWARD, HANGMAN_WORDS, IS_RESTARTING
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -1744,9 +1738,8 @@ class Games(commands.Cog):
             GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
 
 
-    @game.command(usage="snail <number>", aliases=['snailrace'], description="Snail racing game. You bet which one.")
+    @game.command(usage="game snail <number>", aliases=['snailrace'], description="Snail racing game. You bet which one.")
     async def snail(self, ctx, bet_numb: str=None):
-        global GAME_INTERACTIVE_PRGORESS, GAME_COIN, GAME_SLOT_REWARD, HANGMAN_WORDS, IS_RESTARTING
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -1954,9 +1947,8 @@ class Games(commands.Cog):
                 return
 
 
-    @game.command(usage="g2048", aliases=['2048'], description="Classic 2048 game. Slide all the tiles on the board in one of four directions.")
+    @game.command(usage="game g2048", aliases=['2048'], description="Classic 2048 game. Slide all the tiles on the board in one of four directions.")
     async def g2048(self, ctx):
-        global GAME_INTERACTIVE_PRGORESS, GAME_COIN, GAME_SLOT_REWARD, HANGMAN_WORDS, IS_RESTARTING
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -2173,10 +2165,9 @@ class Games(commands.Cog):
 
 
     @commands.is_owner()
-    @game.command(usage="sokotest", hidden = True)
+    @game.command(usage="game sokotest", hidden = True)
     async def sokotest(self, ctx, level:int=0):
         # For testing display
-        global GAME_INTERACTIVE_PRGORESS, GAME_COIN, GAME_SLOT_REWARD, HANGMAN_WORDS, IS_RESTARTING
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -2291,9 +2282,8 @@ class Games(commands.Cog):
             return
 
 
-    @game.command(usage="sokoban", aliases=['soko'], description="Sokoban interactive game.")
+    @game.command(usage="game sokoban", aliases=['soko'], description="Sokoban interactive game.")
     async def sokoban(self, ctx):
-        global GAME_INTERACTIVE_PRGORESS, GAME_COIN, GAME_SLOT_REWARD, HANGMAN_WORDS, IS_RESTARTING
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)

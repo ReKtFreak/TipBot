@@ -14,7 +14,6 @@ class Coininfo(commands.Cog):
 
     @commands.command(usage="coininfo <coin>", aliases=['coinf_info', 'coin'], description="Get coin's information in TipBot.")
     async def coininfo(self, ctx, coin: str = None):
-        global TRTL_DISCORD, ENABLE_COIN, ENABLE_COIN_DOGE, ENABLE_XMR, ENABLE_COIN_NANO, ENABLE_COIN_ERC, ENABLE_COIN_TRC, ENABLE_XCH
         if coin is None:
             if isinstance(ctx.channel, discord.DMChannel) == False and ctx.guild.id == TRTL_DISCORD:
                 return

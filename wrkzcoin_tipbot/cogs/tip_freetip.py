@@ -15,7 +15,6 @@ class TipFreeTip(commands.Cog):
     ## TODO: Improve this usage.
     @commands.command(usage="freetip <amount> <coin> <duration>", description="Distribute free tips to re-actors.")
     async def freetip(self, ctx, amount: str, coin: str, duration: str='60s', *, comment: str=None):
-        global TRTL_DISCORD, IS_RESTARTING
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
