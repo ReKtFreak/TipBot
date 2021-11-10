@@ -13,6 +13,13 @@ class About(commands.Cog):
         self.bot = bot
 
 
+    @commands.command(usage="disclaimer", description="Show disclaimer.")
+    async def disclaimer(self, ctx):
+        global DISCLAIM_MSG
+        await ctx.send(f'{EMOJI_INFORMATION} **THANK YOU FOR USING** {DISCLAIM_MSG_LONG}')
+        return
+
+
     @commands.command(usage="about", description="Get information about TipBot.")
     async def about(self, ctx):
         botdetails = discord.Embed(title='About Me', description='', colour=7047495)

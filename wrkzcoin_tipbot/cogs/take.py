@@ -14,7 +14,68 @@ class Faucet(commands.Cog):
 
     @commands.command(usage="take <info>", description="Claim a random coin faucet.")
     async def take(self, ctx, info: str=None):
-        global FAUCET_COINS, FAUCET_MINMAX, TRTL_DISCORD, TX_IN_PROCESS, IS_RESTARTING
+        async def bot_faucet(ctx):
+            global TRTL_DISCORD
+            get_game_stat = await store.sql_game_stat()
+            table_data = [
+                ['TICKER', 'Available', 'Claimed / Game']
+            ]
+            for COIN_NAME in [coinItem.upper() for coinItem in FAUCET_COINS]:
+                sum_sub = 0
+                wallet = await store.sql_get_userwallet(str(bot.user.id), COIN_NAME)
+                if wallet is None:
+                    if COIN_NAME in ENABLE_COIN_ERC:
+                        coin_family = "ERC-20"
+                        w = await create_address_eth()
+                        wallet = await store.sql_register_user(str(bot.user.id), COIN_NAME, SERVER_BOT, 0, w)
+                    elif COIN_NAME in ENABLE_COIN_TRC:
+                        coin_family = "TRC-20"
+                        result = await store.create_address_trx()
+                        wallet = await store.sql_register_user(str(bot.user.id), COIN_NAME, SERVER_BOT, 0, result)
+                    else:
+                        coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
+                        wallet = await store.sql_register_user(str(bot.user.id), COIN_NAME, SERVER_BOT, 0)
+                userdata_balance = await store.sql_user_balance(str(bot.user.id), COIN_NAME)
+                xfer_in = 0
+                if COIN_NAME not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                    xfer_in = await store.sql_user_balance_get_xfer_in(str(bot.user.id), COIN_NAME)
+                if COIN_NAME in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                    actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
+                elif COIN_NAME in ENABLE_COIN_NANO:
+                    actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
+                    actual_balance = round(actual_balance / get_decimal(COIN_NAME), 6) * get_decimal(COIN_NAME)
+                else:
+                    actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
+                if COIN_NAME in ENABLE_COIN_ERC:
+                    coin_family = "ERC-20"
+                elif COIN_NAME in ENABLE_COIN_TRC:
+                    coin_family = "TRC-20"
+                else:
+                    coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")           
+                try:
+                    if COIN_NAME in get_game_stat and coin_family in ["TRTL", "BCN", "XMR", "NANO", "XCH"]:
+                        actual_balance = actual_balance - int(get_game_stat[COIN_NAME])
+                        sum_sub = int(get_game_stat[COIN_NAME])
+                    elif COIN_NAME in get_game_stat and coin_family in ["DOGE", "ERC-20", "TRC-20"]:
+                        actual_balance = actual_balance - float(get_game_stat[COIN_NAME])
+                        sum_sub = float(get_game_stat[COIN_NAME])
+                except Exception as e:
+                    await logchanbot(traceback.format_exc())
+                balance_actual = num_format_coin(actual_balance, COIN_NAME)
+                get_claimed_count = await store.sql_faucet_sum_count_claimed(COIN_NAME)
+                if coin_family in ["TRTL", "BCN", "XMR", "NANO", "XCH"]:
+                    sub_claim = num_format_coin(int(get_claimed_count['claimed']) + sum_sub, COIN_NAME) if get_claimed_count['count'] > 0 else f"0.00{COIN_NAME}"
+                elif coin_family in ["DOGE", "ERC-20", "TRC-20"]:
+                    sub_claim = num_format_coin(float(get_claimed_count['claimed']) + sum_sub, COIN_NAME) if get_claimed_count['count'] > 0 else f"0.00{COIN_NAME}"
+                if actual_balance != 0:
+                    table_data.append([COIN_NAME, balance_actual, sub_claim])
+                else:
+                    table_data.append([COIN_NAME, '0', sub_claim])
+            table = AsciiTable(table_data)
+            table.padding_left = 0
+            table.padding_right = 0
+            return table.table
+
         botLogChan = bot.get_channel(LOG_CHAN)
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.send(f'{EMOJI_RED_NO} This command can not be in private.')
