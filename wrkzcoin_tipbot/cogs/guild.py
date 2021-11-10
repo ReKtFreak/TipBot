@@ -21,6 +21,121 @@ class Guild(commands.Cog):
         self.bot = bot
 
 
+    @commands.command(usage="info [coin]", description="Check guild's information")
+    async def info(self, ctx, coin: str = None):
+        # check if account locked
+        account_lock = await alert_if_userlock(ctx, 'info')
+        if account_lock:
+            await ctx.message.add_reaction(EMOJI_LOCKED) 
+            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            return
+        # end of check if account locked
+
+        # Check if maintenance
+        if IS_MAINTENANCE == 1:
+            if int(ctx.author.id) in MAINTENANCE_OWNER:
+                await ctx.message.add_reaction(EMOJI_MAINTENANCE)
+                pass
+            else:
+                await ctx.message.add_reaction(EMOJI_WARNING)
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
+                return
+        else:
+            pass
+        # End Check if maintenance
+
+        wallet = None
+        COIN_NAME = None
+        if coin is None:
+            if len(ctx.message.mentions) == 0:
+                cmdName = ctx.message.content
+            else:
+                cmdName = ctx.message.content.split(" ")[0]
+            cmdName = cmdName[1:]
+
+            if cmdName.lower() not in ['wallet', 'info']:
+                cmdName = ctx.message.content.split(" ")[1]
+            if isinstance(ctx.channel, discord.DMChannel):
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} This command can not be in DM. If you want to deposit, use **DEPOSIT** command instead.')
+                return
+            else:
+                serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+                prefix = config.discord.prefixCmd
+                server_coin = DEFAULT_TICKER
+                server_tiponly = "ALLCOIN"
+                react_tip_value = "N/A"
+                if serverinfo is None:
+                    # Let's add some info if server return None
+                    add_server_info = await store.sql_addinfo_by_server(str(ctx.guild.id),
+                                                                        ctx.message.guild.name, config.discord.prefixCmd, "WRKZ")
+                else:
+                    prefix = serverinfo['prefix']
+                    server_coin = serverinfo['default_coin'].upper()
+                    server_tiponly = serverinfo['tiponly'].upper()
+                    if serverinfo['react_tip'].upper() == "ON":
+                        COIN_NAME = serverinfo['default_coin'].upper()
+                        react_tip_value = str(serverinfo['react_tip_100']) + COIN_NAME
+                try:
+                    MUTE_CHANNEL = await store.sql_list_mutechan()
+                    LIST_IGNORECHAN = await store.sql_listignorechan()
+                    chanel_ignore_list = ''
+                    if LIST_IGNORECHAN and str(ctx.guild.id) in LIST_IGNORECHAN:
+                        for item in LIST_IGNORECHAN[str(ctx.guild.id)]:
+                            try:
+                                chanel_ignore = bot.get_channel(int(item))
+                                chanel_ignore_list += '#'  + chanel_ignore.name + ' '
+                            except Exception as e:
+                                pass
+                    if chanel_ignore_list == '': chanel_ignore_list = 'N/A'
+
+                    chanel_mute_list = ''
+                    if MUTE_CHANNEL and str(ctx.guild.id) in MUTE_CHANNEL:
+                        for item in MUTE_CHANNEL[str(ctx.guild.id)]:
+                            try:
+                                chanel_mute = bot.get_channel(int(item))
+                                chanel_mute_list += '#'  + chanel_mute.name + ' '
+                            except Exception as e:
+                                pass
+                    if chanel_mute_list == '': chanel_mute_list = 'N/A'
+                except Exception as e:
+                    await logchanbot(traceback.format_exc())
+                extra_text = f'Type: {prefix}setting or {prefix}help setting for more info. (Required permission)'
+                try:
+                    embed = discord.Embed(title=f'Guild {ctx.guild.id} / {ctx.guild.name}', timestamp=datetime.utcnow())
+                    embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon)
+                    embed.add_field(name="Default Ticker", value=f'`{server_coin}`', inline=True)
+                    embed.add_field(name="Default Prefix", value=f'`{prefix}`', inline=True)
+                    embed.add_field(name="TipOnly Coins", value=f'`{server_tiponly}`', inline=True)
+                    embed.add_field(name=f"Re-act Tip {EMOJI_TIP}", value=f'`{react_tip_value}`', inline=True)
+                    embed.add_field(name="Ignored Tip", value=f'`{chanel_ignore_list}`', inline=True)
+                    embed.add_field(name="Mute in", value=f'`{chanel_mute_list}`', inline=True)
+                    embed.set_footer(text=f"{extra_text}")
+                    msg = await ctx.send(embed=embed)
+                    await msg.add_reaction(EMOJI_OK_BOX)
+                    await ctx.message.add_reaction(EMOJI_OK_HAND)
+                except (discord.errors.NotFound, discord.errors.Forbidden, Exception) as e:
+                    msg = await ctx.send(
+                        '\n```'
+                        f'Server ID:      {ctx.guild.id}\n'
+                        f'Server Name:    {ctx.message.guild.name}\n'
+                        f'Default Ticker: {server_coin}\n'
+                        f'Default Prefix: {prefix}\n'
+                        f'TipOnly Coins:  {server_tiponly}\n'
+                        f'Re-act Tip:     {react_tip_value}\n'
+                        f'Ignored Tip in: {chanel_ignore_list}\n'
+                        f'Mute in:        {chanel_mute_list}\n'
+                        f'```{extra_text}')
+                    await msg.add_reaction(EMOJI_OK_BOX)
+                    await ctx.message.add_reaction(EMOJI_OK_HAND)
+                return
+        else:
+            COIN_NAME = coin.upper()
+
+        if COIN_NAME:
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Please use **DEPOSIT** command instead.')
+            return
+
+
     @commands.command(usage="setting <expression>", aliases=['settings', 'set'], description="Settings view and set for prefix, default coin. Requires permission manage_channels.")
     @commands.has_permissions(manage_channels=True)
     async def setting(self, ctx, *args):

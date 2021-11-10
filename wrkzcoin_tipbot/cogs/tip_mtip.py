@@ -285,11 +285,11 @@ class TipMtip(commands.Cog):
                     except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                         return
                 return
-        elif len(ctx.message.mentions) == 1 and (bot.user in ctx.message.mentions):
+        elif len(ctx.message.mentions) == 1 and (self.bot.user in ctx.message.mentions):
             # Tip to TipBot
             member = ctx.message.mentions[0]
             print('TipBot is receiving tip from {} amount: {}{}'.format(ctx.author.name, amount, COIN_NAME))
-        elif len(ctx.message.mentions) == 1 and (bot.user not in ctx.message.mentions):
+        elif len(ctx.message.mentions) == 1 and (self.bot.user not in ctx.message.mentions):
             member = ctx.message.mentions[0]
             if ctx.author.id == member.id:
                 await ctx.message.add_reaction(EMOJI_ERROR)

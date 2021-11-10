@@ -826,275 +826,6 @@ async def prefix(ctx):
     return
 
 
-@bot.command(pass_context=True, name='info', help=bot_help_info)
-async def info(ctx, coin: str = None):
-    global LIST_IGNORECHAN, MUTE_CHANNEL
-    # check if account locked
-    account_lock = await alert_if_userlock(ctx, 'info')
-    if account_lock:
-        await ctx.message.add_reaction(EMOJI_LOCKED) 
-        await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
-        return
-    # end of check if account locked
-
-    # Check if maintenance
-    if IS_MAINTENANCE == 1:
-        if int(ctx.author.id) in MAINTENANCE_OWNER:
-            await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            pass
-        else:
-            await ctx.message.add_reaction(EMOJI_WARNING)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
-            return
-    else:
-        pass
-    # End Check if maintenance
-
-    wallet = None
-    COIN_NAME = None
-    if coin is None:
-        if len(ctx.message.mentions) == 0:
-            cmdName = ctx.message.content
-        else:
-            cmdName = ctx.message.content.split(" ")[0]
-        cmdName = cmdName[1:]
-
-        if cmdName.lower() not in ['wallet', 'info']:
-            cmdName = ctx.message.content.split(" ")[1]
-        if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} This command can not be in DM. If you want to deposit, use **DEPOSIT** command instead.')
-            return
-        else:
-            serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-            prefix = config.discord.prefixCmd
-            server_coin = DEFAULT_TICKER
-            server_tiponly = "ALLCOIN"
-            react_tip_value = "N/A"
-            if serverinfo is None:
-                # Let's add some info if server return None
-                add_server_info = await store.sql_addinfo_by_server(str(ctx.guild.id),
-                                                                    ctx.message.guild.name, config.discord.prefixCmd, "WRKZ")
-            else:
-                prefix = serverinfo['prefix']
-                server_coin = serverinfo['default_coin'].upper()
-                server_tiponly = serverinfo['tiponly'].upper()
-                if serverinfo['react_tip'].upper() == "ON":
-                    COIN_NAME = serverinfo['default_coin'].upper()
-                    react_tip_value = str(serverinfo['react_tip_100']) + COIN_NAME
-            try:
-                MUTE_CHANNEL = await store.sql_list_mutechan()
-                LIST_IGNORECHAN = await store.sql_listignorechan()
-                chanel_ignore_list = ''
-                if LIST_IGNORECHAN and str(ctx.guild.id) in LIST_IGNORECHAN:
-                    for item in LIST_IGNORECHAN[str(ctx.guild.id)]:
-                        try:
-                            chanel_ignore = bot.get_channel(int(item))
-                            chanel_ignore_list += '#'  + chanel_ignore.name + ' '
-                        except Exception as e:
-                            pass
-                if chanel_ignore_list == '': chanel_ignore_list = 'N/A'
-
-                chanel_mute_list = ''
-                if MUTE_CHANNEL and str(ctx.guild.id) in MUTE_CHANNEL:
-                    for item in MUTE_CHANNEL[str(ctx.guild.id)]:
-                        try:
-                            chanel_mute = bot.get_channel(int(item))
-                            chanel_mute_list += '#'  + chanel_mute.name + ' '
-                        except Exception as e:
-                            pass
-                if chanel_mute_list == '': chanel_mute_list = 'N/A'
-            except Exception as e:
-                await logchanbot(traceback.format_exc())
-            extra_text = f'Type: {prefix}setting or {prefix}help setting for more info. (Required permission)'
-            try:
-                embed = discord.Embed(title=f'Guild {ctx.guild.id} / {ctx.guild.name}', timestamp=datetime.utcnow())
-                embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon)
-                embed.add_field(name="Default Ticker", value=f'`{server_coin}`', inline=True)
-                embed.add_field(name="Default Prefix", value=f'`{prefix}`', inline=True)
-                embed.add_field(name="TipOnly Coins", value=f'`{server_tiponly}`', inline=True)
-                embed.add_field(name=f"Re-act Tip {EMOJI_TIP}", value=f'`{react_tip_value}`', inline=True)
-                embed.add_field(name="Ignored Tip", value=f'`{chanel_ignore_list}`', inline=True)
-                embed.add_field(name="Mute in", value=f'`{chanel_mute_list}`', inline=True)
-                embed.set_footer(text=f"{extra_text}")
-                msg = await ctx.send(embed=embed)
-                await msg.add_reaction(EMOJI_OK_BOX)
-                await ctx.message.add_reaction(EMOJI_OK_HAND)
-            except (discord.errors.NotFound, discord.errors.Forbidden, Exception) as e:
-                msg = await ctx.send(
-                    '\n```'
-                    f'Server ID:      {ctx.guild.id}\n'
-                    f'Server Name:    {ctx.message.guild.name}\n'
-                    f'Default Ticker: {server_coin}\n'
-                    f'Default Prefix: {prefix}\n'
-                    f'TipOnly Coins:  {server_tiponly}\n'
-                    f'Re-act Tip:     {react_tip_value}\n'
-                    f'Ignored Tip in: {chanel_ignore_list}\n'
-                    f'Mute in:        {chanel_mute_list}\n'
-                    f'```{extra_text}')
-                await msg.add_reaction(EMOJI_OK_BOX)
-                await ctx.message.add_reaction(EMOJI_OK_HAND)
-            return
-    else:
-        COIN_NAME = coin.upper()
-        pass
-
-    if COIN_NAME:
-        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Please use **DEPOSIT** command instead.')
-        return
-
-
-@bot.group(pass_context=True, aliases=['fb'], help=bot_help_feedback)
-async def feedback(ctx):
-    prefix = await get_guild_prefix(ctx)
-    if ctx.invoked_subcommand is None:
-        if config.feedback_setting.enable != 1:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} Feedback is not enable right now. Check back later.')
-            return
-
-        # Check if user has submitted any and reach limit
-        check_feedback_user = await store.sql_get_feedback_count_last(str(ctx.author.id), config.feedback_setting.intervial_last_10mn_s)
-        if check_feedback_user and check_feedback_user >= config.feedback_setting.intervial_last_10mn:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} You had submitted {config.feedback_setting.intervial_last_10mn} already. '
-                           'Waiting a bit before next submission.')
-            return
-        check_feedback_user = await store.sql_get_feedback_count_last(str(ctx.author.id), config.feedback_setting.intervial_each_user)
-        if check_feedback_user and check_feedback_user >= 1:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} You had submitted one feedback already for the last {config.feedback_setting.intervial_each_user}s.'
-                           'Waiting a bit before next submission.')
-            return
-        # OK he can submitted
-        try:
-            msg = await ctx.send(f'{ctx.author.mention} We are welcome for all feedback, inquiry or suggestion. '
-                                 f'You can also join our support server as in {prefix}about command.\n'
-                                 f'Please type in your feedback here (timeout {config.feedback_setting.waiting_for_feedback_text}s):')
-            # DESC
-            feedback = None
-            while feedback is None:
-                waiting_feedbackmsg = None
-                try:
-                    waiting_feedbackmsg = await bot.wait_for('message', timeout=config.feedback_setting.waiting_for_feedback_text, check=lambda msg: msg.author == ctx.author)
-                except asyncio.TimeoutError:
-                    await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{ctx.author.mention} **Timeout** for feedback submission. '
-                                   'You can try again later.')
-                    return
-                if waiting_feedbackmsg is None:
-                    await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{ctx.author.mention} **Timeout** for feedback submission. '
-                                   'You can try again later.')
-                    return
-                else:
-                        feedback = waiting_feedbackmsg.content.strip()
-                        if len(feedback) <= config.feedback_setting.min_chars:
-                            await ctx.message.add_reaction(EMOJI_ERROR)
-                            msg = await ctx.send(f'{ctx.author.mention}, feedback message is too short.')
-                            return
-                        else:
-                            # OK, let's add
-                            feedback_id = str(uuid.uuid4())
-                            text_in = "DM"
-                            if isinstance(ctx.channel, discord.DMChannel) == False: text_in = str(ctx.message.channel.id)
-                            howto_contact_back = "N/A"
-                            msg = await ctx.send(f'{ctx.author.mention} (Optional) Please let us know if and how we can contact you back '
-                                                 f'(timeout {config.feedback_setting.waiting_for_feedback_text}s) - default N/A:')
-                            try:
-                                waiting_howtoback = await bot.wait_for('message', timeout=config.feedback_setting.waiting_for_feedback_text, check=lambda msg: msg.author == ctx.author)
-                            except asyncio.TimeoutError:
-                                pass
-                            else:
-                                if len(waiting_howtoback.content.strip()) > 0: howto_contact_back = waiting_howtoback.content.strip()
-                            add = await store.sql_feedback_add(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), 
-                                                               feedback_id, text_in, feedback, howto_contact_back)
-                            if add:
-                                msg = await ctx.send(f'{ctx.author.mention} Thank you for your feedback / inquiry. Your feedback ref: **{feedback_id}**')
-                                await msg.add_reaction(EMOJI_OK_BOX)
-                                try:
-                                    botLogChan = bot.get_channel(LOG_CHAN)
-                                    await botLogChan.send(f'{EMOJI_INFORMATION} A user has submitted a feedback `{feedback_id}`')
-                                except Exception as e:
-                                    await logchanbot(traceback.format_exc())
-                                return
-                            else:
-                                msg = await ctx.send(f'{ctx.author.mention} Internal Error.')
-                                await msg.add_reaction(EMOJI_OK_BOX)
-        except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            return
-
-
-@feedback.command(aliases=['vfb'], help=bot_help_view_feedback)
-async def view(ctx, ref: str):
-    if config.feedback_setting.enable != 1:
-        await ctx.message.add_reaction(EMOJI_ERROR)
-        await ctx.send(f'{ctx.author.mention} Feedback is not enable right now. Check back later.')
-        return
-    get_feedback = await store.sql_feedback_by_ref(ref)
-    if get_feedback is None:
-        await ctx.message.add_reaction(EMOJI_ERROR)
-        await ctx.send(f'{ctx.author.mention} We can not find feedback reference **{ref}**.')
-        return
-    else:
-        # If he is bot owner or feedback owner:
-        if int(get_feedback['user_id']) == ctx.author.id or ctx.author.id == OWNER_ID_TIPBOT:
-            response_txt = 'Feedback ref: **{}** submitted by user id: {}, name: {}\n'.format(ref, get_feedback['user_id'], get_feedback['user_name'])
-            response_txt += 'Content:\n\n{}\n\n'.format(get_feedback['feedback_text'])
-            response_txt += 'Submitted date: {}'.format(datetime.fromtimestamp(get_feedback['feedback_date']))
-            await ctx.message.add_reaction(EMOJI_OK_HAND)
-            msg = await ctx.send(f'{response_txt}')
-            await msg.add_reaction(EMOJI_OK_BOX)
-            return
-        else:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} You do not have permission to view **{ref}**.')
-            return
-
-
-@feedback.command(aliases=['ls'], help=bot_help_view_feedback_list)
-async def list(ctx, userid: str=None):
-    if config.feedback_setting.enable != 1:
-        await ctx.message.add_reaction(EMOJI_ERROR)
-        await ctx.send(f'{ctx.author.mention} Feedback is not enable right now. Check back later.')
-        return
-    if userid is None:
-        get_feedback_list = await store.sql_feedback_list_by_user(str(ctx.author.id), 10)
-        if get_feedback_list and len(get_feedback_list) > 0:
-            table_data = [['Ref', 'Brief']]
-            for each in get_feedback_list:
-                table_data.append([each['feedback_id'], each['feedback_text'][0:48]])
-            table = AsciiTable(table_data)
-            await ctx.message.add_reaction(EMOJI_OK_HAND)
-            msg = await ctx.send(f'{ctx.author.mention} Your feedback list:```{table.table}```')
-            await msg.add_reaction(EMOJI_OK_BOX)
-            return
-        else:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} You do not have any feedback submitted.')
-            return
-    else:
-        if ctx.author.id != OWNER_ID_TIPBOT:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} You have no permission.')
-            return
-        else:
-            get_feedback_list = await store.sql_feedback_list_by_user(userid, 10)
-            if get_feedback_list and len(get_feedback_list) > 0:
-                table_data = [['Ref', 'Brief']]
-                for each in get_feedback_list:
-                    table_data.append([each['feedback_id'], each['feedback_text'][0:48]])
-                table = AsciiTable(table_data)
-                await ctx.message.add_reaction(EMOJI_OK_HAND)
-                msg = await ctx.send(f'{ctx.author.mention} Feedback user {userid} list:```{table.table}```')
-                await msg.add_reaction(EMOJI_OK_BOX)
-                return
-            else:
-                await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{ctx.author.mention} There is no feedback by {userid}.')
-                return
-
-
 @bot.command(pass_context=True, help=bot_help_height, hidden = True)
 async def height(ctx, coin: str = None):
     global TRTL_DISCORD
@@ -2748,21 +2479,6 @@ def is_ascii(s):
     return all(ord(c) < 128 for c in s)
 
 
-# https://en.wikipedia.org/wiki/Primality_test
-def is_prime(n: int) -> bool:
-    """Primality test using 6k+-1 optimization."""
-    if n <= 3:
-        return n > 1
-    if n % 2 == 0 or n % 3 == 0:
-        return False
-    i = 5
-    while i ** 2 <= n:
-        if n % i == 0 or n % (i + 2) == 0:
-            return False
-        i += 6
-    return True
-
-
 # json.dumps for turple
 def remap_keys(mapping):
     return [{'key':k, 'value': v} for k, v in mapping.items()]
@@ -2860,7 +2576,6 @@ def get_roach_level(takes: int):
         return None
 
 
-## Section of Trade
 def get_min_sell(coin: str, token_info = None):
     COIN_NAME = coin.upper()
     if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
@@ -2874,35 +2589,42 @@ def get_max_sell(coin: str, token_info = None):
         return token_info['max_buysell']
     else:
         return getattr(config,"daemon"+coin,config.daemonWRKZ).max_buysell
-## END OF Section of Trade
-
 
 
 @bot.command(usage="load <cog>")
 @commands.is_owner()
 async def load(ctx, extension):
-    """Load specified cog"""
-    extension = extension.lower()
-    bot.load_extension(f'cogs.{extension}')
-    await ctx.send('{} has been loaded.'.format(extension.capitalize()))
+    try:
+        """Load specified cog"""
+        extension = extension.lower()
+        bot.load_extension(f'cogs.{extension}')
+        await ctx.send('{} has been loaded.'.format(extension.capitalize()))
+    except Exception as e:
+        traceback.print_exc(file=sys.stdout)
 
 
-@bot.command(usage="unload <cog>")
+@bot.command(usage="unload <cog name>")
 @commands.is_owner()
 async def unload(ctx, extension):
-    """Unload specified cog"""
-    extension = extension.lower()
-    bot.unload_extension(f'cogs.{extension}')
-    await ctx.send('{} has been unloaded.'.format(extension.capitalize()))
+    try:
+        """Unload specified cog"""
+        extension = extension.lower()
+        bot.unload_extension(f'cogs.{extension}')
+        await ctx.send('{} has been unloaded.'.format(extension.capitalize()))
+    except Exception as e:
+        traceback.print_exc(file=sys.stdout)
 
 
-@bot.command(usage="reload <cog/guilds/utils/all>")
+@bot.command(usage="reload <cog name>")
 @commands.is_owner()
 async def reload(ctx, extension):
     """Reload specified cog"""
-    extension = extension.lower()
-    bot.reload_extension(f'cogs.{extension}')
-    await ctx.send('{} has been reloaded.'.format(extension.capitalize()))
+    try:
+        extension = extension.lower()
+        bot.reload_extension(f'cogs.{extension}')
+        await ctx.send('{} has been reloaded.'.format(extension.capitalize()))
+    except Exception as e:
+        traceback.print_exc(file=sys.stdout)
 
 
 @click.command()
