@@ -78,7 +78,6 @@ import re
 from discord.utils import get
 from datetime import datetime
 import math, random
-import qrcode
 import os.path
 import uuid
 from PIL import Image, ImageDraw, ImageFont

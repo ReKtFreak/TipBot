@@ -13,14 +13,7 @@ class About(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="disclaimer", description="Show disclaimer.")
-    async def disclaimer(self, ctx):
-        await ctx.send(f'{EMOJI_INFORMATION} **THANK YOU FOR USING** {DISCLAIM_MSG_LONG}')
-        return
-
-
-    @commands.command(usage="about", description="Get information about TipBot.")
-    async def about(self, ctx):
+    def about_embed(self):
         botdetails = discord.Embed(title='About Me', description='', colour=7047495)
         botdetails.add_field(name='Creator\'s Discord Name:', value='pluton#8888', inline=True)
         botdetails.add_field(name='My Github:', value="[TipBot Github](https://github.com/wrkzcoin/TipBot)", inline=True)
@@ -29,10 +22,34 @@ class About(commands.Cog):
         botdetails.add_field(name='Support Me:', value=f'<@{self.bot.user.id}> donate AMOUNT ticker', inline=True)
         botdetails.set_footer(text='Made in Python3.8+ with discord.py library!', icon_url='http://findicons.com/files/icons/2804/plex/512/python.png')
         botdetails.set_author(name=self.bot.user.name, icon_url=self.bot.user.display_avatar)
+        return botdetails
+
+
+    @inter_client.slash_command(description="Show disclaimer.")
+    async def disclaimer(self, inter):
+        await inter.reply(f"{EMOJI_INFORMATION} **THANK YOU FOR USING** {DISCLAIM_MSG_LONG}", ephemeral=True)
+
+
+    @inter_client.slash_command(description="Get information about TipBot.")
+    async def about(self, inter):
         try:
-            await ctx.send(embed=botdetails)
+            await inter.reply(embed=self.about_embed())
         except Exception as e:
-            await ctx.author.send(embed=botdetails)
+            await logchanbot(traceback.format_exc())
+
+
+    @commands.command(usage="disclaimer", description="Show disclaimer.")
+    async def disclaimer(self, ctx):
+        await ctx.send(f'{EMOJI_INFORMATION} **THANK YOU FOR USING** {DISCLAIM_MSG_LONG}')
+        return
+
+
+    @commands.command(usage="about", description="Get information about TipBot.")
+    async def about(self, ctx):
+        try:
+            await ctx.send(embed=self.about_embed())
+        except Exception as e:
+            await ctx.author.send(embed=self.about_embed())
             await logchanbot(traceback.format_exc())
 
 
