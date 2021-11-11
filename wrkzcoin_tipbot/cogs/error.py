@@ -76,6 +76,10 @@ class Error(commands.Cog):
             embed.add_field(name='Loaded Cogs:', value="".join("`" + c + "`\n" for c in sorted(self.bot.cogs)), inline=False)
             return await ctx.send(embed=embed)
 
+        if isinstance(error, discord.ext.commands.errors.CommandNotFound):
+            #if ctx.command: return await ctx.send(f"Command not found `{ctx.command.name}`: {str(error)}")
+            return # ignore
+
         if isinstance(error, commands.CommandError):
             if ctx.command: return await ctx.send(f"Unhandled error while executing command `{ctx.command.name}`: {str(error)}")
 

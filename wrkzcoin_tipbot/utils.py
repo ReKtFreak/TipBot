@@ -3,12 +3,14 @@ import datetime
 import difflib
 import re
 from enum import Enum
+import sys, traceback
 
 import discord
 import numpy as np
 from discord.embeds import _EmptyEmbed
 from discord.ext.commands import BadArgument, Converter
-
+from dislash import InteractionClient, ActionRow, Button, ButtonStyle
+import dislash
 
 class MemberLookupConverter(discord.ext.commands.MemberConverter):
     async def convert(self, ctx, mem, guild: discord.Guild = None) -> discord.Member:
@@ -75,12 +77,114 @@ class MemberLookupConverter(discord.ext.commands.MemberConverter):
                                   "Check your spelling and try again!")
 
 
+class EmbedPaginatorInter:
+
+    def __init__(self, bot, inter, pages):
+        self.bot = bot
+        self.inter = inter
+        self.pages = pages
+        self.msg = None
+
+
+    async def paginate_with_slash(self):
+        if self.pages:
+            pagenum = 0
+            embed: discord.Embed = self.pages[pagenum]
+            if not isinstance(embed.title, _EmptyEmbed):
+                if f" (Page {pagenum + 1}/{len(self.pages)})" not in str(embed.title):
+                    embed.title = embed.title + f" (Page {pagenum + 1}/{len(self.pages)})"
+            else:
+                embed.title = f" (Page {pagenum + 1}/{len(self.pages)})"
+
+            # Create a row of buttons
+            row = ActionRow(
+                Button(
+                    style=ButtonStyle.red,
+                    label="⏮️",
+                    custom_id="first_page"
+                ),
+                Button(
+                    style=ButtonStyle.blurple,
+                    label="⬅️",
+                    custom_id="step_back_page"
+                ),
+                Button(
+                    style=ButtonStyle.blurple,
+                    label="⏹️",
+                    custom_id="stop_page"
+                ),
+                Button(
+                    style=ButtonStyle.blurple,
+                    label="➡️",
+                    custom_id="step_forward_page"
+                ),
+                Button(
+                    style=ButtonStyle.blurple,
+                    label="⏭️",
+                    custom_id="last_page"
+                )
+            )
+
+            # Note that we assign a list of rows to components
+            self.msg = await self.inter.reply(embed=self.pages[pagenum], components=[row], ephemeral=True)
+            starttime = datetime.datetime.utcnow()
+
+            while True:
+                def check(inter):
+                    return inter.author == self.inter.author
+
+                try:
+                    timeleft = 60  # 1 minute timeout
+                    # Wait for a button click under the bot's message
+                    inter = await self.bot.wait_for('button_click', check=check, timeout=timeleft)
+
+                except asyncio.TimeoutError:
+                    return await self.end_pagination_with_slash(self.msg)
+
+                timeleft = timeleft - (datetime.datetime.utcnow() - starttime).seconds
+                if inter.clicked_button.label == "⬅️":
+                    if pagenum == 0:
+                        pagenum = len(self.pages) - 1
+                    else:
+                        pagenum -= 1
+                elif inter.clicked_button.label == "➡️":
+                    if pagenum == len(self.pages) - 1:
+                        pagenum = 0
+                    else:
+                        pagenum += 1
+                elif inter.clicked_button.label == "⏮️":
+                    pagenum = 0
+                elif inter.clicked_button.label == "⏭️":
+                    pagenum = len(self.pages) - 1
+                elif inter.clicked_button.label == "⏹️":
+                    return await self.end_pagination_with_slash(inter)
+                else:
+                    continue
+
+                embed: discord.Embed = self.pages[pagenum]
+                if not isinstance(embed.title, _EmptyEmbed):
+                    if f" (Page {pagenum + 1}/{len(self.pages)})" not in str(embed.title):
+                        embed.title = embed.title + f" (Page {pagenum + 1}/{len(self.pages)})"
+                else:
+                    embed.title = f" (Page {pagenum + 1}/{len(self.pages)})"
+                await inter.create_response(embed=self.pages[pagenum], components=[row], ephemeral=True, type=dislash.ResponseType.UpdateMessage)
+                continue
+
+
+    async def end_pagination_with_slash(self, inter):
+        try:
+            await inter.message.delete()
+        except Exception as e:
+            print(traceback.format_exc())
+
+
 class EmbedPaginator:
 
-    def __init__(self, client, ctx, pages):
-        self.client = client
+    def __init__(self, bot, ctx, pages):
+        self.bot = bot
         self.ctx = ctx
         self.pages = pages
+
 
     async def paginate(self):
         if self.pages:
@@ -104,14 +208,22 @@ class EmbedPaginator:
                 def check(react, usr):
                     return not usr.bot and react.message.id == msg.id and usr.id == self.ctx.author.id and str(react.emoji) in \
                            ["⏮️", "⬅️", "⏹️", "➡️", "⏭️"]
-
+                    
                 try:
-                    reaction, user = await self.client.wait_for('reaction_add', timeout=timeleft, check=check)
+                    done, pending = await asyncio.wait([
+                                        self.bot.wait_for('reaction_remove', timeout=timeleft, check=check),
+                                        self.bot.wait_for('reaction_add', timeout=timeleft, check=check)
+                                    ], return_when=asyncio.FIRST_COMPLETED)
+                    # stuff = done.pop().result()
+                    reaction, user = done.pop().result()
                 except asyncio.TimeoutError:
                     return await self.end_pagination(msg)
 
                 if msg.guild:
-                    await msg.remove_reaction(reaction.emoji, self.ctx.author)
+                    try:
+                        await msg.remove_reaction(reaction.emoji, self.ctx.author)
+                    except:
+                        pass
                 timeleft = 300 - (datetime.datetime.utcnow() - starttime).seconds
                 if str(reaction.emoji) == "⬅️":
                     if pagenum == 0:
@@ -146,9 +258,117 @@ class EmbedPaginator:
             if self.pages:
                 await msg.edit(embed=self.pages[0])
             if not isinstance(msg.channel, discord.DMChannel):
-                await msg.clear_reactions()
+                try:
+                    await msg.delete()
+                except:
+                    pass
         except discord.NotFound:
             pass
+
+
+    async def paginate_with_button(self):
+        if self.pages:
+            pagenum = 0
+            embed: discord.Embed = self.pages[pagenum]
+            if not isinstance(embed.title, _EmptyEmbed):
+                if f" (Page {pagenum + 1}/{len(self.pages)})" not in str(embed.title):
+                    embed.title = embed.title + f" (Page {pagenum + 1}/{len(self.pages)})"
+            else:
+                embed.title = f" (Page {pagenum + 1}/{len(self.pages)})"
+
+            # Create a row of buttons
+            row = ActionRow(
+                Button(
+                    style=ButtonStyle.red,
+                    label="⏮️",
+                    custom_id="first_page"
+                ),
+                Button(
+                    style=ButtonStyle.blurple,
+                    label="⬅️",
+                    custom_id="step_back_page"
+                ),
+                Button(
+                    style=ButtonStyle.blurple,
+                    label="⏹️",
+                    custom_id="stop_page"
+                ),
+                Button(
+                    style=ButtonStyle.blurple,
+                    label="➡️",
+                    custom_id="step_forward_page"
+                ),
+                Button(
+                    style=ButtonStyle.blurple,
+                    label="⏭️",
+                    custom_id="last_page"
+                )
+            )
+
+            # Note that we assign a list of rows to components
+            msg = await self.ctx.send(embed=self.pages[pagenum], components=[row])
+            first_shown = True
+            starttime = datetime.datetime.utcnow()
+            timeleft = 60  # 1 minute timeout
+            while True:
+                def check(inter):
+                    return inter.author == self.ctx.author
+                    
+                try:
+                    # Wait for a button click under the bot's message
+                    inter = await self.bot.wait_for('button_click', check=check, timeout=timeleft)
+
+                    # Respond to the interaction
+                    # await inter.reply(
+                    #    f"Your choice: {inter.clicked_button.label}",
+                    #    components=[] # This is how you remove buttons
+                    #)
+                except asyncio.TimeoutError:
+                    return await self.end_pagination_with_button(msg)
+
+                timeleft = timeleft - (datetime.datetime.utcnow() - starttime).seconds
+                if inter.clicked_button.label == "⬅️":
+                    if pagenum == 0:
+                        pagenum = len(self.pages) - 1
+                    else:
+                        pagenum -= 1
+                elif inter.clicked_button.label == "➡️":
+                    if pagenum == len(self.pages) - 1:
+                        pagenum = 0
+                    else:
+                        pagenum += 1
+                elif inter.clicked_button.label == "⏮️":
+                    pagenum = 0
+                elif inter.clicked_button.label == "⏭️":
+                    pagenum = len(self.pages) - 1
+                elif inter.clicked_button.label == "⏹️":
+                    return await self.end_pagination_with_button(inter)
+                else:
+                    continue
+
+                embed: discord.Embed = self.pages[pagenum]
+                if not isinstance(embed.title, _EmptyEmbed):
+                    if f" (Page {pagenum + 1}/{len(self.pages)})" not in str(embed.title):
+                        embed.title = embed.title + f" (Page {pagenum + 1}/{len(self.pages)})"
+                else:
+                    embed.title = f" (Page {pagenum + 1}/{len(self.pages)})"
+                if first_shown == True:
+                    await msg.delete()
+                    first_shown = False
+                    await inter.reply(embed=self.pages[pagenum], components=[row])
+                else:
+                    await inter.create_response(embed=self.pages[pagenum], components=[row], type=dislash.ResponseType.UpdateMessage)
+                #await msg.edit(embed=self.pages[pagenum], components=[row])
+                continue
+
+
+    async def end_pagination_with_button(self, inter):
+        try:
+            await inter.message.delete()
+        except discord.NotFound:
+            pass
+
+
 
 
 def build_duration(**kwargs):
