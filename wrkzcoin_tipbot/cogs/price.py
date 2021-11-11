@@ -3,6 +3,8 @@ import traceback
 
 import discord
 from discord.ext import commands
+from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType
+
 from Bot import *
 
 from config import config
@@ -11,6 +13,83 @@ class CoinGecko(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+
+
+    async def paprika_coin(self, coin: str):
+        COIN_NAME = coin.upper()
+        target = coin.lower()
+        if target == 'wow':
+            target = 'wownero'
+        elif target == 'wrkz':
+            target = 'wrkzcoin'
+        elif target == 'dego':
+            target = 'derogold'
+        key = config.redis_setting.prefix_paprika + coin.upper()
+        # Get from redis
+        try:
+            openRedis()
+            if redis_conn and redis_conn.exists(key):
+                response_text = redis_conn.get(key).decode()
+                return {"result": response_text, "cache": True}
+        except Exception as e:
+            traceback.format_exc()
+            await logchanbot(traceback.format_exc())
+            return {"error": "Internal error from cache."}
+
+        try:
+            if redis_conn and redis_conn.exists(config.redis_setting.prefix_paprika + "COINSLIST"):
+                j = json.loads(redis_conn.get(config.redis_setting.prefix_paprika + "COINSLIST").decode())
+            else:
+                link = 'https://api.coinpaprika.com/v1/coins'
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(link) as resp:
+                        if resp.status == 200:
+                            j = await resp.json()
+                            # add to redis coins list
+                            try:
+                                openRedis()
+                                redis_conn.set(config.redis_setting.prefix_paprika + "COINSLIST", json.dumps(j), ex=config.redis_setting.default_time_coinlist)
+                            except Exception as e:
+                                traceback.format_exc()
+                            # end add to redis
+            if target.isdigit():
+                for i in j:
+                    if int(target) == int(i['rank']):
+                        id = i['id']
+            else:
+                if target == 'wow':
+                    target = 'wownero'
+                elif target == 'wrkz':
+                    target = 'wrkzcoin'
+                elif target == 'dego':
+                    target = 'derogold'
+                for i in j:
+                    if target == i['name'].lower() or target == i['symbol'].lower():
+                        id = i['id']
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get('https://api.coinpaprika.com/v1/tickers/{}'.format(id)) as resp:
+                        if resp.status == 200:
+                            j = await resp.json()
+                            if 'error' in j and j['error'] == 'id not found':
+                                return {"error": f"Can not get data **{coin.upper()}** from paprika."}
+                            response_text = "{} ({}) is #{} by marketcap (${:,.2f}), trading at ${:.4f} with a 24h vol of ${:,.2f}. It's changed {}% over 24h, {}% over 7d, {}% over 30d, and {}% over 1y with an ath of ${} on {}.".format(j['name'], j['symbol'], j['rank'], float(j['quotes']['USD']['market_cap']), float(j['quotes']['USD']['price']), float(j['quotes']['USD']['volume_24h']), j['quotes']['USD']['percent_change_24h'], j['quotes']['USD']['percent_change_7d'], j['quotes']['USD']['percent_change_30d'], j['quotes']['USD']['percent_change_1y'], j['quotes']['USD']['ath_price'], j['quotes']['USD']['ath_date'])
+                            
+                            try:
+                                openRedis()
+                                redis_conn.set(key, response_text, ex=config.redis_setting.default_time_paprika)
+                            except Exception as e:
+                                traceback.format_exc()
+                                await logchanbot(traceback.format_exc())
+                            return {"result": response_text}
+                        else:
+                            return {"error": f"Can not get data **{coin.upper()}** from paprika."}
+                        return
+            except Exception as e:
+                traceback.format_exc()
+        except Exception as e:
+            traceback.format_exc()
+        return {"error": "No paprika only salt."}
 
 
     @commands.command(usage="cg", aliases=['coingecko'], description="Get coin information from CoinGecko.")
@@ -570,6 +649,25 @@ class CoinGecko(commands.Cog):
                 return
 
 
+    @inter_client.slash_command(usage="paprika [coin]",
+                                aliases=['pap'],
+                                options=[
+                                    Option("coin", "Enter coin ticker/name", OptionType.STRING, required=True)
+                                    # By default, Option is optional
+                                    # Pass required=True to make it a required arg
+                                ],
+                                description="Check coin at Paprika.")
+    async def paprika(self, inter, coin: str):
+        prefix = "/"
+        get_pap = await self.paprika_coin(coin)
+        if 'result' in get_pap:
+            resp = get_pap['result']
+            await inter.reply(f"{inter.author.name}#{inter.author.discriminator}, {resp}", ephemeral=False)
+        elif 'error' in get_pap:
+            resp = get_pap['error']
+            await inter.reply(f"{EMOJI_RED_NO} {inter.author.name}#{inter.author.discriminator}, {resp}", ephemeral=False)
+
+
     @commands.command(usage="pap <coin>", aliases=['paprika'], description="Paprika.")
     async def pap(self, ctx, coin: str=None):
         # disable game for TRTL discord
@@ -594,85 +692,17 @@ class CoinGecko(commands.Cog):
             await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Missing coin name.')
             return
         else:
-            target = coin.lower()
-            if target == 'wow':
-                target = 'wownero'
-            elif target == 'wrkz':
-                target = 'wrkzcoin'
-            elif target == 'dego':
-                target = 'derogold'
-            key = config.redis_setting.prefix_paprika + coin.upper()
-            try:
-                openRedis()
-                if redis_conn and redis_conn.exists(key):
-                    response_text = redis_conn.get(key).decode()
-                    msg = await ctx.message.reply("{}#{}, {}".format(ctx.author.name, ctx.author.discriminator, response_text))
-                    await msg.add_reaction(EMOJI_OK_BOX)
+            get_pap = await self.paprika_coin(coin)
+            if 'result' in get_pap:
+                resp = get_pap['result']
+                msg = await ctx.message.reply(f"{ctx.author.name}#{ctx.author.discriminator}, {resp}")
+                await msg.add_reaction(EMOJI_OK_BOX)
+                if 'cache' in get_pap:
                     await ctx.message.add_reaction(EMOJI_FLOPPY)
-                    return
-            except Exception as e:
-                traceback.format_exc()
-                await logchanbot(traceback.format_exc())
-        try:
-            if redis_conn and redis_conn.exists(config.redis_setting.prefix_paprika + "COINSLIST"):
-                j = json.loads(redis_conn.get(config.redis_setting.prefix_paprika + "COINSLIST").decode())
-            else:
-                link = 'https://api.coinpaprika.com/v1/coins'
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(link) as resp:
-                        if resp.status == 200:
-                            j = await resp.json()
-                            # add to redis coins list
-                            try:
-                                openRedis()
-                                redis_conn.set(config.redis_setting.prefix_paprika + "COINSLIST", json.dumps(j), ex=config.redis_setting.default_time_coinlist)
-                            except Exception as e:
-                                traceback.format_exc()
-                            # end add to redis
-            if target.isdigit():
-                for i in j:
-                    if int(target) == int(i['rank']):
-                        id = i['id']
-            else:
-                if target == 'wow':
-                    target = 'wownero'
-                elif target == 'wrkz':
-                    target = 'wrkzcoin'
-                elif target == 'dego':
-                    target = 'derogold'
-                for i in j:
-                    if target == i['name'].lower() or target == i['symbol'].lower():
-                        id = i['id']
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get('https://api.coinpaprika.com/v1/tickers/{}'.format(id)) as resp:
-                        if resp.status == 200:
-                            j = await resp.json()
-                            if 'error' in j and j['error'] == 'id not found':
-                                msg = await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Can not get data **{coin.upper()}** from paprika.')
-                                await msg.add_reaction(EMOJI_OK_BOX)
-                                return
-                            response_text = "{} ({}) is #{} by marketcap (${:,.2f}), trading at ${:.4f} with a 24h vol of ${:,.2f}. It's changed {}% over 24h, {}% over 7d, {}% over 30d, and {}% over 1y with an ath of ${} on {}.".format(j['name'], j['symbol'], j['rank'], float(j['quotes']['USD']['market_cap']), float(j['quotes']['USD']['price']), float(j['quotes']['USD']['volume_24h']), j['quotes']['USD']['percent_change_24h'], j['quotes']['USD']['percent_change_7d'], j['quotes']['USD']['percent_change_30d'], j['quotes']['USD']['percent_change_1y'], j['quotes']['USD']['ath_price'], j['quotes']['USD']['ath_date'])
-                            msg = await ctx.message.reply("{}#{}, {}".format(ctx.author.name, ctx.author.discriminator, response_text))
-                            await msg.add_reaction(EMOJI_OK_BOX)
-                            # add to redis
-                            try:
-                                openRedis()
-                                redis_conn.set(key, response_text, ex=config.redis_setting.default_time_paprika)
-                            except Exception as e:
-                                traceback.format_exc()
-                                await logchanbot(traceback.format_exc())
-                        else:
-                            msg = await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Can not get data.')
-                            await msg.add_reaction(EMOJI_OK_BOX)
-                        return
-            except Exception as e:
-                traceback.format_exc()
-        except Exception as e:
-            traceback.format_exc()
-            msg = await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} No paprika only salt')
-            await msg.add_reaction(EMOJI_OK_BOX)
-        return
+            elif 'error' in get_pap:
+                resp = get_pap['error']
+                msg = await ctx.message.reply(f"{EMOJI_RED_NO} {ctx.author.name}#{ctx.author.discriminator}, {resp}")
+                await msg.add_reaction(EMOJI_OK_BOX)
 
 
 def setup(bot):
