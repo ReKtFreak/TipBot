@@ -15,110 +15,6 @@ class Balance(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-
-
-    async def get_balance_coin_user(self, user_id, coin: str):
-        COIN_NAME = coin.upper()
-        wallet = await store.sql_get_userwallet(str(user_id), COIN_NAME)
-        real_deposit_balance = 0
-        token_info = None
-        if wallet is None:
-            if COIN_NAME in ENABLE_COIN_ERC:
-                w = await create_address_eth()
-                userregister = await store.sql_register_user(str(user_id), COIN_NAME, SERVER_BOT, 0, w)
-            elif COIN_NAME in ENABLE_COIN_TRC:
-                result = await store.create_address_trx()
-                userregister = await store.sql_register_user(str(user_id), COIN_NAME, SERVER_BOT, 0, result)
-            else:
-                userregister = await store.sql_register_user(str(user_id), COIN_NAME, SERVER_BOT, 0)
-            wallet = await store.sql_get_userwallet(str(user_id), COIN_NAME)
-        if COIN_NAME in ENABLE_COIN_ERC:
-            token_info = await store.get_token_info(COIN_NAME)
-            deposit_balance = await store.http_wallet_getbalance(wallet['balance_wallet_address'], COIN_NAME, True)
-            real_deposit_balance = round(deposit_balance / 10**token_info['token_decimal'], 6)
-        elif COIN_NAME in ENABLE_COIN_TRC:
-            token_info = await store.get_token_info(COIN_NAME)
-            deposit_balance = await store.trx_wallet_getbalance(wallet['balance_wallet_address'], COIN_NAME)
-            real_deposit_balance = round(deposit_balance, 6)
-        userdata_balance = await store.sql_user_balance(str(user_id), COIN_NAME, SERVER_BOT)
-        xfer_in = 0
-        if COIN_NAME not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-            xfer_in = await store.sql_user_balance_get_xfer_in(str(user_id), COIN_NAME)
-        if COIN_NAME in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-            actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
-        elif COIN_NAME in ENABLE_COIN_NANO:
-            actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-            actual_balance = round(actual_balance / get_decimal(COIN_NAME), 6) * get_decimal(COIN_NAME)
-        else:
-            actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-        # Negative check
-        try:
-            if actual_balance < 0:
-                msg_negative = 'Negative balance detected:\nUser: '+str(user_id)+'\nCoin: '+COIN_NAME+'\nAtomic Balance: '+str(actual_balance)
-                await logchanbot(msg_negative)
-        except Exception as e:
-            await logchanbot(traceback.format_exc())
-        
-        min_deposit_txt = ""
-        deposit_note = ""
-        if token_info:
-            min_deposit_txt = " Min. deposit for moving to spendable: " + num_format_coin(token_info['min_move_deposit'], COIN_NAME) + " "+ COIN_NAME
-            deposit_note = token_info['deposit_note']
-            
-        return {
-            'real_deposit_balance': real_deposit_balance,
-            'balance_actual': num_format_coin(actual_balance, COIN_NAME),
-            'locked_openorder': userdata_balance['OpenOrder'],
-            'raffle_spent': userdata_balance['raffle_fee'],
-            'raffle_reward': userdata_balance['raffle_reward'],
-            'economy_balance': userdata_balance['economy_balance'],
-            'min_deposit_txt': min_deposit_txt,
-            'deposit_note': deposit_note
-            }
-
-
-
-    async def get_balance_list_user(self, user_id):
-        user_coins = {}
-        for COIN_NAME in [coinItem.upper() for coinItem in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH]:
-            actual_balance = 0
-            if not is_maintenance_coin(COIN_NAME):
-                wallet = await store.sql_get_userwallet(str(user_id), COIN_NAME)
-                if wallet is None:
-                    if COIN_NAME in ENABLE_COIN_ERC:
-                        w = await create_address_eth()
-                        userregister = await store.sql_register_user(str(user_id), COIN_NAME, SERVER_BOT, 0, w)
-                    elif COIN_NAME in ENABLE_COIN_TRC:
-                        result = await store.create_address_trx()
-                        userregister = await store.sql_register_user(str(user_id), COIN_NAME, SERVER_BOT, 0, result)
-                    else:
-                        userregister = await store.sql_register_user(str(user_id), COIN_NAME, SERVER_BOT, 0)
-                    wallet = await store.sql_get_userwallet(str(user_id), COIN_NAME)
-                if wallet is None:
-                    await botLogChan.send(f'A user call `{prefix}balance` failed with {COIN_NAME}')
-                else:
-                    userdata_balance = await store.sql_user_balance(str(user_id), COIN_NAME)
-                    xfer_in = 0
-                    if COIN_NAME not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                        xfer_in = await store.sql_user_balance_get_xfer_in(str(user_id), COIN_NAME)
-                    if COIN_NAME in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                        actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
-                    elif COIN_NAME in ENABLE_COIN_NANO:
-                        actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-                        actual_balance = round(actual_balance / get_decimal(COIN_NAME), 6) * get_decimal(COIN_NAME)
-                    else:
-                        actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-                    # Negative check
-                    try:
-                        if actual_balance < 0:
-                            msg_negative = 'Negative balance detected:\nUser: '+str(user_id)+'\nCoin: '+COIN_NAME+'\nAtomic Balance: '+str(actual_balance)
-                            await logchanbot(msg_negative)
-                    except Exception as e:
-                        await logchanbot(traceback.format_exc())
-                if actual_balance > 0:
-                    balance_actual = num_format_coin(actual_balance, COIN_NAME)
-                    user_coins[COIN_NAME] = {'actual_balance': actual_balance, 'balance_actual': balance_actual}
-        return user_coins
         
 
     @inter_client.slash_command(description="Ping command")
@@ -158,7 +54,7 @@ class Balance(commands.Cog):
             all_pages.append(page)
             num_coins = 0
             per_page = 12
-            user_coins = await self.get_balance_list_user(user_id)
+            user_coins = await get_balance_list_user(user_id)
             total_coins = len(user_coins)
             for COIN_NAME, value in user_coins.items():
                 if num_coins == 0 or num_coins % per_page == 0:
@@ -190,7 +86,7 @@ class Balance(commands.Cog):
             # If there is still page
         elif coin.upper() in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
             COIN_NAME = coin.upper()
-            balance_user = await self.get_balance_coin_user(user_id, COIN_NAME)
+            balance_user = await get_balance_coin_user(user_id, COIN_NAME)
             embed = discord.Embed(title=f'[ {inter.author.name}#{inter.author.discriminator}\'s {COIN_NAME} balance ]', timestamp=datetime.utcnow())
             try:
                 if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:

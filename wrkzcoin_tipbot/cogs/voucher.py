@@ -2,6 +2,7 @@ import sys, traceback
 
 import discord
 from discord.ext import commands
+from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType
 
 from config import config
 from Bot import *
@@ -22,6 +23,7 @@ class Voucher(commands.Cog):
 
 
     @voucher.command(usage="voucher make <amount> <coin> <comment>", aliases=['gen'], description="Make a voucher and share to other friends.")
+    @commands.bot_has_permissions(add_reactions=True)
     async def make(self, ctx, amount: str, coin: str, *, comment):
         # check if bot is going to restart
         if IS_RESTARTING:
@@ -30,15 +32,10 @@ class Voucher(commands.Cog):
             return
 
         # Check if maintenance
-        if IS_MAINTENANCE == 1:
-            if int(ctx.author.id) in MAINTENANCE_OWNER:
-                pass
-            else:
-                await ctx.message.add_reaction(EMOJI_WARNING)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
-                return
-        else:
-            pass
+        if IS_MAINTENANCE == 1 and int(ctx.author.id) not in MAINTENANCE_OWNER:
+            await ctx.message.add_reaction(EMOJI_WARNING)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
+            return
         # End Check if maintenance
 
         # Check if tx in progress
