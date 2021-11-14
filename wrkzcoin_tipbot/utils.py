@@ -99,13 +99,13 @@ class EmbedPaginatorInter:
             # Create a row of buttons
             row = ActionRow(
                 Button(
-                    style=ButtonStyle.red,
-                    label="⏮️",
+                    style=ButtonStyle.blurple,
+                    label="⏪",
                     custom_id="first_page"
                 ),
                 Button(
                     style=ButtonStyle.blurple,
-                    label="⬅️",
+                    label="◀️",
                     custom_id="step_back_page"
                 ),
                 Button(
@@ -115,12 +115,12 @@ class EmbedPaginatorInter:
                 ),
                 Button(
                     style=ButtonStyle.blurple,
-                    label="➡️",
+                    label="▶️",
                     custom_id="step_forward_page"
                 ),
                 Button(
                     style=ButtonStyle.blurple,
-                    label="⏭️",
+                    label="⏩",
                     custom_id="last_page"
                 )
             )
@@ -142,19 +142,19 @@ class EmbedPaginatorInter:
                     return await self.end_pagination_with_slash(self.msg)
 
                 timeleft = timeleft - (datetime.datetime.utcnow() - starttime).seconds
-                if inter.clicked_button.label == "⬅️":
+                if inter.clicked_button.label == "◀️":
                     if pagenum == 0:
                         pagenum = len(self.pages) - 1
                     else:
                         pagenum -= 1
-                elif inter.clicked_button.label == "➡️":
+                elif inter.clicked_button.label == "▶️":
                     if pagenum == len(self.pages) - 1:
                         pagenum = 0
                     else:
                         pagenum += 1
-                elif inter.clicked_button.label == "⏮️":
+                elif inter.clicked_button.label == "⏪":
                     pagenum = 0
-                elif inter.clicked_button.label == "⏭️":
+                elif inter.clicked_button.label == "⏩":
                     pagenum = len(self.pages) - 1
                 elif inter.clicked_button.label == "⏹️":
                     return await self.end_pagination_with_slash(inter)

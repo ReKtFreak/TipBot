@@ -142,17 +142,22 @@ class Deposit(commands.Cog):
     @inter_client.slash_command(usage="deposit <coin> [plain]",
                                 options=[
                                     Option('coin', 'Enter coin ticker/name', OptionType.STRING, required=True),
-                                    Option('plain', 'y/n', OptionType.STRING, required=True, choices=[
-                                        OptionChoice("y", "y"),
-                                        OptionChoice("n", "n")
+                                    Option('option', 'plain/embed', OptionType.STRING, required=True, choices=[
+                                        OptionChoice("plain", "plain"),
+                                        OptionChoice("embed", "embed")
                                     ]
                                     )
                                 ],
                                 description="Get your tipjar's deposit address.")
-    async def deposit(self, inter, coin: str, plain: str="Y"):
+    async def deposit(
+        self, 
+        inter, 
+        coin: str, 
+        option: str="plain"
+    ):
         prefix = "/"
         COIN_NAME = coin.upper()
-        plain = plain.upper()
+        option = option.upper()
         user_id = inter.author.id
         botLogChan = self.bot.get_channel(LOG_CHAN)
         # check if account locked
@@ -175,8 +180,7 @@ class Deposit(commands.Cog):
                 if gen_qr_address is None:
                     await inter.reply(f"'{EMOJI_RED_NO} Failed to generate QR.", ephemeral=True)
                     return
-                if plain == "Y":
-                    # plain
+                if option == "PLAIN":
                     await inter.reply(f"Your **{COIN_NAME}**\'s deposit address: ```{deposit_address}```", ephemeral=True)
                 else:
                     # embed
