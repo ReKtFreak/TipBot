@@ -18,8 +18,8 @@ class Balance(commands.Cog):
         
 
     @inter_client.slash_command(description="Ping command")
-    async def ping(self, inter):
-        await inter.reply(f"Pong! ({self.bot.latency*1000}ms)")
+    async def ping(self, ctx):
+        await ctx.reply(f"Pong! ({self.bot.latency*1000}ms)")
 
 
     @inter_client.slash_command(usage="balance [coin]",
@@ -31,21 +31,21 @@ class Balance(commands.Cog):
                                 description="Check your (coin's) tipjar's balance.")
     async def balance(
         self, 
-        inter, 
+        ctx, 
         coin: str=None
     ):
         prefix = "/"
-        user_id = inter.author.id
+        user_id = ctx.author.id
         botLogChan = self.bot.get_channel(LOG_CHAN)
         # check if account locked
-        account_lock = await alert_if_userlock(inter, 'balance')
+        account_lock = await alert_if_userlock(ctx, 'balance')
         if account_lock:
-            await inter.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
         if coin is None: coin = "ALL"
         if coin.upper() == "ALL":
-            #await inter.reply('You selected all', ephemeral=True)
+            #await ctx.reply('You selected all', ephemeral=True)
             all_pages = []
             page = discord.Embed(title='[ YOUR BALANCE LIST ]',
                                   description="Thank you for using TipBot!",
@@ -53,7 +53,7 @@ class Balance(commands.Cog):
                                   timestamp=datetime.utcnow(), )
             page.add_field(name="Total Coin/Tokens: [{}]".format(len(ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH)), 
                            value="```"+", ".join(ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH)+"```", inline=True)
-            page.set_thumbnail(url=inter.author.display_avatar)
+            page.set_thumbnail(url=ctx.author.display_avatar)
             page.set_footer(text="Use the reactions to flip pages.")
             all_pages.append(page)
             num_coins = 0
@@ -66,7 +66,7 @@ class Balance(commands.Cog):
                                          description="Thank you for using TipBot!",
                                          color=discord.Color.blue(),
                                          timestamp=datetime.utcnow(), )
-                    page.set_thumbnail(url=inter.author.display_avatar)
+                    page.set_thumbnail(url=ctx.author.display_avatar)
                     page.set_footer(text="Use the reactions to flip pages.")
                 page.add_field(name=COIN_NAME, value=value['balance_actual']+" "+COIN_NAME, inline=True)
                 num_coins += 1
@@ -77,7 +77,7 @@ class Balance(commands.Cog):
                                              description="Thank you for using TipBot!",
                                              color=discord.Color.blue(),
                                              timestamp=datetime.utcnow(), )
-                        page.set_thumbnail(url=inter.author.display_avatar)
+                        page.set_thumbnail(url=ctx.author.display_avatar)
                         page.set_footer(text="Use the reactions to flip pages.")
                     else:
                         all_pages.append(page)
@@ -85,13 +85,13 @@ class Balance(commands.Cog):
                 elif num_coins == total_coins:
                     all_pages.append(page)
                     break
-            paginator = EmbedPaginatorInter(self.bot, inter, all_pages)
+            paginator = EmbedPaginatorInter(self.bot, ctx, all_pages)
             await paginator.paginate_with_slash()
             # If there is still page
         elif coin.upper() in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
             COIN_NAME = coin.upper()
             balance_user = await get_balance_coin_user(user_id, COIN_NAME)
-            embed = discord.Embed(title=f'[ {inter.author.name}#{inter.author.discriminator}\'s {COIN_NAME} balance ]', timestamp=datetime.utcnow())
+            embed = discord.Embed(title=f'[ {ctx.author.name}#{ctx.author.discriminator}\'s {COIN_NAME} balance ]', timestamp=datetime.utcnow())
             try:
                 if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
                     embed.add_field(name="Deposited", value="`{} {}`".format(num_format_coin(float(balance_user['real_deposit_balance']), COIN_NAME), COIN_NAME), inline=True)
@@ -117,11 +117,11 @@ class Balance(commands.Cog):
             else:
                 embed.set_footer(text=f"{get_notice_txt(COIN_NAME)}")
             try:
-                msg = await inter.reply(embed=embed, ephemeral=True)
+                msg = await ctx.reply(embed=embed, ephemeral=True)
             except:
                 pass
         else:
-            await inter.reply(f'There is no such ticker {COIN_NAME}', ephemeral=True)
+            await ctx.reply(f'There is no such ticker {COIN_NAME}', ephemeral=True)
 
 
     @commands.command(

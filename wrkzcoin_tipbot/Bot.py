@@ -2563,6 +2563,8 @@ async def get_balance_coin_user(user_id, coin: str):
         deposit_note = token_info['deposit_note']
         
     return {
+        'balance_wallet_address': wallet['balance_wallet_address'],
+        'user_wallet_address': wallet['user_wallet_address'] if wallet['user_wallet_address'] else None,
         'real_deposit_balance': real_deposit_balance,
         'balance_actual': num_format_coin(actual_balance, COIN_NAME),
         'locked_openorder': userdata_balance['OpenOrder'],

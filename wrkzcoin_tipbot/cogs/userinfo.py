@@ -67,17 +67,17 @@ class Userinfo(commands.Cog):
                                 description="Get user information.")
     async def userinfo(
         self, 
-        inter, 
+        ctx, 
         user: discord.Member
     ):
         prefix = "/"
         try:
             get_stat = await self.get_userinfo(user)
-            await inter.reply(embed=get_stat)
+            await ctx.reply(embed=get_stat)
         except:
             traceback.print_exc(file=sys.stdout)
             error = discord.Embed(title=":exclamation: Error", description=" :warning: You need to mention the user you want this info for!", color=0xe51e1e)
-            await ctx.send(embed=error)
+            await ctx.reply(embed=error)
 
 
     @commands.command(

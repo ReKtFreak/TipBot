@@ -2,6 +2,7 @@ import sys, traceback
 import time, timeago
 import discord
 from discord.ext import commands
+from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType
 
 from config import config
 from Bot import *
@@ -10,6 +11,48 @@ class BotBalance(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+
+
+
+    @inter_client.slash_command(usage="botbalance <bot> <coin>",
+                                options=[
+                                    Option("botname", "Enter a bot", OptionType.USER, required=True),
+                                    Option("coin", "Enter coin ticker/name", OptionType.STRING, required=True),
+                                ],
+                                description="Get Bot's balance by mention it.")
+    async def botbalance(
+        self, 
+        ctx, 
+        botname: discord.Member, 
+        coin: str
+    ):
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} This command can not be in DM.')
+            return
+
+        if botname == ctx.author:
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Do you think you are a bot?')
+            return
+        if botname.bot == False:
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Only for bot!!')
+            return
+        else:
+            user_id = botname.id
+            COIN_NAME = coin.upper()
+            balance_user = await get_balance_coin_user(user_id, COIN_NAME)
+            embed = discord.Embed(title=f'Deposit for {botname.name}#{botname.discriminator}', description='`This is bot\'s tipjar address. Do not deposit here unless you want to deposit to this bot`', timestamp=datetime.utcnow(), colour=7047495)
+            embed.set_author(name=botname.name, icon_url=botname.display_avatar)
+            embed.add_field(name="{} Deposit Address".format(COIN_NAME), value="`{}`".format(balance_user['balance_wallet_address']), inline=False)
+            if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                token_info = await store.get_token_info(COIN_NAME)
+                if token_info and COIN_NAME in ENABLE_COIN_ERC and token_info['contract'] and len(token_info['contract']) == 42:
+                    embed.add_field(name="{} Contract".format(COIN_NAME), value="`{}`".format(token_info['contract']), inline=False)
+                elif token_info and COIN_NAME in ENABLE_COIN_TRC and token_info['contract'] and len(token_info['contract']) >= 6:
+                    embed.add_field(name="{} Contract/Token ID".format(COIN_NAME), value="`{}`".format(token_info['contract']), inline=False)
+                if token_info and token_info['deposit_note']:
+                    embed.add_field(name="{} Deposit Note".format(COIN_NAME), value="`{}`".format(token_info['deposit_note']), inline=False)
+            embed.add_field(name=f"Balance {COIN_NAME}", value="`{} {}`".format(balance_user['balance_actual'], COIN_NAME), inline=False)
+            await ctx.reply(embed=embed)
 
 
     @commands.command(

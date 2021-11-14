@@ -26,14 +26,14 @@ class About(commands.Cog):
 
 
     @inter_client.slash_command(description="Show disclaimer.")
-    async def disclaimer(self, inter):
-        await inter.reply(f"{EMOJI_INFORMATION} **THANK YOU FOR USING** {DISCLAIM_MSG_LONG}", ephemeral=True)
+    async def disclaimer(self, ctx):
+        await ctx.reply(f"{EMOJI_INFORMATION} **THANK YOU FOR USING** {DISCLAIM_MSG_LONG}", ephemeral=True)
 
 
     @inter_client.slash_command(description="Get information about TipBot.")
-    async def about(self, inter):
+    async def about(self, ctx):
         try:
-            await inter.reply(embed=self.about_embed())
+            await ctx.reply(embed=self.about_embed())
         except Exception as e:
             await logchanbot(traceback.format_exc())
 
