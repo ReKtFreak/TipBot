@@ -2,14 +2,185 @@ import sys, traceback
 import time, timeago
 import discord
 from discord.ext import commands
+from decimal import getcontext, Decimal
+from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice
 
 from config import config
+import store
 from Bot import *
 
 class Trade(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+
+
+    async def make_open_order(
+        self,
+        ctx,
+        sell_amount: str, 
+        sell_ticker: str, 
+        buy_amount: str, 
+        buy_ticker: str
+    ):
+        sell_ticker = sell_ticker.upper()
+        buy_ticker = buy_ticker.upper()
+        sell_amount = str(sell_amount).replace(",", "")
+        buy_amount = str(buy_amount).replace(",", "")
+        try:
+            sell_amount = Decimal(sell_amount)
+            buy_amount = Decimal(buy_amount)
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+            return {"error": "Invalid sell/buy amount."}
+        if (sell_ticker not in ENABLE_TRADE_COIN) or (buy_ticker not in ENABLE_TRADE_COIN):
+            return {"error": f"Invalid trade ticker (buy/sell). Available right now: **{config.trade.enable_coin}**"}
+
+        if not is_tradeable_coin(sell_ticker):
+            return {"error": f"**{sell_ticker}** trading is currently disable."}
+
+        if not is_tradeable_coin(buy_ticker):
+            return {"error": f"**{buy_ticker}** trading is currently disable."}
+
+        if buy_ticker == sell_ticker:
+            return {"error": f"**{buy_ticker}** you cannot trade the same coins."}
+
+        # get opened order:
+        user_count_order = await store.sql_count_open_order_by_sellerid(str(ctx.author.id), SERVER_BOT)
+        if user_count_order >= config.trade.Max_Open_Order:
+            return {"error": f"You have maximum opened selling **{config.trade.Max_Open_Order}**. Please cancel some or wait."}
+
+        if sell_ticker in ENABLE_COIN_ERC:
+            coin_family_sell = "ERC-20"
+            sell_token_info = await store.get_token_info(sell_ticker)
+        elif sell_ticker in ENABLE_COIN_TRC:
+            coin_family_sell = "TRC-20"
+            sell_token_info = await store.get_token_info(sell_ticker)
+        else:
+            coin_family_sell = getattr(getattr(config,"daemon"+sell_ticker),"coin_family","TRTL")
+            sell_token_info = None
+
+        real_amount_sell = int(sell_amount * get_decimal(sell_ticker)) if coin_family_sell in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else float(sell_amount)
+
+        if real_amount_sell == 0:
+            return {"error": f"{sell_amount}{sell_ticker} = 0 {sell_ticker} (below smallest unit)."}
+
+        if real_amount_sell < get_min_sell(sell_ticker, sell_token_info):
+            return {"error": f"**{sell_amount}{sell_ticker}** below minimum trade **{num_format_coin(get_min_sell(sell_ticker, sell_token_info), sell_ticker)}{sell_ticker}**."}
+        if real_amount_sell > get_max_sell(sell_ticker, sell_token_info):
+            return {"error": f"****{sell_amount}{sell_ticker}** above maximum trade **{num_format_coin(get_max_sell(sell_ticker, sell_token_info), sell_ticker)}{sell_ticker}**."}
+
+        if buy_ticker in ENABLE_COIN_ERC:
+            coin_family_buy = "ERC-20"
+            buy_token_info = await store.get_token_info(buy_ticker)
+        elif buy_ticker in ENABLE_COIN_TRC:
+            coin_family_buy = "TRC-20"
+            buy_token_info = await store.get_token_info(buy_ticker)
+        else:
+            coin_family_buy = getattr(getattr(config,"daemon"+buy_ticker),"coin_family","TRTL")
+            buy_token_info = None
+
+        real_amount_buy = int(buy_amount * get_decimal(buy_ticker)) if coin_family_buy in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else float(buy_amount)
+
+        if real_amount_buy == 0:
+            return {"error": f"{buy_amount}{buy_ticker} = 0 {buy_ticker} (below smallest unit)."}
+        if real_amount_buy < get_min_sell(buy_ticker, buy_token_info):
+            return {"error": f"**{buy_amount}{buy_ticker}** below minimum trade **{num_format_coin(get_min_sell(buy_ticker, buy_token_info), buy_ticker)}{buy_ticker}**."}
+        if real_amount_buy > get_max_sell(buy_ticker, buy_token_info):
+            return {"error": f"**{buy_amount}{buy_ticker}** above maximum trade **{num_format_coin(get_max_sell(buy_ticker, buy_token_info), buy_ticker)}{buy_ticker}**."}
+
+        if not is_maintenance_coin(sell_ticker) and not is_maintenance_coin(buy_ticker):
+            balance_actual = 0
+            wallet = await store.sql_get_userwallet(str(ctx.author.id), sell_ticker, SERVER_BOT)
+            if wallet is None:
+                userregister = await store.sql_register_user(str(ctx.author.id), sell_ticker, SERVER_BOT, 0)
+            userdata_balance = await store.sql_user_balance(str(ctx.author.id), sell_ticker)
+            xfer_in = 0
+            if sell_ticker not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                xfer_in = await store.sql_user_balance_get_xfer_in(str(ctx.author.id), sell_ticker)
+            if sell_ticker in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
+            elif sell_ticker in ENABLE_COIN_NANO:
+                actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
+                actual_balance = round(actual_balance / get_decimal(sell_ticker), 6) * get_decimal(sell_ticker)
+            else:
+                actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
+
+            # Negative check
+            try:
+                if actual_balance < 0:
+                    msg_negative = 'Negative balance detected:\nUser: '+str(ctx.author.id)+'\nCoin: '+sell_ticker+'\nAtomic Balance: '+str(actual_balance)
+                    await logchanbot(msg_negative)
+            except Exception as e:
+                await logchanbot(traceback.format_exc())
+
+            if actual_balance < real_amount_sell:
+                await ctx.message.add_reaction(EMOJI_ERROR)
+                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} ')
+                return {"error": f"You do not have enough **{sell_ticker}**. You have currently: {num_format_coin(actual_balance, sell_ticker)}{sell_ticker}."}
+            if (sell_amount / buy_amount) < MIN_TRADE_RATIO or (buy_amount / sell_amount) < MIN_TRADE_RATIO:
+                return {"error": f"Ratio buy/sell rate is so low."}
+
+            if sell_ticker in ["NANO", "BAN"]:
+                real_amount_sell = round(real_amount_sell, 20)
+            else:
+                real_amount_sell = round(real_amount_sell, 8)
+            if buy_ticker in ["NANO", "BAN"]:
+                real_amount_buy = round(real_amount_buy, 20)
+            else:
+                real_amount_buy = round(real_amount_buy, 8)
+            sell_div_get = round(real_amount_sell / real_amount_buy, 32)
+            fee_sell = round(TRADE_PERCENT * real_amount_sell, 8)
+            fee_buy = round(TRADE_PERCENT * real_amount_buy, 8)
+            if fee_sell == 0: fee_sell = 0.00000100
+            if fee_buy == 0: fee_buy = 0.00000100
+
+            msg_id = "SLASH COMMAND"
+            msg_content = "SLASH COMMAND"
+            if hasattr(ctx, 'message') and hasattr(ctx.message, 'content'):
+                msg_content = ctx.message.content[:120]
+                msg_id = str(ctx.message.id)
+            order_add = await store.sql_store_openorder(msg_id, msg_content, sell_ticker, 
+                                    real_amount_sell, real_amount_sell-fee_sell, str(ctx.author.id), 
+                                    buy_ticker, real_amount_buy, real_amount_buy-fee_buy, sell_div_get, SERVER_BOT)
+            if order_add:
+                get_message = "New open order created: #**{}**```Selling: {}{}\nFor: {}{}\nFee: {}{}```".format(order_add, 
+                                                                                num_format_coin(real_amount_sell, sell_ticker), sell_ticker,
+                                                                                num_format_coin(real_amount_buy, buy_ticker), buy_ticker,
+                                                                                num_format_coin(fee_sell, sell_ticker), sell_ticker)
+                return {"result": get_message}
+
+
+    @inter_client.slash_command(usage="sell <sell_amount> <sell_ticker> <buy_amount> <buy_ticker>",
+                                options=[
+                                    Option('sell_amount', 'Enter amount of coin to sell', OptionType.NUMBER, required=True),
+                                    Option('sell_ticker', 'Enter coin ticker/name to sell', OptionType.STRING, required=True),
+                                    Option('buy_amount', 'Enter amount of coin to buy', OptionType.NUMBER, required=True),
+                                    Option('buy_ticker', 'Enter coin ticker/name to buy', OptionType.STRING, required=True)
+                                ],
+                                description="Make an opened sell of a coin for another coin.")
+    async def sell(
+        self, 
+        ctx, 
+        sell_amount: str, 
+        sell_ticker: str, 
+        buy_amount: str, 
+        buy_ticker: str
+    ):
+        if isinstance(ctx.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return
+        botLogChan = self.bot.get_channel(LOG_CHAN)
+        # Slash command, can do any guild
+        # check if bot is going to restart
+        if IS_RESTARTING:
+            await ctx.reply(f'{EMOJI_RED_NO} Bot is going to restart soon. Wait until it is back for using this.', ephemeral=False)
+            return
+        create_order = await self.make_open_order(ctx, sell_amount, sell_ticker, buy_amount, buy_ticker)
+        if 'error' in create_order:
+            await ctx.reply('{} {} {}'.format(EMOJI_RED_NO, ctx.author.mention, create_order['error']), ephemeral=False)
+        elif 'result' in create_order:
+            await ctx.reply('{} {}'.format(ctx.author.mention, create_order['result']), ephemeral=False)
+            # TODO: notify to all trade channels
 
 
     @commands.command(
@@ -53,196 +224,10 @@ class Trade(commands.Cog):
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
             return
 
-        sell_ticker = sell_ticker.upper()
-        buy_ticker = buy_ticker.upper()
-        sell_amount = sell_amount.replace(",", "")
-        buy_amount = buy_amount.replace(",", "")
-        try:
-            sell_amount = Decimal(sell_amount)
-            buy_amount = Decimal(buy_amount)
-        except Exception as e:
-            traceback.print_exc(file=sys.stdout)
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid sell/buy amount.')
-            return
-        if (sell_ticker not in ENABLE_TRADE_COIN) or (buy_ticker not in ENABLE_TRADE_COIN):
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid trade ticker (buy/sell). Available right now: **{config.trade.enable_coin}**')
-            return
-
-        if not is_tradeable_coin(sell_ticker):
-            await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            await ctx.send(f'{EMOJI_RED_NO} **{sell_ticker}** trading is currently disable.')
-            return
-
-        if not is_tradeable_coin(buy_ticker):
-            await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            await ctx.send(f'{EMOJI_RED_NO} **{buy_ticker}** trading is currently disable.')
-            return
-
-        if buy_ticker == sell_ticker:
-            await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            await ctx.send(f'{EMOJI_RED_NO} {buy_ticker} you cannot trade the same coins.')
-            return
-
-        # get opened order:
-        user_count_order = await store.sql_count_open_order_by_sellerid(str(ctx.author.id), SERVER_BOT)
-        if user_count_order >= config.trade.Max_Open_Order:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You have maximum opened selling **{config.trade.Max_Open_Order}**. Please cancel some or wait.')
-            return
-
-        if sell_ticker in ENABLE_COIN_ERC:
-            coin_family_sell = "ERC-20"
-            sell_token_info = await store.get_token_info(sell_ticker)
-        elif sell_ticker in ENABLE_COIN_TRC:
-            coin_family_sell = "TRC-20"
-            sell_token_info = await store.get_token_info(sell_ticker)
-        else:
-            coin_family_sell = getattr(getattr(config,"daemon"+sell_ticker),"coin_family","TRTL")
-            sell_token_info = None
-
-        real_amount_sell = int(sell_amount * get_decimal(sell_ticker)) if coin_family_sell in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else float(sell_amount)
-
-        if real_amount_sell == 0:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {sell_amount}{sell_ticker} = 0 {sell_ticker} (below smallest unit).')
-            return
-
-        if real_amount_sell < get_min_sell(sell_ticker, sell_token_info):
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} **{sell_amount}{sell_ticker}** below minimum trade **{num_format_coin(get_min_sell(sell_ticker, sell_token_info), sell_ticker)}{sell_ticker}**.')
-            return
-        if real_amount_sell > get_max_sell(sell_ticker, sell_token_info):
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} **{sell_amount}{sell_ticker}** above maximum trade **{num_format_coin(get_max_sell(sell_ticker, sell_token_info), sell_ticker)}{sell_ticker}**.')
-            return
-
-        if buy_ticker in ENABLE_COIN_ERC:
-            coin_family_buy = "ERC-20"
-            buy_token_info = await store.get_token_info(buy_ticker)
-        elif buy_ticker in ENABLE_COIN_TRC:
-            coin_family_buy = "TRC-20"
-            buy_token_info = await store.get_token_info(buy_ticker)
-        else:
-            coin_family_buy = getattr(getattr(config,"daemon"+buy_ticker),"coin_family","TRTL")
-            buy_token_info = None
-
-        real_amount_buy = int(buy_amount * get_decimal(buy_ticker)) if coin_family_buy in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else float(buy_amount)
-
-        if real_amount_buy == 0:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {buy_amount}{buy_ticker} = 0 {buy_ticker} (below smallest unit).')
-            return
-        if real_amount_buy < get_min_sell(buy_ticker, buy_token_info):
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} **{buy_amount}{buy_ticker}** below minimum trade **{num_format_coin(get_min_sell(buy_ticker, buy_token_info), buy_ticker)}{buy_ticker}**.')
-            return
-        if real_amount_buy > get_max_sell(buy_ticker, buy_token_info):
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} **{buy_amount}{buy_ticker}** above maximum trade **{num_format_coin(get_max_sell(buy_ticker, buy_token_info), buy_ticker)}{buy_ticker}**.')
-            return
-
-        if not is_maintenance_coin(sell_ticker):
-            balance_actual = 0
-            wallet = await store.sql_get_userwallet(str(ctx.author.id), sell_ticker, SERVER_BOT)
-            if wallet is None:
-                userregister = await store.sql_register_user(str(ctx.author.id), sell_ticker, SERVER_BOT, 0)
-            userdata_balance = await store.sql_user_balance(str(ctx.author.id), sell_ticker)
-            xfer_in = 0
-            if sell_ticker not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                xfer_in = await store.sql_user_balance_get_xfer_in(str(ctx.author.id), sell_ticker)
-            if sell_ticker in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
-            elif sell_ticker in ENABLE_COIN_NANO:
-                actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-                actual_balance = round(actual_balance / get_decimal(sell_ticker), 6) * get_decimal(sell_ticker)
-            else:
-                actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-
-            # Negative check
-            try:
-                if actual_balance < 0:
-                    msg_negative = 'Negative balance detected:\nUser: '+str(ctx.author.id)+'\nCoin: '+sell_ticker+'\nAtomic Balance: '+str(actual_balance)
-                    await logchanbot(msg_negative)
-            except Exception as e:
-                await logchanbot(traceback.format_exc())
-
-            if actual_balance < real_amount_sell:
-                await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have enough '
-                               f'**{sell_ticker}**. You have currently: {num_format_coin(actual_balance, sell_ticker)}{sell_ticker}.')
-                return
-            if (sell_amount / buy_amount) < MIN_TRADE_RATIO or (buy_amount / sell_amount) < MIN_TRADE_RATIO:
-                await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} ratio buy/sell rate is so low.')
-                return
-            # call other function
-            return await sell_process(ctx, real_amount_sell, sell_ticker, real_amount_buy, buy_ticker)
-
-
-    async def sell_process(
-        ctx, 
-        real_amount_sell: float, 
-        sell_ticker: str, 
-        real_amount_buy: float, 
-        buy_ticker: str
-    ):
-        botLogChan = self.bot.get_channel(LOG_CHAN)
-
-        sell_ticker = sell_ticker.upper()
-        buy_ticker = buy_ticker.upper()
-        if sell_ticker in ["NANO", "BAN"]:
-            real_amount_sell = round(real_amount_sell, 20)
-        else:
-            real_amount_sell = round(real_amount_sell, 8)
-        if buy_ticker in ["NANO", "BAN"]:
-            real_amount_buy = round(real_amount_buy, 20)
-        else:
-            real_amount_buy = round(real_amount_buy, 8)
-        sell_div_get = round(real_amount_sell / real_amount_buy, 32)
-        fee_sell = round(TRADE_PERCENT * real_amount_sell, 8)
-        fee_buy = round(TRADE_PERCENT * real_amount_buy, 8)
-        if fee_sell == 0: fee_sell = 0.00000100
-        if fee_buy == 0: fee_buy = 0.00000100
-        # Check if user already have another open order with the same rate
-        # Check if user make a sell process of his buy coin which already in open order
-        check_if_same_rate = await store.sql_get_order_by_sellerid_pair_rate(SERVER_BOT, str(ctx.author.id), sell_ticker, 
-                             buy_ticker, sell_div_get, real_amount_sell, real_amount_buy, fee_sell, fee_buy, 'OPEN')
-        if check_if_same_rate and check_if_same_rate['error'] == True and check_if_same_rate['msg']:
-            get_message = check_if_same_rate['msg']
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {get_message}')
-            return
-        elif check_if_same_rate and check_if_same_rate['error'] == False:
-            get_message = check_if_same_rate['msg']
-            await ctx.message.add_reaction(EMOJI_OK_BOX)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {get_message}')
-            return
-        elif check_if_same_rate == False:
-            await logchanbot(f'Interal error: selling real amount {real_amount_sell}{sell_ticker} '
-                             f'for real amount {real_amount_buy}{buy_ticker} and sell_div_get {sell_div_get}')
-            await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} internal error to create open order, please report this.')
-            return
-
-        order_add = await store.sql_store_openorder(str(ctx.message.id), (ctx.message.content)[:120], sell_ticker, 
-                                real_amount_sell, real_amount_sell-fee_sell, str(ctx.author.id), 
-                                buy_ticker, real_amount_buy, real_amount_buy-fee_buy, sell_div_get, SERVER_BOT)
-        if order_add:
-            get_message = "New open order created: #**{}**```Selling: {}{}\nFor: {}{}\nFee: {}{}```".format(order_add, 
-                                                                            num_format_coin(real_amount_sell, sell_ticker), sell_ticker,
-                                                                            num_format_coin(real_amount_buy, buy_ticker), buy_ticker,
-                                                                            num_format_coin(fee_sell, sell_ticker), sell_ticker)
-            await ctx.message.add_reaction(EMOJI_OK_BOX)
-            try:
-                await ctx.send(f'{ctx.author.mention} {get_message}')
-            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                await logchanbot(traceback.format_exc())
-            # add message to trade channel as well.
-            if ctx.message.channel.id != NOTIFY_TRADE_CHAN or isinstance(ctx.message.channel, discord.DMChannel) == True:
-                botLogChan = self.bot.get_channel(NOTIFY_TRADE_CHAN)
-                await botLogChan.send(get_message)
-            return
+        if 'error' in create_order:
+            await ctx.send('{} {} {}'.format(EMOJI_RED_NO, ctx.author.mention, create_order['error']))
+        elif 'result' in create_order:
+            await ctx.send('{} {} {}'.format(ctx.author.mention, create_order['error']))
 
 
     @commands.command(

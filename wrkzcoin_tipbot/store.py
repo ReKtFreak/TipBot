@@ -4355,6 +4355,7 @@ async def sql_count_open_order_by_sellerid(userID: str, user_server: str, status
 
 
 # use if same rate, then update them up.
+# Ignore this. Let user create sale order same rate
 async def sql_get_order_by_sellerid_pair_rate(sell_user_server: str, userid_sell: str, coin_sell: str, coin_get: str, sell_div_get: float, 
                                               real_amount_sell, real_amount_buy, fee_sell, fee_buy, status: str = 'OPEN'):
     global pool
