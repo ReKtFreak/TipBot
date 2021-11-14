@@ -13,7 +13,11 @@ class Voucher(commands.Cog):
         self.bot = bot
 
 
-    @commands.group(usage="voucher <subcommand>", aliases=['redeem'], description="Voucher commands.")
+    @commands.group(
+        usage="voucher <subcommand>", 
+        aliases=['redeem'], 
+        description="Voucher commands."
+    )
     async def voucher(self, ctx):
         prefix = await get_guild_prefix(ctx)
         if ctx.invoked_subcommand is None:
@@ -22,9 +26,20 @@ class Voucher(commands.Cog):
             return
 
 
-    @voucher.command(usage="voucher make <amount> <coin> <comment>", aliases=['gen'], description="Make a voucher and share to other friends.")
+    @voucher.command(
+        usage="voucher make <amount> <coin> <comment>", 
+        aliases=['gen'], 
+        description="Make a voucher and share to other friends."
+    )
     @commands.bot_has_permissions(add_reactions=True)
-    async def make(self, ctx, amount: str, coin: str, *, comment):
+    async def make(
+        self, 
+        ctx, 
+        amount: str, 
+        coin: str, 
+        *, 
+        comment
+    ):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
@@ -380,7 +395,10 @@ class Voucher(commands.Cog):
             return
 
 
-    @voucher.command(usage="voucher view", description="View recent made voucher in a list.")
+    @voucher.command(
+        usage="voucher view", 
+        description="View recent made voucher in a list."
+    )
     async def view(self, ctx):
         get_vouchers = await store.sql_voucher_get_user(str(ctx.author.id), SERVER_BOT, 15, 'YESNO')
         if get_vouchers and len(get_vouchers) > 0:
@@ -410,7 +428,10 @@ class Voucher(commands.Cog):
         return
 
 
-    @voucher.command(usage="voucher unclaim", description="View list of unclaimed vouchers.")
+    @voucher.command(
+        usage="voucher unclaim", 
+        description="View list of unclaimed vouchers."
+    )
     async def unclaim(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
@@ -450,7 +471,11 @@ class Voucher(commands.Cog):
         return
 
 
-    @voucher.command(usage="voucher claim", aliases=['claimed'], description="View list of claimed vouchers.")
+    @voucher.command(
+        usage="voucher claim", 
+        aliases=['claimed'], 
+        description="View list of claimed vouchers."
+    )
     async def claim(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
@@ -490,7 +515,10 @@ class Voucher(commands.Cog):
         return
 
 
-    @voucher.command(usage="voucher getunclaim", description="Get a list of unclaimed vouchers as a file.")
+    @voucher.command(
+        usage="voucher getunclaim", 
+        description="Get a list of unclaimed vouchers as a file."
+    )
     async def getunclaim(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
@@ -521,7 +549,10 @@ class Voucher(commands.Cog):
         return
 
 
-    @voucher.command(usage="voucher getclaim", description="Get a list of claimed vouchers as a file.")
+    @voucher.command(
+        usage="voucher getclaim", 
+        description="Get a list of claimed vouchers as a file."
+    )
     async def getclaim(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 

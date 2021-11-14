@@ -12,8 +12,14 @@ class TipNotifyTip(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="notifytip <on/off>", description="Switch tipping notification ON/OFF.")
-    async def notifytip(ctx, onoff: str):
+    @commands.command(
+        usage="notifytip <on/off>", 
+        description="Switch tipping notification ON/OFF."
+    )
+    async def notifytip(
+        ctx, 
+        onoff: str
+    ):
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'notifytip')
         if account_lock:

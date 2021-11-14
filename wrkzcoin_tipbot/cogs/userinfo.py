@@ -65,7 +65,11 @@ class Userinfo(commands.Cog):
                                     # Pass required=True to make it a required arg
                                 ],
                                 description="Get user information.")
-    async def userinfo(self, inter, user: discord.Member):
+    async def userinfo(
+        self, 
+        inter, 
+        user: discord.Member
+    ):
         prefix = "/"
         try:
             get_stat = await self.get_userinfo(user)
@@ -76,8 +80,15 @@ class Userinfo(commands.Cog):
             await ctx.send(embed=error)
 
 
-    @commands.command(usage="userinfo <member>", description="Get user info in discord server.")
-    async def userinfo(self, ctx, member: discord.Member = None):
+    @commands.command(
+        usage="userinfo <member>", 
+        description="Get user info in discord server."
+    )
+    async def userinfo(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             await ctx.send(f'{ctx.author.mention} This command can not be in Direct Message.')
             return

@@ -29,7 +29,11 @@ class Balance(commands.Cog):
                                     # Pass required=True to make it a required arg
                                 ],
                                 description="Check your (coin's) tipjar's balance.")
-    async def balance(self, inter, coin: str=None):
+    async def balance(
+        self, 
+        inter, 
+        coin: str=None
+    ):
         prefix = "/"
         user_id = inter.author.id
         botLogChan = self.bot.get_channel(LOG_CHAN)
@@ -120,8 +124,16 @@ class Balance(commands.Cog):
             await inter.reply(f'There is no such ticker {COIN_NAME}', ephemeral=True)
 
 
-    @commands.command(usage="balance <coin>", aliases=['bal'], description="Check your (coin's) tipjar's balance.")
-    async def balance(self, ctx, coin: str = None):
+    @commands.command(
+        usage="balance <coin>", 
+        aliases=['bal'], 
+        description="Check your (coin's) tipjar's balance."
+    )
+    async def balance(
+        self, 
+        ctx, 
+        coin: str = None
+    ):
         prefix = await get_guild_prefix(ctx)
         user_id = ctx.author.id
         botLogChan = self.bot.get_channel(LOG_CHAN)

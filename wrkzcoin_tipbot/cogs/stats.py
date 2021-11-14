@@ -12,8 +12,16 @@ class Stats(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="stats <coin|bot>", aliases=['stat'], description="Get Bot's statistic.")
-    async def stats(self, ctx, coin: str = None):
+    @commands.command(
+        usage="stats <coin|bot>", 
+        aliases=['stat'], 
+        description="Get Bot's statistic."
+    )
+    async def stats(
+        self, 
+        ctx, 
+        coin: str = None
+    ):
         COIN_NAME = None
         serverinfo = None
         if coin is None and isinstance(ctx.message.channel, discord.DMChannel) == False:

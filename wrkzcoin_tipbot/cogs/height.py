@@ -12,8 +12,15 @@ class Height(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="height <coin>", description="Get a coin's network height (only supported coin).")
-    async def height(self, ctx, coin: str = None):
+    @commands.command(
+        usage="height <coin>", 
+        description="Get a coin's network height (only supported coin)."
+    )
+    async def height(
+        self, 
+        ctx, 
+        coin: str = None
+    ):
         COIN_NAME = None
         serverinfo = None
         if coin is None:

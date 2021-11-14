@@ -12,9 +12,16 @@ class TipWithdraw(commands.Cog):
         self.bot = bot
 
 
-    ## TODO: Improve this usage.
-    @commands.command(usage="withdraw <amount> <coin>", description="Withdraw <amount> <coin> to your registered address.")
-    async def withdraw(self, ctx, amount: str, coin: str = None):
+    @commands.command(
+        usage="withdraw <amount> <coin>", 
+        description="Withdraw <amount> <coin> to your registered address."
+    )
+    async def withdraw(
+        self, 
+        ctx, 
+        amount: str, 
+        coin: str = None
+    ):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
@@ -289,8 +296,17 @@ class TipWithdraw(commands.Cog):
             return
 
 
-    @commands.command(usage="send <amount> <coin address> [coin]", description="send <amount> to <coin address>.")
-    async def send(self, ctx, amount: str, CoinAddress: str, coin: str=None):
+    @commands.command(
+        usage="send <amount> <coin address> [coin]", 
+        description="send <amount> to <coin address>."
+    )
+    async def send(
+        self, 
+        ctx, 
+        amount: str, 
+        CoinAddress: str, 
+        coin: str=None
+    ):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)

@@ -12,8 +12,16 @@ class TipDonate(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="donate <amount> <coin>", description="Donate amount coin to TipBot dev.")
-    async def donate(self, ctx, amount: str, coin: str=None):
+    @commands.command(
+        usage="donate <amount> <coin>", 
+        description="Donate amount coin to TipBot dev."
+    )
+    async def donate(
+        self, 
+        ctx, 
+        amount: str, 
+        coin: str=None
+    ):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)

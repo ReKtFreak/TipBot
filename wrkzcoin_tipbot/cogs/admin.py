@@ -12,7 +12,11 @@ class Admin(commands.Cog):
         self.bot = bot
 
 
-    @commands.group(usage="admin <subcommand>", hidden = True, description="Various admin commands.")
+    @commands.group(
+        usage="admin <subcommand>", 
+        hidden = True, 
+        description="Various admin commands."
+    )
     @commands.is_owner()
     async def admin(self, ctx):
         prefix = await get_guild_prefix(ctx)
@@ -27,15 +31,31 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="echo <some text>", description="Testing echo.")
-    async def echo(self, ctx, *, text: str):
+    @admin.command(
+        usage="echo <some text>", 
+        description="Testing echo."
+    )
+    async def echo(
+        self, 
+        ctx, 
+        *, 
+        text: str
+    ):
         await logchanbot(text)
         return
 
 
     @commands.is_owner()
-    @admin.command(usage="eval <expression>", description="Do some eval.")
-    async def eval(self, ctx, *, code):
+    @admin.command(
+        usage="eval <expression>", 
+        description="Do some eval."
+    )
+    async def eval(
+        self, 
+        ctx, 
+        *, 
+        code
+    ):
         if config.discord.enable_eval != 1:
             return
 
@@ -62,8 +82,17 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="addbalance <amount> <coin> <user>", aliases=['addbalance'])
-    async def credit(self, ctx, amount: str, coin: str, to_userid: str):
+    @admin.command(
+        usage="addbalance <amount> <coin> <user>", 
+        aliases=['addbalance']
+    )
+    async def credit(
+        self, 
+        ctx, 
+        amount: str, 
+        coin: str, 
+        to_userid: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -114,8 +143,15 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="maint", aliases=['maintenance'])
-    async def maint(self, ctx, coin: str):
+    @admin.command(
+        usage="maint", 
+        aliases=['maintenance']
+    )
+    async def maint(
+        self, 
+        ctx, 
+        coin: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -132,8 +168,16 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="txable <coin>", aliases=['tx'], description="Txable YES/NO.")
-    async def txable(self, ctx, coin: str):
+    @admin.command(
+        usage="txable <coin>", 
+        aliases=['tx'], 
+        description="Txable YES/NO."
+    )
+    async def txable(
+        self, 
+        ctx, 
+        coin: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -150,8 +194,16 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="tradeable <coin>", aliases=['trade'], description="Tradeable YES/NO.")
-    async def tradeable(self, ctx, coin: str):
+    @admin.command(
+        usage="tradeable <coin>", 
+        aliases=['trade'], 
+        description="Tradeable YES/NO."
+    )
+    async def tradeable(
+        self, 
+        ctx, 
+        coin: str
+    ):
         COIN_NAME = coin.upper()
         if COIN_NAME not in ENABLE_TRADE_COIN:
             await ctx.send(f'{EMOJI_ERROR} **{COIN_NAME}** is not in our tradable list.')
@@ -167,8 +219,16 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="tipable <coin>", aliases=['tip'], description="Tipable YES/NO.")
-    async def tipable(self, ctx, coin: str):
+    @admin.command(
+        usage="tipable <coin>", 
+        aliases=['tip'], 
+        description="Tipable YES/NO."
+    )
+    async def tipable(
+        self, 
+        ctx, 
+        coin: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -185,8 +245,16 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="depositable <coin>", aliases=['deposit'], description="Depositable YES/NO.")
-    async def depositable(self, ctx, coin: str):
+    @admin.command(
+        usage="depositable <coin>", 
+        aliases=['deposit'], 
+        description="Depositable YES/NO."
+    )
+    async def depositable(
+        self, 
+        ctx, 
+        coin: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -203,8 +271,14 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="auditcoin <coin>", description="Check a coin status.")
-    async def auditcoin(ctx, coin: str):
+    @admin.command(
+        usage="auditcoin <coin>", 
+        description="Check a coin status."
+    )
+    async def auditcoin(
+        ctx, 
+        coin: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -273,8 +347,15 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="save <coin>", description="Save wallet file...")
-    async def save(self, ctx, coin: str):
+    @admin.command(
+        usage="save <coin>", 
+        description="Save wallet file..."
+    )
+    async def save(
+        self, 
+        ctx, 
+        coin: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -342,8 +423,15 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="debug", aliases=['debugging'], description="Debug ON/OFF")
-    async def debug(self, ctx):
+    @admin.command(
+        usage="debug", 
+        aliases=['debugging'], 
+        description="Debug ON/OFF"
+    )
+    async def debug(
+        self, 
+        ctx
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -361,8 +449,15 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="shutdown", aliases=['restart'], description="Restart bot.")
-    async def shutdown(self, ctx):
+    @admin.command(
+        usage="shutdown", 
+        aliases=['restart'], 
+        description="Restart bot."
+    )
+    async def shutdown(
+        self, 
+        ctx
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -381,8 +476,18 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="addhelp <section> <what> <description here>", description="Add help for search.")
-    async def addhelp(self, ctx, section: str, what: str, *, desc: str):
+    @admin.command(
+        usage="addhelp <section> <what> <description here>", 
+        description="Add help for search."
+    )
+    async def addhelp(
+        self, 
+        ctx, 
+        section: str, 
+        what: str, 
+        *, 
+        desc: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -421,8 +526,16 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="delhelp <section> <what>", description="Delete help for search.")
-    async def delhelp(self, ctx, section: str, what: str):
+    @admin.command(
+        usage="delhelp <section> <what>", 
+        description="Delete help for search."
+    )
+    async def delhelp(
+        self, 
+        ctx, 
+        section: str, 
+        what: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -446,8 +559,16 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="update_balance <coin>", aliases=['update_bal', 'updatebal'], description="Update balance (all addresses).")
-    async def update_balance(self, ctx, coin: str):
+    @admin.command(
+        usage="update_balance <coin>", 
+        aliases=['update_bal', 'updatebal'], 
+        description="Update balance (all addresses)."
+    )
+    async def update_balance(
+        self, 
+        ctx, 
+        coin: str
+    ):
         COIN_NAME = coin.upper()
         if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_COIN_NANO+ENABLE_XCH:
             await ctx.author.send(f'{ctx.author.mention} COIN **{COIN_NAME}** NOT SUPPORTED.')
@@ -485,8 +606,16 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="baluser <userid> [yes]", description="Get balance of a user.")
-    async def baluser(self, ctx, user_id: str, create_wallet: str = None):
+    @admin.command(
+        usage="baluser <userid> [yes]", 
+        description="Get balance of a user."
+    )
+    async def baluser(
+        self, 
+        ctx, 
+        user_id: str, 
+        create_wallet: str = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -594,8 +723,17 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="lockuser <userid> <reason here>", description="Lock a user from using tipping, etc.")
-    async def lockuser(self, ctx, user_id: str, *, reason: str):
+    @admin.command(
+        usage="lockuser <userid> <reason here>", 
+        description="Lock a user from using tipping, etc."
+    )
+    async def lockuser(
+        self, 
+        ctx, 
+        user_id: str, 
+        *, 
+        reason: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -618,8 +756,15 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="unlockuser <userid>", description="Unlock a user from using tipping, etc.")
-    async def unlockuser(self, ctx, user_id: str):
+    @admin.command(
+        usage="unlockuser <userid>", 
+        description="Unlock a user from using tipping, etc."
+    )
+    async def unlockuser(
+        self, 
+        ctx, 
+        user_id: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -639,8 +784,16 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="roachadd <main_id> <secondary_id>", description="Link a roach user to main user.")
-    async def roachadd(self, ctx, main_id: str, user_id: str):
+    @admin.command(
+        usage="roachadd <main_id> <secondary_id>", 
+        description="Link a roach user to main user."
+    )
+    async def roachadd(
+        self, 
+        ctx, 
+        main_id: str, 
+        user_id: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -669,8 +822,14 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="cleartx", description="Clear pending tx.")
-    async def cleartx(self, ctx):
+    @admin.command(
+        usage="cleartx", 
+        description="Clear pending tx."
+    )
+    async def cleartx(
+        self, 
+        ctx
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -736,8 +895,14 @@ class Admin(commands.Cog):
 
 
     @commands.is_owner()
-    @admin.command(usage="pending", description="Check pending things.")
-    async def pending(self, ctx):
+    @admin.command(
+        usage="pending", 
+        description="Check pending things."
+    )
+    async def pending(
+        self, 
+        ctx
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')

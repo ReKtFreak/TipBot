@@ -12,8 +12,17 @@ class TipRegister(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="register <wallet address> [coin]", aliases=['registerwallet', 'reg', 'updatewallet'], description="Register a withdraw address.")
-    async def register(self, ctx, wallet_address: str, coin: str=None):
+    @commands.command(
+        usage="register <wallet address> [coin]", 
+        aliases=['registerwallet', 'reg', 'updatewallet'], 
+        description="Register a withdraw address."
+    )
+    async def register(
+        self, 
+        ctx, 
+        wallet_address: str, 
+        coin: str=None
+    ):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)

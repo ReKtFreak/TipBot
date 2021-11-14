@@ -12,7 +12,11 @@ class Economy(commands.Cog):
         self.bot = bot
  
  
-    @commands.group(usage="economy <subcommand>", aliases=['eco'], description="Economy game commands.")
+    @commands.group(
+        usage="economy <subcommand>", 
+        aliases=['eco'], 
+        description="Economy game commands."
+    )
     async def economy(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
@@ -25,8 +29,16 @@ class Economy(commands.Cog):
             return
 
 
-    @economy.command(usage="eco sell <item>", description="Sell an item.")
-    async def sell(self, ctx, *, item_name: str):
+    @economy.command(
+        usage="eco sell <item>", 
+        description="Sell an item."
+    )
+    async def sell(
+        self, 
+        ctx, 
+        *, 
+        item_name: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -207,8 +219,16 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco buy <item>", description="Buy an item.")
-    async def buy(self, ctx, *, item_name: str=None):
+    @economy.command(
+        usage="eco buy <item>", 
+        description="Buy an item."
+    )
+    async def buy(
+        self, 
+        ctx, 
+        *, 
+        item_name: str=None
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -392,8 +412,15 @@ class Economy(commands.Cog):
             return
 
 
-    @economy.command(usage="eco info <member>", description="Get an economy information of a member.")
-    async def info(self, ctx, member: discord.Member = None):
+    @economy.command(
+        usage="eco info <member>", 
+        description="Get an economy information of a member."
+    )
+    async def info(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -497,7 +524,11 @@ class Economy(commands.Cog):
             return
 
 
-    @economy.command(usage="eco items", aliases=['item', 'backpack'], description="List items in backpack.")
+    @economy.command(
+        usage="eco items", 
+        aliases=['item', 'backpack'], 
+        description="List items in backpack."
+    )
     async def items(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
@@ -636,8 +667,16 @@ class Economy(commands.Cog):
             return
 
 
-    @economy.command(usage="eco lumber <member>", aliases=['timber', 'wood'], description="List lumber.")
-    async def lumber(self, ctx, member: discord.Member = None):
+    @economy.command(
+        usage="eco lumber <member>", 
+        aliases=['timber', 'wood'], 
+        description="List lumber."
+    )
+    async def lumber(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -691,8 +730,16 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco fish <member>", aliases=['fishes'], description="Show fishes.")
-    async def fish(self, ctx, member: discord.Member = None):
+    @economy.command(
+        usage="eco fish <member>", 
+        aliases=['fishes'], 
+        description="Show fishes."
+    )
+    async def fish(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -750,8 +797,15 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco plant <crop name>", description="Plant a crop.")
-    async def plant(self, ctx, plant_name: str=None):
+    @economy.command(
+        usage="eco plant <crop name>", 
+        description="Plant a crop."
+    )
+    async def plant(
+        self, 
+        ctx, 
+        plant_name: str=None
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -896,8 +950,16 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco collect <what>", aliases=['cl'], description="Collect collectible thing.")
-    async def collect(self, ctx, what: str = None):
+    @economy.command(
+        usage="eco collect <what>", 
+        aliases=['cl'], 
+        description="Collect collectible thing."
+    )
+    async def collect(
+        self, 
+        ctx, 
+        what: str = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -1019,8 +1081,16 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco dairy <member>", aliases=['cow'], description="Show dairy of a member.")
-    async def dairy(self, ctx, member: discord.Member = None):
+    @economy.command(
+        usage="eco dairy <member>", 
+        aliases=['cow'], 
+        description="Show dairy of a member."
+    )
+    async def dairy(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -1138,8 +1208,16 @@ class Economy(commands.Cog):
                 await logchanbot(traceback.format_exc())
 
 
-    @economy.command(usage="eco chicken <member>", aliases=['egg', 'chickenfarm'], description="Show chicken farm of a member.")
-    async def chicken(self, ctx, member: discord.Member = None):
+    @economy.command(
+        usage="eco chicken <member>", 
+        aliases=['egg', 'chickenfarm'], 
+        description="Show chicken farm of a member."
+    )
+    async def chicken(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -1257,8 +1335,16 @@ class Economy(commands.Cog):
                 await logchanbot(traceback.format_exc())
 
 
-    @economy.command(usage="eco farm", aliases=['farms'], description="Show a member's form.")
-    async def farm(self, ctx, member: discord.Member = None):
+    @economy.command(
+        usage="eco farm", 
+        aliases=['farms'], 
+        description="Show a member's form."
+    )
+    async def farm(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -1377,7 +1463,11 @@ class Economy(commands.Cog):
                 await logchanbot(traceback.format_exc())
 
 
-    @economy.command(usage="eco harvest", aliases=['harvesting'], description="Harvest your farm.")
+    @economy.command(
+        usage="eco harvest", 
+        aliases=['harvesting'], 
+        description="Harvest your farm."
+    )
     async def harvest(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
@@ -1456,7 +1546,10 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco fishing", description="Do fishing.")
+    @economy.command(
+        usage="eco fishing", 
+        description="Do fishing."
+    )
     async def fishing(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
@@ -1615,7 +1708,11 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco woodcutting", aliases=['cuttree', 'wc', 'cw'], description="Cut tree(s).")
+    @economy.command(
+        usage="eco woodcutting", 
+        aliases=['cuttree', 'wc', 'cw'], 
+        description="Cut tree(s)."
+    )
     async def woodcutting(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
@@ -1700,7 +1797,10 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco search", description="Search collectible items.")
+    @economy.command(
+        usage="eco search", 
+        description="Search collectible items."
+    )
     async def search(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
@@ -1795,7 +1895,10 @@ class Economy(commands.Cog):
         return
 
 
-    @economy.command(usage="eco eat", description="Eat to gain energy.")
+    @economy.command(
+        usage="eco eat", 
+        description="Eat to gain energy."
+    )
     async def eat(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
@@ -1966,8 +2069,15 @@ class Economy(commands.Cog):
             return
 
 
-    @economy.command(usage="eco work [claim]", description="Work for more experience and thing.")
-    async def work(self, ctx, claim: str=None):
+    @economy.command(
+        usage="eco work [claim]", 
+        description="Work for more experience and thing."
+    )
+    async def work(
+        self, 
+        ctx, 
+        claim: str=None
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')

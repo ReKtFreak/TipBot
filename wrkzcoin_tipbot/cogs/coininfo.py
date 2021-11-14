@@ -16,7 +16,12 @@ class Coininfo(commands.Cog):
         self.bot = bot
 
 
-    async def get_coininfo(self, coin: str, private: bool=False, guid_id: int=0):
+    async def get_coininfo(
+        self, 
+        coin: str, 
+        private: bool=False, 
+        guid_id: int=0
+    ):
         COIN_NAME = coin.upper()
         if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
             return {"error": f"{COIN_NAME} is not in our coin list."}
@@ -105,7 +110,11 @@ class Coininfo(commands.Cog):
                                     Option("coin", "Enter a coin/ticker name", OptionType.STRING, required=True)
                                 ],
                                 description="Get coin's information in TipBot.")
-    async def coininfo(self, inter, coin: str):
+    async def coininfo(
+        self, 
+        inter, 
+        coin: str
+    ):
         prefix = "/"
         if isinstance(inter.channel, discord.DMChannel) == False and inter.guild.id == TRTL_DISCORD:
             return
@@ -123,8 +132,16 @@ class Coininfo(commands.Cog):
                 await inter.reply("{}\n{}".format(inter.author.mention, coin_info['error']))
 
 
-    @commands.command(usage="coininfo <coin>", aliases=['coinf_info', 'coin'], description="Get coin's information in TipBot.")
-    async def coininfo(self, ctx, coin: str = None):
+    @commands.command(
+        usage="coininfo <coin>", 
+        aliases=['coinf_info', 'coin'], 
+        description="Get coin's information in TipBot."
+    )
+    async def coininfo(
+        self, 
+        ctx, 
+        coin: str = None
+    ):
         if coin is None:
             if isinstance(ctx.channel, discord.DMChannel) == False and ctx.guild.id == TRTL_DISCORD:
                 return

@@ -12,8 +12,17 @@ class BotBalance(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="botbalance <bot> <coin>", aliases=['botbal'], description="Get Bot's balance by mention it.")
-    async def botbalance(self, ctx, member: discord.Member, coin: str):
+    @commands.command(
+        usage="botbalance <bot> <coin>", 
+        aliases=['botbal'], 
+        description="Get Bot's balance by mention it."
+    )
+    async def botbalance(
+        self, 
+        ctx, 
+        member: discord.Member, 
+        coin: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} This command can not be in DM.')
             return

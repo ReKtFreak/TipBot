@@ -12,9 +12,18 @@ class TipMtip(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="mtip <amount> [arg]", aliases=['gtip', 'modtip', 'guildtip'], description="Moderator tip.")
+    @commands.command(
+        usage="mtip <amount> [arg]", 
+        aliases=['gtip', 'modtip', 'guildtip'], 
+        description="Moderator tip."
+    )
     @commands.has_permissions(manage_channels=True)
-    async def mtip(self, ctx, amount: str, *args):
+    async def mtip(
+        self, 
+        ctx, 
+        amount: str, 
+        *args
+    ):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)

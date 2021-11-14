@@ -14,7 +14,12 @@ class Help(commands.Cog):
 
     @commands.command(usage="help <section>")
     @commands.bot_has_permissions(add_reactions=True)
-    async def help(self, ctx, *, section: str='MAIN'):
+    async def help(
+        self, 
+        ctx, 
+        *, 
+        section: str='MAIN'
+    ):
         async def help_main_embed(ctx, prefix, section: str='MAIN'):
             prefix = await get_guild_prefix(ctx)
             embed = discord.Embed(title="List of commands", description="To avoid spamming other, you can do in Direct Message or Bot Channel", timestamp=datetime.utcnow(), color=0xDEADBF)
@@ -203,7 +208,10 @@ class Help(commands.Cog):
 
 
     # TODO: improve re-act
-    async def help_setting(message, prefix):
+    async def help_setting(
+        message, 
+        prefix
+    ):
         botLogChan = self.bot.get_channel(LOG_CHAN)
         embed = discord.Embed(title=f"List of SETTING command {message.guild.name}", description="Required Managed Channel Permission", timestamp=datetime.utcnow())
         if isinstance(message.channel, discord.DMChannel) == True:

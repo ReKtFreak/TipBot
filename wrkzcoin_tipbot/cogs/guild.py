@@ -21,8 +21,15 @@ class Guild(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="info [coin]", description="Check guild's information")
-    async def info(self, ctx, coin: str = None):
+    @commands.command(
+        usage="info [coin]", 
+        description="Check guild's information"
+    )
+    async def info(
+        self, 
+        ctx, 
+        coin: str = None
+    ):
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'info')
         if account_lock:
@@ -136,9 +143,17 @@ class Guild(commands.Cog):
             return
 
 
-    @commands.command(usage="setting <expression>", aliases=['settings', 'set'], description="Settings view and set for prefix, default coin. Requires permission manage_channels.")
+    @commands.command(
+        usage="setting <expression>", 
+        aliases=['settings', 'set'], 
+        description="Settings view and set for prefix, default coin. Requires permission manage_channels."
+    )
     @commands.has_permissions(manage_channels=True)
-    async def setting(self, ctx, *args):
+    async def setting(
+        self, 
+        ctx, 
+        *args
+    ):
         # Check if address is valid first
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.send('This command is not available in DM.')
@@ -435,7 +450,10 @@ class Guild(commands.Cog):
                 await ctx.send(f'{ctx.author.mention} In valid setting command input and parameter(s).')
             return
 
-    @commands.group(usage="guild <subcommand>", description="Various guild's command")
+    @commands.group(
+        usage="guild <subcommand>", 
+        description="Various guild's command"
+    )
     async def guild(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
@@ -448,8 +466,16 @@ class Guild(commands.Cog):
             return
 
 
-    @guild.command(usage="guild deposit <coin>", description="Get deposit address of a coin for your guild.")
-    async def deposit(self, ctx, amount: str, coin: str):
+    @guild.command(
+        usage="guild deposit <coin>", 
+        description="Get deposit address of a coin for your guild."
+    )
+    async def deposit(
+        self, 
+        ctx, 
+        amount: str, 
+        coin: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -644,9 +670,17 @@ class Guild(commands.Cog):
             return
 
 
-    @guild.command(usage="guild tipmsg <message>", description="Set guild's tip's message.")
+    @guild.command(
+        usage="guild tipmsg <message>", 
+        description="Set guild's tip's message."
+    )
     @commands.has_permissions(manage_channels=True)
-    async def tipmsg(self, ctx, *, tipmessage):
+    async def tipmsg(
+        self, 
+        ctx, 
+        *, 
+        tipmessage
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -667,9 +701,19 @@ class Guild(commands.Cog):
             return
 
 
-    @guild.command(usage="createraffle <amount> <coin> <duration>", aliases=['crfl', 'create_raffle'], description="Create a raffle.")
+    @guild.command(
+        usage="createraffle <amount> <coin> <duration>", 
+        aliases=['crfl', 'create_raffle'], 
+        description="Create a raffle."
+    )
     @commands.has_permissions(manage_channels=True)
-    async def createraffle(self, ctx, amount: str, coin: str, duration: str):
+    async def createraffle(
+        self, 
+        ctx, 
+        amount: str, 
+        coin: str, 
+        duration: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -787,8 +831,16 @@ class Guild(commands.Cog):
                 print(traceback.format_exc())
 
 
-    @guild.command(usage="guild raffle", aliases=['rfl'], description="Check current raffle.")
-    async def raffle(self, ctx, subc: str=None):
+    @guild.command(
+        usage="guild raffle", 
+        aliases=['rfl'], 
+        description="Check current raffle."
+    )
+    async def raffle(
+        self, 
+        ctx, 
+        subc: str=None
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -1120,7 +1172,11 @@ class Guild(commands.Cog):
             await asyncio.sleep(time_lap)
 
 
-    @guild.command(usage="botchan", aliases=['botchannel', 'bot_chan'], description="Set bot channel to the said channel.")
+    @guild.command(
+        usage="botchan", 
+        aliases=['botchannel', 'bot_chan'], 
+        description="Set bot channel to the said channel."
+    )
     @commands.has_permissions(manage_channels=True)
     async def botchan(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel):
@@ -1152,9 +1208,18 @@ class Guild(commands.Cog):
             return
 
 
-    @guild.command(usage="gamechan <game name>", aliases=['gamechannel', 'game_chan'], description="Set game channel to the said channel.")
+    @guild.command(
+        usage="gamechan <game name>", 
+        aliases=['gamechannel', 'game_chan'], 
+        description="Set game channel to the said channel."
+    )
     @commands.has_permissions(manage_channels=True)
-    async def gamechan(self, ctx, *, game: str=None):
+    async def gamechan(
+        self, 
+        ctx, 
+        *, 
+        game: str=None
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -1195,9 +1260,16 @@ class Guild(commands.Cog):
                     return
 
 
-    @guild.command(usage="guild prefix <prefix>", description="Change prefix command in your guild.")
+    @guild.command(
+        usage="guild prefix <prefix>", 
+        description="Change prefix command in your guild."
+    )
     @commands.has_permissions(manage_channels=True)
-    async def prefix(self, ctx, prefix_char: str=None):
+    async def prefix(
+        self, 
+        ctx, 
+        prefix_char: str=None
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
@@ -1224,8 +1296,16 @@ class Guild(commands.Cog):
                 return
 
 
-    @commands.command(usage='mdeposit [coin] <plain/embed>', description="Get your a deposit address for a guild.")
-    async def mdeposit(self, ctx, coin_name: str, option: str=None):
+    @commands.command(
+        usage='mdeposit [coin] <plain/embed>', 
+        description="Get your a deposit address for a guild."
+    )
+    async def mdeposit(
+        self, 
+        ctx, 
+        coin_name: str, 
+        option: str=None
+    ):
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'mdeposit')
         if account_lock:
@@ -1390,8 +1470,16 @@ class Guild(commands.Cog):
                 return
 
 
-    @commands.command(usage='mbalance [coin]', aliases=['mbal'], description="Get your guild's balance.")
-    async def mbalance(self, ctx, coin: str = None):
+    @commands.command(
+        usage='mbalance [coin]', 
+        aliases=['mbal'], 
+        description="Get your guild's balance."
+    )
+    async def mbalance(
+        self, 
+        ctx, 
+        coin: str = None
+    ):
         prefix = await get_guild_prefix(ctx)
         botLogChan = self.bot.get_channel(LOG_CHAN)
         # check if account locked

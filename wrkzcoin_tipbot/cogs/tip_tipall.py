@@ -12,8 +12,17 @@ class TipTipAll(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="tipall <amount> <coin> [option]", description="Tip all users.")
-    async def tipall(self, ctx, amount: str, coin: str, option: str=None):
+    @commands.command(
+        usage="tipall <amount> <coin> [option]", 
+        description="Tip all users."
+    )
+    async def tipall(
+        self, 
+        ctx, 
+        amount: str, 
+        coin: str, 
+        option: str=None
+    ):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)

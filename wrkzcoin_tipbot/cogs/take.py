@@ -12,8 +12,15 @@ class Faucet(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="take <info>", description="Claim a random coin faucet.")
-    async def take(self, ctx, info: str=None):
+    @commands.command(
+        usage="take <info>", 
+        description="Claim a random coin faucet."
+    )
+    async def take(
+        self, 
+        ctx, 
+        info: str=None
+    ):
         async def bot_faucet(ctx):
             get_game_stat = await store.sql_game_stat()
             table_data = [

@@ -17,14 +17,21 @@ class Core(commands.Cog):
         self.bot = bot
         
 
-    @commands.command(usage="uptime", description="Tells how long the bot has been running.")
+    @commands.command(
+        usage="uptime", 
+        description="Tells how long the bot has been running."
+    )
     async def uptime(self, ctx):
         uptime_seconds = int(time.time()) - int(bot_start_time)
         await ctx.send(f"Current Uptime: {'{:0>8}'.format(str(timedelta(seconds=uptime_seconds)))}")
 
 
-    @commands.command(name='commands', usage="commands", description="View a full list of all available commands.",
-                      aliases=["cmd"])
+    @commands.command(
+        name='commands', 
+        usage="commands", 
+        description="View a full list of all available commands.",
+        aliases=["cmd"]
+    )
     async def commandlist(self, ctx):
         embed = discord.Embed(title="Command List", description="A full list of all available commands.\n", color=discord.Color.teal())
         for _, cog_name in enumerate(sorted(self.bot.cogs)):

@@ -12,8 +12,19 @@ class TipRandomTip(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="randtip <amount> <coin> [option]", aliases=['randomtip'], description="Do a random tip to user.")
-    async def randtip(self, ctx, amount: str, coin: str, *, rand_option: str=None):
+    @commands.command(
+        usage="randtip <amount> <coin> [option]", 
+        aliases=['randomtip'], 
+        description="Do a random tip to user."
+    )
+    async def randtip(
+        self, 
+        ctx, 
+        amount: str, 
+        coin: str, 
+        *, 
+        rand_option: str=None
+    ):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)

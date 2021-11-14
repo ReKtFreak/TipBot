@@ -20,7 +20,11 @@ class Tool(commands.Cog):
         self.bot = bot
 
 
-    @commands.group(usage="tool <subcommand>", aliases=['tools'], description="Various tool commands.")
+    @commands.group(
+        usage="tool <subcommand>", 
+        aliases=['tools'], 
+        description="Various tool commands."
+    )
     async def tool(self, ctx):
         prefix = await get_guild_prefix(ctx)
         # Only WrkzCoin testing. Return if DM or other guild
@@ -31,8 +35,15 @@ class Tool(commands.Cog):
             return
 
 
-    @tool.command(usage="tool avatar <member>", description="Get avatar of a user.")
-    async def avatar(self, ctx, member: discord.Member = None):
+    @tool.command(
+        usage="tool avatar <member>", 
+        description="Get avatar of a user."
+    )
+    async def avatar(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if member is None:
             member = ctx.author
         try:
@@ -43,8 +54,15 @@ class Tool(commands.Cog):
         return
 
 
-    @tool.command(usage="tool prime <number>", description="Check a given number if it is a prime number.")
-    async def prime(self, ctx, number_test: str):
+    @tool.command(
+        usage="tool prime <number>", 
+        description="Check a given number if it is a prime number."
+    )
+    async def prime(
+        self, 
+        ctx, 
+        number_test: str
+    ):
         # https://en.wikipedia.org/wiki/Primality_test
         def is_prime(n: int) -> bool:
             """Primality test using 6k+-1 optimization."""
@@ -74,7 +92,10 @@ class Tool(commands.Cog):
         return
 
 
-    @tool.command(usage="tool emoji", description="Get emoji value by re-acting.")
+    @tool.command(
+        usage="tool emoji", 
+        description="Get emoji value by re-acting."
+    )
     async def emoji(self, ctx):
         try:
             embed = discord.Embed(title='EMOJI INFO', description=f'{ctx.author.mention}, Re-act and getinfo', colour=7047495)
@@ -112,8 +133,15 @@ class Tool(commands.Cog):
         return
 
 
-    @tool.command(usage="tool dec2hex <param>", description="Convert decimal to hex.")
-    async def dec2hex(self, ctx, decimal: str):
+    @tool.command(
+        usage="tool dec2hex <param>", 
+        description="Convert decimal to hex."
+    )
+    async def dec2hex(
+        self, 
+        ctx, 
+        decimal: str
+    ):
         decimal = decimal.replace(",", "")
         if len(decimal) >= 32:
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -130,8 +158,15 @@ class Tool(commands.Cog):
         return
 
 
-    @tool.command(usage="tool hex2dec <param>", description="Convert hex to decimal.")
-    async def hex2dec(self, ctx, hex_string: str):
+    @tool.command(
+        usage="tool hex2dec <param>", 
+        description="Convert hex to decimal."
+    )
+    async def hex2dec(
+        self, 
+        ctx, 
+        hex_string: str
+    ):
         if len(hex_string) >= 100:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{ctx.author.mention} **{hex_string}** too long.')
@@ -147,8 +182,16 @@ class Tool(commands.Cog):
         return
 
 
-    @tool.command(usage="tool hex2str <param>", aliases=['hex2ascii'], description="Convert hex to string.")
-    async def hex2str(self, ctx, hex_string: str):
+    @tool.command(
+        usage="tool hex2str <param>", 
+        aliases=['hex2ascii'], 
+        description="Convert hex to string."
+    )
+    async def hex2str(
+        self, 
+        ctx, 
+        hex_string: str
+    ):
         if len(hex_string) >= 1000:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{ctx.author.mention} **{hex_string}** too long.')
@@ -172,7 +215,11 @@ class Tool(commands.Cog):
         return
 
 
-    @tool.command(usage="tool str2hex <param>", aliases=['ascii2hex'], description="Convert string to hex.")
+    @tool.command(
+        usage="tool str2hex <param>", 
+        aliases=['ascii2hex'], 
+        description="Convert string to hex."
+    )
     async def str2hex(self, ctx, str2hex: str):
         if len(str2hex) >= 1000:
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -192,8 +239,18 @@ class Tool(commands.Cog):
         return
 
 
-    @tool.command(usage="tool trans <to language> <text>", aliases=['translate', 'tran'], description="Text to speech.")
-    async def trans(self, ctx, to_lang: str, *, speech: str):
+    @tool.command(
+        usage="tool trans <to language> <text>", 
+        aliases=['translate', 'tran'], 
+        description="Text to speech."
+    )
+    async def trans(
+        self, 
+        ctx, 
+        to_lang: str, 
+        *, 
+        speech: str
+    ):
         to_lang = to_lang.lower()
         LANGUAGES = {
             'af': 'afrikaans',
@@ -340,8 +397,16 @@ class Tool(commands.Cog):
         return
 
 
-    @tool.command(usage="tool tts <text>", description="Text to speech.")
-    async def tts(self, ctx, *, speech: str):
+    @tool.command(
+        usage="tool tts <text>", 
+        description="Text to speech."
+    )
+    async def tts(
+        self, 
+        ctx, 
+        *, 
+        speech: str
+    ):
         if not isEnglish(speech):
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.message.reply(f'{ctx.author.mention} Currently, TTS supports English only.')
@@ -373,8 +438,16 @@ class Tool(commands.Cog):
         return
 
 
-    @tool.command(usage="tool ttskh <text>", description="Text to speech in Khmer.")
-    async def ttskh(self, ctx, *, speech: str):
+    @tool.command(
+        usage="tool ttskh <text>", 
+        description="Text to speech in Khmer."
+    )
+    async def ttskh(
+        self, 
+        ctx, 
+        *, 
+        speech: str
+    ):
         if not isKhmer(speech):
             await ctx.message.add_reaction(EMOJI_INFORMATION)
             await ctx.message.reply(f'{ctx.author.mention}  Some characters are not in fully in Khmer.')
@@ -404,8 +477,16 @@ class Tool(commands.Cog):
         return
 
 
-    @tool.command(usage="tool ttscn <text>", description="Text to speech in Chinese.")
-    async def ttscn(self, ctx, *, speech: str):
+    @tool.command(
+        usage="tool ttscn <text>", 
+        description="Text to speech in Chinese."
+    )
+    async def ttscn(
+        self, 
+        ctx, 
+        *, 
+        speech: str
+    ):
         if not isChinese(speech):
             await ctx.message.add_reaction(EMOJI_INFORMATION)
             await ctx.message.reply(f'{ctx.author.mention} Some characters are not in fully in Chinese.')
@@ -436,8 +517,17 @@ class Tool(commands.Cog):
         return
 
 
-    @tool.command(usage="tool find <text>", aliases=['search'], description="Search something in TipBot.")
-    async def find(self, ctx, *, searched_text: str):
+    @tool.command(
+        usage="tool find <text>", 
+        aliases=['search'], 
+        description="Search something in TipBot."
+    )
+    async def find(
+        self, 
+        ctx, 
+        *, 
+        searched_text: str
+    ):
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)

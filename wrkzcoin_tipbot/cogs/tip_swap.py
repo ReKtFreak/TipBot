@@ -12,8 +12,17 @@ class TipSwap(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="swap <amount> <from coin> <to coin>", description="Swap supported coin / token.")
-    async def swap(self, ctx, amount: str, coin_from: str, coin_to: str):	
+    @commands.command(
+        usage="swap <amount> <from coin> <to coin>", 
+        description="Swap supported coin / token."
+    )
+    async def swap(
+        self, 
+        ctx, 
+        amount: str, 
+        coin_from: str, 
+        coin_to: str
+    ):	
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'swap')
         if account_lock:

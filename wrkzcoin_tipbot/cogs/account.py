@@ -20,7 +20,12 @@ class Account(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.group(usage="acc <subcommand>", aliases=['acc'], description="Various account's command")
+
+    @commands.group(
+        usage="acc <subcommand>", 
+        aliases=['acc'], 
+        description="Various account's command"
+    )
     async def account(self, ctx):
         prefix = await get_guild_prefix(ctx)
         if ctx.invoked_subcommand is None:
@@ -28,8 +33,16 @@ class Account(commands.Cog):
             return
 
 
-    @account.command(usage='tradeapi', aliases=['trade_api', 'api_trade'], description="Create API for Trading.")
-    async def tradeapi(self, ctx, regen: str=None):
+    @account.command(
+        usage='tradeapi', 
+        aliases=['trade_api', 'api_trade'], 
+        description="Create API for Trading."
+    )
+    async def tradeapi(
+        self, 
+        ctx, 
+        regen: str=None
+    ):
         # acc tradeapi | acc tradeapi regen
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
@@ -60,8 +73,16 @@ class Account(commands.Cog):
                     await ctx.send('Internal error updating API keys.')
 
 
-    @account.command(usage='deposit_link [disable]', aliases=['deposit'], description="Get a web deposit link for all your deposit addresses.")
-    async def deposit_link(self, ctx, disable: str=None):
+    @account.command(
+        usage='deposit_link [disable]', 
+        aliases=['deposit'], 
+        description="Get a web deposit link for all your deposit addresses."
+    )
+    async def deposit_link(
+        self, 
+        ctx, 
+        disable: str=None
+    ):
         async def create_qr_on_remote(ctx, coin):
             COIN_NAME = coin.upper()
             if not is_maintenance_coin(COIN_NAME):
@@ -194,8 +215,15 @@ class Account(commands.Cog):
                 await ctx.send(f'{ctx.author.mention} Internal error during link generation. Try later.')
                 return
 
-    @account.command(usage='acc twofa', aliases=['2fa'], description="Generate a 2FA and scanned with Authenticator Program.")
-    async def twofa(self, ctx):
+    @account.command(
+        usage='acc twofa', 
+        aliases=['2fa'], 
+        description="Generate a 2FA and scanned with Authenticator Program."
+    )
+    async def twofa(
+        self, 
+        ctx
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -309,8 +337,15 @@ class Account(commands.Cog):
                     return
         return
 
-    @account.command(usage='acc verify <code>', description="Verify 2FA code from QR code and your Authenticator Program.")
-    async def verify(self, ctx, codes: str):
+    @account.command(
+        usage='acc verify <code>', 
+        description="Verify 2FA code from QR code and your Authenticator Program."
+    )
+    async def verify(
+        self, 
+        ctx, 
+        codes: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
@@ -368,8 +403,15 @@ class Account(commands.Cog):
                 return
 
 
-    @account.command(usage='acc unverify <code>', description="Unverify 2FA code from QR code.")
-    async def unverify(self, ctx, codes: str):
+    @account.command(
+        usage='acc unverify <code>', 
+        description="Unverify 2FA code from QR code."
+    )
+    async def unverify(
+        self, 
+        ctx, 
+        codes: str
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')

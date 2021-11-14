@@ -12,8 +12,19 @@ class Trade(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="sell <sell amount> <coin> <buy amount> <coin>", aliases=['selling'], description="Make an opened sell of a coin for another coin.")
-    async def sell(self, ctx, sell_amount: str, sell_ticker: str, buy_amount: str, buy_ticker: str):
+    @commands.command(
+        usage="sell <sell amount> <coin> <buy amount> <coin>", 
+        aliases=['selling'], 
+        description="Make an opened sell of a coin for another coin."
+    )
+    async def sell(
+        self, 
+        ctx, 
+        sell_amount: str, 
+        sell_ticker: str, 
+        buy_amount: str, 
+        buy_ticker: str
+    ):
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 
@@ -170,7 +181,13 @@ class Trade(commands.Cog):
             return await sell_process(ctx, real_amount_sell, sell_ticker, real_amount_buy, buy_ticker)
 
 
-    async def sell_process(ctx, real_amount_sell: float, sell_ticker: str, real_amount_buy: float, buy_ticker: str):
+    async def sell_process(
+        ctx, 
+        real_amount_sell: float, 
+        sell_ticker: str, 
+        real_amount_buy: float, 
+        buy_ticker: str
+    ):
         botLogChan = self.bot.get_channel(LOG_CHAN)
 
         sell_ticker = sell_ticker.upper()
@@ -228,8 +245,16 @@ class Trade(commands.Cog):
             return
 
 
-    @commands.command(usage="buy <ref_number>", aliases=['buying'], description="Buy coin from a referenced number.")
-    async def buy(self, ctx, ref_number: str):
+    @commands.command(
+        usage="buy <ref_number>", 
+        aliases=['buying'], 
+        description="Buy coin from a referenced number."
+    )
+    async def buy(
+        self, 
+        ctx, 
+        ref_number: str
+    ):
         # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
@@ -400,8 +425,17 @@ class Trade(commands.Cog):
                 return
 
 
-    @commands.command(usage="trade <coin/pair> <desc|asc>", aliases=['market'], description="Check market for opened orders.")
-    async def trade(self, ctx, coin: str=None, option_order: str=None):
+    @commands.command(
+        usage="trade <coin/pair> <desc|asc>", 
+        aliases=['market'], 
+        description="Check market for opened orders."
+    )
+    async def trade(
+        self, 
+        ctx, 
+        coin: str=None, 
+        option_order: str=None
+    ):
         # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
@@ -550,8 +584,15 @@ class Trade(commands.Cog):
                 return
 
 
-    @commands.command(usage="cancel <ref_number|all>", description="Cancel an opened order or all.")
-    async def cancel(self, ctx, order_num: str = 'ALL'):
+    @commands.command(
+        usage="cancel <ref_number|all>", 
+        description="Cancel an opened order or all."
+    )
+    async def cancel(
+        self, 
+        ctx, 
+        order_num: str = 'ALL'
+    ):
         # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
@@ -628,8 +669,16 @@ class Trade(commands.Cog):
                         return
 
 
-    @commands.command(usage="order <ref_number>", aliases=['order_num'], description="Check an opened order.")
-    async def order(self, ctx, order_num: str):
+    @commands.command(
+        usage="order <ref_number>", 
+        aliases=['order_num'], 
+        description="Check an opened order."
+    )
+    async def order(
+        self, 
+        ctx, 
+        order_num: str
+    ):
         # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
@@ -694,8 +743,16 @@ class Trade(commands.Cog):
         return
 
 
-    @commands.command(usage="myorder [coin]", aliases=['myorders'], description="Check your opened orders.")
-    async def myorder(self, ctx, ticker: str = None):
+    @commands.command(
+        usage="myorder [coin]", 
+        aliases=['myorders'], 
+        description="Check your opened orders."
+    )
+    async def myorder(
+        self, 
+        ctx, 
+        ticker: str = None
+    ):
         # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return

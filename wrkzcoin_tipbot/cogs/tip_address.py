@@ -13,8 +13,15 @@ class TipAddress(commands.Cog):
 
 
     ## TODO: Improve this usage.
-    @commands.command(usage="address <arguments>", description="Check address.")
-    async def address(self, ctx, *args):
+    @commands.command(
+        usage="address <arguments>", 
+        description="Check address."
+    )
+    async def address(
+        self, 
+        ctx, 
+        *args
+    ):
         prefix = await get_guild_prefix(ctx)
 
         # if public and there is a bot channel
@@ -478,8 +485,15 @@ class TipAddress(commands.Cog):
             return
 
 
-    @commands.command(usage="paymentid [coin]", description="Generate paymentId for supported coin(s).")
-    async def paymentid(self, ctx, coin: str = None):
+    @commands.command(
+        usage="paymentid [coin]", 
+        description="Generate paymentId for supported coin(s)."
+    )
+    async def paymentid(
+        self, 
+        ctx, 
+        coin: str = None
+    ):
         paymentid = None
         if coin and (coin.upper() in ENABLE_XMR):
             paymentid = addressvalidation.paymentid(8)

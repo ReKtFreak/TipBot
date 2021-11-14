@@ -13,8 +13,16 @@ class RandomNumber(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="random <1-100>", aliases=['random'], description="Generate random number with TipBot.")
-    async def rand(self, ctx, randstring: str = None):
+    @commands.command(
+        usage="random <1-100>", 
+        aliases=['random'], 
+        description="Generate random number with TipBot."
+    )
+    async def rand(
+        self, 
+        ctx, 
+        randstring: str = None
+    ):
         rand_numb = None
         if randstring is None:
             rand_numb = random.randint(1,100)

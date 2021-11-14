@@ -11,8 +11,16 @@ class Calculator(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="cal <expression>", aliases=['calc', 'calculate'], description="Do some math.")
-    async def cal(self, ctx, eval_string: str = None):
+    @commands.command(
+        usage="cal <expression>", 
+        aliases=['calc', 'calculate'], 
+        description="Do some math."
+    )
+    async def cal(
+        self, 
+        ctx, 
+        eval_string: str = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             return
         if eval_string is None:

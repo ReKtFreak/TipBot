@@ -12,9 +12,17 @@ class TipTipTo(commands.Cog):
         self.bot = bot
 
 
-    ## TODO: Improve this usage.
-    @commands.command(usage="tipto <amount> <coin> <to user@xxx>", description="Tip to user(s) in telegram or reddit.")
-    async def tipto(self, ctx, amount: str, coin: str, to_user: str):
+    @commands.command(
+        usage="tipto <amount> <coin> <to user@xxx>", 
+        description="Tip to user(s) in telegram or reddit."
+    )
+    async def tipto(
+        self, 
+        ctx, 
+        amount: str, 
+        coin: str, 
+        to_user: str
+    ):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)

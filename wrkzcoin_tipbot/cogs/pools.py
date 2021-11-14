@@ -13,8 +13,16 @@ class Pools(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(usage="pools <coin>", aliases=['pool'], description="Check hashrate of a coin.")
-    async def pools(self, ctx, coin: str):
+    @commands.command(
+        usage="pools <coin>", 
+        aliases=['pool'], 
+        description="Check hashrate of a coin."
+    )
+    async def pools(
+        self, 
+        ctx, 
+        coin: str
+    ):
         async def get_miningpoolstat_coin(coin: str):
             COIN_NAME = coin.upper()
             key = "TIPBOT:MININGPOOLDATA:" + COIN_NAME

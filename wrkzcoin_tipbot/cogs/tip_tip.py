@@ -12,9 +12,16 @@ class TipTip(commands.Cog):
         self.bot = bot
 
 
-    ## TODO: Improve this usage.
-    @commands.command(usage="tip <amount> [option]", description="Tip to user(s).")
-    async def tip(self, ctx, amount: str, *args):
+    @commands.command(
+        usage="tip <amount> [option]", 
+        description="Tip to user(s)."
+    )
+    async def tip(
+        self, 
+        ctx, 
+        amount: str, 
+        *args
+    ):
         secrettip = False
         fromDM = False
         # check if bot is going to restart

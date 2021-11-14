@@ -13,7 +13,11 @@ class Feedback(commands.Cog):
         self.bot = bot
 
 
-    @commands.group(usage="feedback", aliases=['fb'], description="Submit a feedback.")
+    @commands.group(
+        usage="feedback", 
+        aliases=['fb'], 
+        description="Submit a feedback."
+    )
     async def feedback(self, ctx):
         prefix = await get_guild_prefix(ctx)
         if ctx.invoked_subcommand is None:
@@ -95,9 +99,17 @@ class Feedback(commands.Cog):
                 return
 
 
-    @feedback.command(usage="feedback view <ref>", aliases=['vfb'], description="View a feedback.")
+    @feedback.command(
+        usage="feedback view <ref>", 
+        aliases=['vfb'], 
+        description="View a feedback."
+    )
     @commands.is_owner()
-    async def view(self, ctx, ref: str):
+    async def view(
+        self, 
+        ctx, 
+        ref: str
+    ):
         if config.feedback_setting.enable != 1:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{ctx.author.mention} Feedback is not enable right now. Check back later.')
@@ -123,9 +135,17 @@ class Feedback(commands.Cog):
                 return
 
 
-    @feedback.command(usage="feedback list", aliases=['ls'], description="List feedback.")
+    @feedback.command(
+        usage="feedback list", 
+        aliases=['ls'], 
+        description="List feedback."
+    )
     @commands.is_owner()
-    async def list(self, ctx, userid: str=None):
+    async def list(
+        self, 
+        ctx, 
+        userid: str=None
+    ):
         if config.feedback_setting.enable != 1:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{ctx.author.mention} Feedback is not enable right now. Check back later.')

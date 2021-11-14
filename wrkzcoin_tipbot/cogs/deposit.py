@@ -27,7 +27,10 @@ class Deposit(commands.Cog):
         self.bot = bot
 
 
-    async def generate_qr_address(self, address: str):
+    async def generate_qr_address(
+        self, 
+        address: str
+    ):
         # return path to image
         # address = wallet['balance_wallet_address']
         # return address if success, else None
@@ -69,7 +72,11 @@ class Deposit(commands.Cog):
         return address
 
 
-    async def get_deposit_coin_user(self, user_id, coin_name: str):
+    async def get_deposit_coin_user(
+        self, 
+        user_id, 
+        coin_name: str
+    ):
         COIN_NAME = coin_name.upper()
         if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
             return {"error": f"INVALID TICKER **{COIN_NAME}**!"}
@@ -209,8 +216,16 @@ class Deposit(commands.Cog):
             await inter.reply(f"Internal error to get deposit for: {COIN_NAME}. Please report.", ephemeral=True)
 
 
-    @commands.command(usage='deposit [coin] <plain/embed>', description="Get your a deposit address.")
-    async def deposit(self, ctx, coin_name: str, option: str=None):
+    @commands.command(
+        usage='deposit [coin] <plain/embed>', 
+        description="Get your a deposit address."
+    )
+    async def deposit(
+        self, 
+        ctx, 
+        coin_name: str, 
+        option: str=None
+    ):
         COIN_NAME = coin_name.upper()
         try:
             # check if account locked

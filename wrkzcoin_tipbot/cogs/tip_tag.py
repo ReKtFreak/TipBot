@@ -128,8 +128,15 @@ class TipTag(commands.Cog):
             return
 
 
-    @commands.command(usage="itag <arguments>", description="Manage or display itag(s).")
-    async def itag(ctx, *, itag_text: str = None):
+    @commands.command(
+        usage="itag <arguments>", 
+        description="Manage or display itag(s)."
+    )
+    async def itag(
+        ctx, 
+        *, 
+        itag_text: str = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.send(f'{EMOJI_RED_NO} This command can not be in private.')
             return

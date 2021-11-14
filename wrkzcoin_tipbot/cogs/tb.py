@@ -19,7 +19,12 @@ class Tb(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.group(usage='tb <subcommand>', aliases=['tipbot'], description="Some fun commands.")
+
+    @commands.group(
+        usage='tb <subcommand>', 
+        aliases=['tipbot'], 
+        description="Some fun commands."
+    )
     async def tb(self, ctx):
         prefix = await get_guild_prefix(ctx)
         # Only WrkzCoin testing. Return if DM or other guild
@@ -30,8 +35,15 @@ class Tb(commands.Cog):
             return
 
 
-    @tb.command(usage="draw <member>", description="Use TipBot to draw someone's avatar.")
-    async def draw(self, ctx, member: discord.Member = None):
+    @tb.command(
+        usage="draw <member>", 
+        description="Use TipBot to draw someone's avatar."
+    )
+    async def draw(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             return
 
@@ -133,8 +145,15 @@ class Tb(commands.Cog):
         return
 
 
-    @tb.command(usage="sketchme <member>", description="Use TipBot to sketch someone's avatar.")
-    async def sketchme(self, ctx, member: discord.Member = None):
+    @tb.command(
+        usage="sketchme <member>", 
+        description="Use TipBot to sketch someone's avatar."
+    )
+    async def sketchme(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             return
         user_avatar = str(ctx.author.display_avatar)
@@ -245,8 +264,15 @@ class Tb(commands.Cog):
         return
 
 
-    @tb.command(usage="spank <member>", description="Use TipBot to spank someone.")
-    async def spank(self, ctx, member: discord.Member = None):
+    @tb.command(
+        usage="spank <member>", 
+        description="Use TipBot to spank someone."
+    )
+    async def spank(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             return
         if member is None:
@@ -273,8 +299,15 @@ class Tb(commands.Cog):
         return
 
 
-    @tb.command(usage="punch <member>", description="Use TipBot to punch someone.")
-    async def punch(self, ctx, member: discord.Member = None):
+    @tb.command(
+        usage="punch <member>", 
+        description="Use TipBot to punch someone."
+    )
+    async def punch(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             return
 
@@ -308,8 +341,15 @@ class Tb(commands.Cog):
         return
 
 
-    @tb.command(usage="slap <member>", description="Use TipBot to slap someone.")
-    async def slap(self, ctx, member: discord.Member = None):
+    @tb.command(
+        usage="slap <member>", 
+        description="Use TipBot to slap someone."
+    )
+    async def slap(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             return
 
@@ -343,8 +383,15 @@ class Tb(commands.Cog):
         return
 
 
-    @tb.command(usage="praise <member>", description="Use TipBot to praise someone.")
-    async def praise(self, ctx, member: discord.Member = None):
+    @tb.command(
+        usage="praise <member>", 
+        description="Use TipBot to praise someone."
+    )
+    async def praise(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             return
         if member is None:
@@ -371,8 +418,15 @@ class Tb(commands.Cog):
         return
 
 
-    @tb.command(usage="shoot <member>", description="Use TipBot to shoot someone.")
-    async def shoot(self, ctx, member: discord.Member = None):
+    @tb.command(
+        usage="shoot <member>", 
+        description="Use TipBot to shoot someone."
+    )
+    async def shoot(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             return
 
@@ -406,8 +460,15 @@ class Tb(commands.Cog):
         return
 
 
-    @tb.command(usage="kick <member>", description="Use TipBot to fun kick someone.")
-    async def kick(self, ctx, member: discord.Member = None):
+    @tb.command(
+        usage="kick <member>", 
+        description="Use TipBot to fun kick someone (not real kick)."
+    )
+    async def kick(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             return
 
@@ -441,8 +502,16 @@ class Tb(commands.Cog):
         return
 
 
-    @tb.command(usage="fistbump <member>", aliases=['fb'], description="Use TipBot to fistbump someone.")
-    async def fistbump(self, ctx, member: discord.Member = None):
+    @tb.command(
+        usage="fistbump <member>", 
+        aliases=['fb'], 
+        description="Use TipBot to fistbump someone."
+    )
+    async def fistbump(
+        self, 
+        ctx, 
+        member: discord.Member = None
+    ):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             return
         if member is None:
@@ -469,7 +538,10 @@ class Tb(commands.Cog):
         return
 
 
-    @tb.command(usage="dance", description="Bean dance's style.")
+    @tb.command(
+        usage="dance", 
+        description="Bean dance's style."
+    )
     async def dance(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             return
@@ -493,8 +565,17 @@ class Tb(commands.Cog):
         return
 
 
-    @tb.command(usage="getemoji <emoji>", aliases=['get_emoji', 'emoji'], description="Get emoji.")
-    async def getemoji(self, ctx, *, emoji: str):
+    @tb.command(
+        usage="getemoji <emoji>", 
+        aliases=['get_emoji', 'emoji'], 
+        description="Get emoji."
+    )
+    async def getemoji(
+        self, 
+        ctx, 
+        *, 
+        emoji: str
+    ):
         emoji_url = None
         timeout = 12
         try:

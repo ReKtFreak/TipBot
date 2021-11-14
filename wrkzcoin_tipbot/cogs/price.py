@@ -15,7 +15,10 @@ class CoinGecko(commands.Cog):
         self.bot = bot
 
 
-    async def paprika_coin(self, coin: str):
+    async def paprika_coin(
+        self, 
+        coin: str
+    ):
         COIN_NAME = coin.upper()
         target = coin.lower()
         if target == 'wow':
@@ -92,8 +95,16 @@ class CoinGecko(commands.Cog):
         return {"error": "No paprika only salt."}
 
 
-    @commands.command(usage="cg", aliases=['coingecko'], description="Get coin information from CoinGecko.")
-    async def cg(self, ctx, ticker: str):
+    @commands.command(
+        usage="cg", 
+        aliases=['coingecko'], 
+        description="Get coin information from CoinGecko."
+    )
+    async def cg(
+        self, 
+        ctx, 
+        ticker: str
+    ):
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 
@@ -184,8 +195,17 @@ class CoinGecko(commands.Cog):
         return
 
 
-    @commands.command(usage="pricelist <coin1> <coin2> ...", aliases=['pricetable', 'pt', 'pl'], description="Get price list.")
-    async def pricelist(self, ctx, *, coin_list):
+    @commands.command(
+        usage="pricelist <coin1> <coin2> ...", 
+        aliases=['pricetable', 'pt', 'pl'], 
+        description="Get price list."
+    )
+    async def pricelist(
+        self, 
+        ctx, 
+        *, 
+        coin_list
+    ):
         prefix = await get_guild_prefix(ctx)
         coin_list = ' '.join(coin_list.split())
 
@@ -267,8 +287,16 @@ class CoinGecko(commands.Cog):
             await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} Too many tickers.')
             return
 
-    @commands.command(usage="gecko <coin>", aliases=['gec'], description="Get information of a coin in CoinGecko.")
-    async def gecko(self, ctx, coin: str=None):
+    @commands.command(
+        usage="gecko <coin>", 
+        aliases=['gec'], 
+        description="Get information of a coin in CoinGecko."
+    )
+    async def gecko(
+        self, 
+        ctx, 
+        coin: str=None
+    ):
         # disable game for TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
@@ -382,8 +410,15 @@ class CoinGecko(commands.Cog):
         return
 
 
-    @commands.command(usage="price ...", description="Check price with parameters.")
-    async def price(self, ctx, *args):
+    @commands.command(
+        usage="price ...", 
+        description="Check price with parameters."
+    )
+    async def price(
+        self, 
+        ctx, 
+        *args
+    ):
         prefix = await get_guild_prefix(ctx)
         PriceQ = (' '.join(args)).split()
 
@@ -657,7 +692,11 @@ class CoinGecko(commands.Cog):
                                     # Pass required=True to make it a required arg
                                 ],
                                 description="Check coin at Paprika.")
-    async def paprika(self, inter, coin: str):
+    async def paprika(
+        self, 
+        inter, 
+        coin: str
+    ):
         prefix = "/"
         get_pap = await self.paprika_coin(coin)
         if 'result' in get_pap:
@@ -668,8 +707,16 @@ class CoinGecko(commands.Cog):
             await inter.reply(f"{EMOJI_RED_NO} {inter.author.name}#{inter.author.discriminator}, {resp}", ephemeral=False)
 
 
-    @commands.command(usage="pap <coin>", aliases=['paprika'], description="Paprika.")
-    async def pap(self, ctx, coin: str=None):
+    @commands.command(
+        usage="pap <coin>", 
+        aliases=['paprika'], 
+        description="Paprika."
+    )
+    async def pap(
+        self, 
+        ctx, 
+        coin: str=None
+    ):
         # disable game for TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
