@@ -4,15 +4,106 @@ import discord
 from discord.ext import commands
 from decimal import getcontext, Decimal
 from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice
+# ascii table
+from terminaltables import AsciiTable
 
 from config import config
 import store
 from Bot import *
+from utils import EmbedPaginator, EmbedPaginatorInter
 
 class Trade(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+
+
+    async def get_open_orders(
+        self,
+        ctx,
+        option: str,
+        coin1: str,
+        coin2: str=None
+    ):
+        table_list = []
+        item_selling_list = []
+        per_page = 8
+        get_markets = None
+        title = "**MARKET**"
+        no_trading_msg = "Currently, no opening selling or buying market."
+        if coin2 is None:
+            get_markets = await store.sql_get_open_order_by_alluser(coin1.upper(), 'OPEN', False, 200)
+            title = "**MARKET {}**".format(coin1.upper())
+            no_trading_msg = f"Currently, no opening selling or buying market for {coin1.upper()}. Please make some open order for others."
+        else:
+            get_markets = await store.sql_get_open_order_by_alluser_by_coins(coin1.upper(), coin2.upper(), "OPEN", option)
+            title = "**MARKET {}/{}**".format(coin1.upper(), coin2.upper())
+            no_trading_msg = f"Currently, no opening selling market pair for {coin1.upper()} with {coin2.upper()}. Please make some open order for others."
+
+        if get_markets and len(get_markets) > 0:
+            list_numb = 0
+            table_data = [
+                ['PAIR', 'Selling', 'For', 'Rate', 'Order #']
+                ]
+            for order_item in get_markets:
+                # coin_get
+                coin_sell_decimal = 1
+                coin_get_decimal = 1
+                if order_item['coin_get'] not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                    coin_get_decimal = get_decimal(order_item['coin_get'])
+                # coin_get
+                if order_item['coin_sell'] not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                    coin_sell_decimal = get_decimal(order_item['coin_sell'])
+                if is_tradeable_coin(order_item['coin_get']) and is_tradeable_coin(order_item['coin_sell']):
+                    table_data.append([order_item['pair_name'], num_format_coin(order_item['amount_sell_after_fee'], order_item['coin_sell'])+order_item['coin_sell'],
+                                      num_format_coin(order_item['amount_get'], order_item['coin_get'])+order_item['coin_get'], 
+                                      '{:.8f}'.format(round(order_item['amount_sell']/order_item['amount_get']/coin_sell_decimal*coin_get_decimal, 8)), 
+                                      order_item['order_id']])
+                    item_selling_list.append({
+                        "pair": order_item['pair_name'], 
+                        "selling": num_format_coin(order_item['amount_sell_after_fee'], order_item['coin_sell'])+" "+order_item['coin_sell'],
+                        "for": num_format_coin(order_item['amount_get'], order_item['coin_get'])+" "+order_item['coin_get'],
+                        "rate": '{:.8f}'.format(round(order_item['amount_sell']/order_item['amount_get']/coin_sell_decimal*coin_get_decimal, 8)),
+                        "order_number": order_item['order_id']
+                    })
+                else:
+                    table_data.append([order_item['pair_name']+"*", num_format_coin(order_item['amount_sell_after_fee'], order_item['coin_sell'])+order_item['coin_sell'],
+                                      num_format_coin(order_item['amount_get'], order_item['coin_get'])+order_item['coin_get'], 
+                                      '{:.8f}'.format(round(order_item['amount_sell']/order_item['amount_get']/coin_sell_decimal*coin_get_decimal, 8)), 
+                                      order_item['order_id']])
+                    item_selling_list.append({
+                        "pair": order_item['pair_name'], 
+                        "selling": num_format_coin(order_item['amount_sell_after_fee'], order_item['coin_sell'])+" "+order_item['coin_sell'],
+                        "for": num_format_coin(order_item['amount_get'], order_item['coin_get'])+" "+order_item['coin_get'],
+                        "rate": '{:.8f}'.format(round(order_item['amount_sell']/order_item['amount_get']/coin_sell_decimal*coin_get_decimal, 8)),
+                        "order_number": order_item['order_id']
+                    })
+                if list_numb > 0 and list_numb % per_page == 0:
+                    table = AsciiTable(table_data)
+                    # table.inner_column_border = False
+                    # table.outer_border = False
+                    table.padding_left = 0
+                    table.padding_right = 0
+                    table_list.append(table.table)
+                    # reset table
+                    table_data = [
+                        ['PAIR', 'Selling', 'For', 'Rate', 'Order #']
+                        ]
+                list_numb += 1
+            # IF table_data len > 1, append more
+            if len(table_data) > 1:
+                table = AsciiTable(table_data)
+                table.padding_left = 0
+                table.padding_right = 0
+                table_list.append(table.table)
+            return {
+                "result": item_selling_list,
+                "table": table_list,
+                "title": title,
+                "extra_text": f"Check specifically for a coin *{config.trade.enable_coin}*."
+            }
+        else:
+            return {"error": no_trading_msg}
 
 
     async def make_open_order(
@@ -181,6 +272,85 @@ class Trade(commands.Cog):
         elif 'result' in create_order:
             await ctx.reply('{} {}'.format(ctx.author.mention, create_order['result']), ephemeral=False)
             # TODO: notify to all trade channels
+
+
+    @inter_client.slash_command(usage="trade <coin/pair> <desc|asc>",
+                                options=[
+                                    Option('coin', 'coin or pair', OptionType.STRING, required=True),
+                                    Option('option_order', 'desc or asc', OptionType.STRING, required=True, choices=[
+                                        OptionChoice("desc", "desc"),
+                                        OptionChoice("asc", "asc")
+                                    ]
+                                    )
+                                ],
+                                description="Make an opened sell of a coin for another coin.")
+    async def trade(
+        self, 
+        ctx, 
+        coin: str, 
+        option_order: str
+    ):
+        botLogChan = self.bot.get_channel(LOG_CHAN)
+        # only him can see with slash command
+
+        if option_order is None:
+            option_order = "ASC" # ascending
+        elif option_order and (option_order.upper() not in ["DESC", "ASC"]):
+            option_order = "asc" # ascending
+        elif option_order:
+            option_order = option_order.upper()
+
+        # check if there is / or -
+        coin_pair = None
+        COIN_NAME = None
+        get_markets = None
+        coin = coin.upper()
+        if "/" in coin:
+            coin_pair = coin.split("/")
+        elif "." in coin:
+            coin_pair = coin.split(".")
+        elif "-" in coin:
+            coin_pair = coin.split("-")
+        get_list_orders = None
+        if coin_pair is None:
+            COIN_NAME = coin.upper()
+            if COIN_NAME not in ENABLE_TRADE_COIN:
+                await ctx.reply(f'{EMOJI_RED_NO} {COIN_NAME} in not in our list.', ephemeral=True)
+                return
+            else:
+                get_list_orders = await self.get_open_orders(ctx, option_order, COIN_NAME, None)
+        elif coin_pair and len(coin_pair) == 2:
+            if coin_pair[0] not in ENABLE_TRADE_COIN:
+                await ctx.reply(f'{EMOJI_ERROR} **{coin_pair[0]}** is not in our list. Available right now: **{config.trade.enable_coin}**', ephemeral=True)
+                return
+            elif coin_pair[1] not in ENABLE_TRADE_COIN:
+                await ctx.reply(f'{EMOJI_ERROR} **{coin_pair[1]}** is not in our list. Available right now: **{config.trade.enable_coin}**', ephemeral=True)
+                return
+            else:
+                get_list_orders = await self.get_open_orders(ctx, option_order, coin_pair[0], coin_pair[1])
+        if 'result' in get_list_orders and len(get_list_orders['result']) > 0:
+            all_pages = []
+            item_nos = 0
+            per_page = 6
+            empty_page = False
+            for each_page in get_list_orders['result']:
+                if item_nos == 0 or (item_nos > 0 and item_nos % per_page == 0):
+                    if item_nos > 0 and item_nos % per_page == 0:
+                        all_pages.append(page)
+                    page = discord.Embed(title=get_list_orders['title'],
+                                         description="Thank you for trading with TipBot!",
+                                         color=discord.Color.blue(),
+                                         timestamp=datetime.utcnow(), )
+                    page.set_thumbnail(url=ctx.author.display_avatar)
+                    page.set_footer(text="Use the reactions to flip pages.")
+                    empty_page = True
+                page.add_field(name="{}: **# {}** (Ratio: {})".format(each_page['pair'], each_page['order_number'], each_page['rate']), value="```Selling {} for {}```".format(each_page['selling'], each_page['for']), inline=False)
+                empty_page = False
+                item_nos += 1
+            if empty_page == False:
+                all_pages.append(page)
+            paginator = EmbedPaginatorInter(self.bot, ctx, all_pages)
+            await paginator.paginate_with_slash()
 
 
     @commands.command(
@@ -418,7 +588,7 @@ class Trade(commands.Cog):
     async def trade(
         self, 
         ctx, 
-        coin: str=None, 
+        coin: str, 
         option_order: str=None
     ):
         # TRTL discord
@@ -451,122 +621,58 @@ class Trade(commands.Cog):
         elif option_order:
             option_order = option_order.upper()
 
-        if coin is None:
-            await ctx.send(f'{ctx.author.mention} Please tell me the coin or pair you want to show the trade list (Ex. `doge/xmr` or `doge`).')
-            return
-        else:
-            # check if there is / or -
-            coin_pair = None
-            COIN_NAME = None
-            get_markets = None
-            coin = coin.upper()
-            if "/" in coin:
-                coin_pair = coin.split("/")
-            elif "." in coin:
-                coin_pair = coin.split(".")
-            elif "-" in coin:
-                coin_pair = coin.split("-")
-            if coin_pair is None:
-                COIN_NAME = coin.upper()
-                if COIN_NAME not in ENABLE_TRADE_COIN:
-                    await ctx.message.add_reaction(EMOJI_RED_NO)
-                    await ctx.send(f'{EMOJI_RED_NO} {COIN_NAME} in not in our list.')
-                    return
-                else:
-                    get_markets = await store.sql_get_open_order_by_alluser(COIN_NAME, 'OPEN', False, 50)
-            elif coin_pair and len(coin_pair) == 2:
-                if coin_pair[0] not in ENABLE_TRADE_COIN:
-                    await ctx.send(f'{EMOJI_ERROR} **{coin_pair[0]}** is not in our list. Available right now: **{config.trade.enable_coin}**')
-                    return
-                elif coin_pair[1] not in ENABLE_TRADE_COIN:
-                    await ctx.send(f'{EMOJI_ERROR} **{coin_pair[1]}** is not in our list. Available right now: **{config.trade.enable_coin}**')
-                    return
-                else:
-                    get_markets = await store.sql_get_open_order_by_alluser_by_coins(coin_pair[0], coin_pair[1], "OPEN", option_order)
-            if get_markets and len(get_markets) > 0:
-                list_numb = 0
-                table_data = [
-                    ['PAIR', 'Selling', 'For', 'Rate', 'Order #']
-                    ]
-                for order_item in get_markets:
-                    list_numb += 1
-                    # coin_get
-                    coin_sell_decimal = 1
-                    coin_get_decimal = 1
-                    if order_item['coin_get'] not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                        coin_get_decimal = get_decimal(order_item['coin_get'])
-                    # coin_get
-                    if order_item['coin_sell'] not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                        coin_sell_decimal = get_decimal(order_item['coin_sell'])
-                    if is_tradeable_coin(order_item['coin_get']) and is_tradeable_coin(order_item['coin_sell']):
-                        table_data.append([order_item['pair_name'], num_format_coin(order_item['amount_sell_after_fee'], order_item['coin_sell'])+order_item['coin_sell'],
-                                          num_format_coin(order_item['amount_get_after_fee'], order_item['coin_get'])+order_item['coin_get'], 
-                                          '{:.8f}'.format(round(order_item['amount_sell']/order_item['amount_get']/coin_sell_decimal*coin_get_decimal, 8)), 
-                                          order_item['order_id']])
-                    else:
-                        table_data.append([order_item['pair_name']+"*", num_format_coin(order_item['amount_sell_after_fee'], order_item['coin_sell'])+order_item['coin_sell'],
-                                          num_format_coin(order_item['amount_get_after_fee'], order_item['coin_get'])+order_item['coin_get'], 
-                                          '{:.8f}'.format(round(order_item['amount_sell']/order_item['amount_get']/coin_sell_decimal*coin_get_decimal, 8)), 
-                                          order_item['order_id']])
-                    if list_numb > 15:
-                        break
-                table = AsciiTable(table_data)
-                # table.inner_column_border = False
-                # table.outer_border = False
-                table.padding_left = 0
-                table.padding_right = 0
-                extra_text = f"Check specifically for a coin *{config.trade.enable_coin}*."
-                if coin_pair:
-                    title = "**MARKET {}/{}**".format(coin_pair[0], coin_pair[1])
-                else:
-                    title = "**MARKET {}**".format(COIN_NAME)
-                await ctx.send(f'[ {title} ]\n'
-                               f'```{table.table}```{extra_text}')
+        # check if there is / or -
+        coin_pair = None
+        COIN_NAME = None
+        get_markets = None
+        coin = coin.upper()
+        if "/" in coin:
+            coin_pair = coin.split("/")
+        elif "." in coin:
+            coin_pair = coin.split(".")
+        elif "-" in coin:
+            coin_pair = coin.split("-")
+        get_list_orders = None
+        if coin_pair is None:
+            COIN_NAME = coin.upper()
+            if COIN_NAME not in ENABLE_TRADE_COIN:
+                await ctx.message.add_reaction(EMOJI_RED_NO)
+                await ctx.send(f'{EMOJI_RED_NO} {COIN_NAME} in not in our list.')
                 return
             else:
-                if coin_pair is None:
-                    # get another buy of ticker
-                    get_markets = await store.sql_get_open_order_by_alluser(COIN_NAME, 'OPEN', True, 50)
-                    if get_markets and len(get_markets) > 0:
-                        list_numb = 0
-                        table_data = [
-                            ['PAIR', 'Selling', 'For', 'Rate', 'Order #']
-                            ]
-                        for order_item in get_markets:
-                            list_numb += 1
-                            # coin_get
-                            coin_sell_decimal = 1
-                            coin_get_decimal = 1
-                            if order_item['coin_get'] not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                                coin_get_decimal = get_decimal(order_item['coin_get'])
-                            # coin_get
-                            if order_item['coin_sell'] not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                                coin_sell_decimal = get_decimal(order_item['coin_sell'])
-                            if is_tradeable_coin(order_item['coin_get']) and is_tradeable_coin(order_item['coin_sell']):
-                                table_data.append([order_item['pair_name'], num_format_coin(order_item['amount_sell_after_fee'], order_item['coin_sell'])+order_item['coin_sell'],
-                                                  num_format_coin(order_item['amount_get_after_fee'], order_item['coin_get'])+order_item['coin_get'], 
-                                                  '{:.8f}'.format(round(order_item['amount_sell']/order_item['amount_get']/coin_sell_decimal*coin_get_decimal, 8)), 
-                                                  order_item['order_id']])
-                            else:
-                                table_data.append([order_item['pair_name']+"*", num_format_coin(order_item['amount_sell_after_fee'], order_item['coin_sell'])+order_item['coin_sell'],
-                                                  num_format_coin(order_item['amount_get_after_fee'], order_item['coin_get'])+order_item['coin_get'], 
-                                                  '{:.8f}'.format(round(order_item['amount_sell']/order_item['amount_get']/coin_sell_decimal*coin_get_decimal, 8)), 
-                                                  order_item['order_id']])
-                            if list_numb > 15:
-                                break
-                        table = AsciiTable(table_data)
-                        table.padding_left = 0
-                        table.padding_right = 0
-                        title = "MARKET **{}**".format(COIN_NAME)
-                        extra_text = f"Check specifically for a coin *{config.trade.enable_coin}*."
-                        await ctx.send(f'There is no selling for {COIN_NAME} but there are buy order of {COIN_NAME}.\n[ {title} ]\n'
-                                       f'```{table.table}```{extra_text}')
-                        return
-                    else:
-                        await ctx.send(f'{ctx.author.mention} Currently, no opening selling or buying market for {COIN_NAME}. Please make some open order for others.')
-                else:
-                    await ctx.send(f'{ctx.author.mention} Currently, no opening selling market pair for {coin}. Please make some open order for others.')
+                get_list_orders = await self.get_open_orders(ctx, option_order, COIN_NAME, None)
+        elif coin_pair and len(coin_pair) == 2:
+            if coin_pair[0] not in ENABLE_TRADE_COIN:
+                await ctx.send(f'{EMOJI_ERROR} **{coin_pair[0]}** is not in our list. Available right now: **{config.trade.enable_coin}**')
                 return
+            elif coin_pair[1] not in ENABLE_TRADE_COIN:
+                await ctx.send(f'{EMOJI_ERROR} **{coin_pair[1]}** is not in our list. Available right now: **{config.trade.enable_coin}**')
+                return
+            else:
+                get_list_orders = await self.get_open_orders(ctx, option_order, coin_pair[0], coin_pair[1])
+        if 'result' in get_list_orders and len(get_list_orders['result']) > 0:
+            all_pages = []
+            item_nos = 0
+            per_page = 6
+            empty_page = False
+            for each_page in get_list_orders['result']:
+                if item_nos == 0 or (item_nos > 0 and item_nos % per_page == 0):
+                    if item_nos > 0 and item_nos % per_page == 0:
+                        all_pages.append(page)
+                    page = discord.Embed(title=get_list_orders['title'],
+                                         description="Thank you for trading with TipBot!",
+                                         color=discord.Color.blue(),
+                                         timestamp=datetime.utcnow(), )
+                    page.set_thumbnail(url=ctx.author.display_avatar)
+                    page.set_footer(text="Use the reactions to flip pages.")
+                    empty_page = True
+                page.add_field(name="{}: **# {}** (Ratio: {})".format(each_page['pair'], each_page['order_number'], each_page['rate']), value="```Selling {} for {}```".format(each_page['selling'], each_page['for']), inline=False)
+                empty_page = False
+                item_nos += 1
+            if empty_page == False:
+                all_pages.append(page)
+            paginator = EmbedPaginatorInter(self.bot, ctx, all_pages)
+            await paginator.paginate_with_slash()
 
 
     @commands.command(

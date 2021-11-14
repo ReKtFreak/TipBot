@@ -126,7 +126,10 @@ class EmbedPaginatorInter:
             )
 
             # Note that we assign a list of rows to components
-            self.msg = await self.inter.reply(embed=self.pages[pagenum], components=[row], ephemeral=True)
+            if hasattr(self.inter, 'message'):
+                self.msg = await self.inter.send(embed=self.pages[pagenum], components=[row])
+            else:
+                self.msg = await self.inter.reply(embed=self.pages[pagenum], components=[row], ephemeral=True)
             starttime = datetime.datetime.utcnow()
 
             while True:
@@ -173,7 +176,10 @@ class EmbedPaginatorInter:
 
     async def end_pagination_with_slash(self, inter):
         try:
-            await inter.message.delete()
+            if hasattr(self.inter, 'message'):
+                await inter.message.delete()
+            else:
+                await inter.message.delete()
         except Exception as e:
             print(traceback.format_exc())
 

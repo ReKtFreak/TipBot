@@ -2566,7 +2566,8 @@ async def get_balance_coin_user(user_id, coin: str):
         'balance_wallet_address': wallet['balance_wallet_address'],
         'user_wallet_address': wallet['user_wallet_address'] if wallet['user_wallet_address'] else None,
         'real_deposit_balance': real_deposit_balance,
-        'balance_actual': num_format_coin(actual_balance, COIN_NAME),
+        'balance_actual': num_format_coin(actual_balance, COIN_NAME), # string
+        'actual_balance': actual_balance, #
         'locked_openorder': userdata_balance['OpenOrder'],
         'raffle_spent': userdata_balance['raffle_fee'],
         'raffle_reward': userdata_balance['raffle_reward'],
