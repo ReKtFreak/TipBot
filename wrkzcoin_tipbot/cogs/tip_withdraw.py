@@ -3,6 +3,9 @@ import time, timeago
 import discord
 from discord.ext import commands
 
+from decimal import getcontext, Decimal
+from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice
+
 from config import config
 from Bot import *
 
@@ -12,100 +15,44 @@ class TipWithdraw(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(
-        usage="withdraw <amount> <coin>", 
-        description="Withdraw <amount> <coin> to your registered address."
-    )
-    async def withdraw(
-        self, 
-        ctx, 
-        amount: str, 
-        coin: str = None
+    async def withdraw_action(
+        self,
+        ctx,
+        amount: str,
+        coin: str,
+        action: str, # withdraw or send
+        prefix: str=".",
+        to_address: str=None # None if withdraw
     ):
-        # check if bot is going to restart
-        if IS_RESTARTING:
-            await ctx.message.add_reaction(EMOJI_REFRESH)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
-            return
-
-        # check if account locked
-        account_lock = await alert_if_userlock(ctx, 'withdraw')
-        if account_lock:
-            await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
-            return
-        # end of check if account locked
+        COIN_NAME = coin.upper()
+        if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
+            await logchanbot(f'User {ctx.author.id} tried to withdraw {amount} {COIN_NAME}.')
+            return {"error": f"**{COIN_NAME}** Unknown Ticker."}
+        if is_maintenance_coin(COIN_NAME):
+            await logchanbot(f'User {ctx.author.id} tried to withdraw {amount} {COIN_NAME} while it is under maintenance.')
+            return {"error": f"**{COIN_NAME}** Under maintenance. Try again later!"}
+        if not is_coin_txable(COIN_NAME):
+            await logchanbot(f'User {ctx.author.id} tried to withdraw {amount} {COIN_NAME} while it tx not enable.')
+            return {"error": f"**{COIN_NAME}** Transaction currently disable Try again later!"}
 
         # Check if tx in progress
         if ctx.author.id in TX_IN_PROCESS:
-            await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-            msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
-            await msg.add_reaction(EMOJI_OK_BOX)
-            return
-
-        botLogChan = self.bot.get_channel(LOG_CHAN)
-        amount = amount.replace(",", "")
-
+            return {"error": "You have another tx in progress!"}
+ 
         # Check flood of tip
         floodTip = await store.sql_get_countLastTip(str(ctx.author.id), config.floodTipDuration)
         if floodTip >= config.floodTip:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Cool down your tip or TX. or increase your amount next time.')
+            return {"error": "Cool down your tip or transaction or increase your amount next time."}
+            botLogChan = self.bot.get_channel(LOG_CHAN)
             await botLogChan.send('A user reached max. TX threshold. Currently halted: `.withdraw`')
             return
         # End of Check flood of tip
-
-        # Check if maintenance
-        if IS_MAINTENANCE == 1:
-            if int(ctx.author.id) in MAINTENANCE_OWNER:
-                pass
-            else:
-                await ctx.message.add_reaction(EMOJI_WARNING)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
-                return
-        else:
-            pass
-        # End Check if maintenance
-
-        if isinstance(ctx.channel, discord.DMChannel):
-            server_prefix = '.'
-        else:
-            serverinfo = await get_info_pref_coin(ctx)
-            server_prefix = serverinfo['server_prefix']
-            # check if bot channel is set:
-            if serverinfo and serverinfo['botchan']:
-                try: 
-                    if ctx.channel.id != int(serverinfo['botchan']):
-                        await ctx.message.add_reaction(EMOJI_ERROR)
-                        botChan = self.bot.get_channel(int(serverinfo['botchan']))
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
-                        return
-                except ValueError:
-                    pass
-            # end of bot channel check
+        
+        amount = str(amount).replace(",", "")
         try:
             amount = Decimal(amount)
         except ValueError:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid given amount for `withdraw`.')
-            return
-
-        if coin is None:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Please have **ticker** (coin name) after amount for `withdraw`.')
-            return
-
-        COIN_NAME = coin.upper()
-        if not is_coin_txable(COIN_NAME):
-            msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} TX is currently disable for {COIN_NAME}.')
-            await msg.add_reaction(EMOJI_OK_BOX)
-            await logchanbot(f'User {ctx.author.id} tried to withdraw {amount} {COIN_NAME} while it tx not enable.')
-            return
-
-        if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
-            await ctx.message.add_reaction(EMOJI_WARNING)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Unknown Ticker.')
-            return
+            return {"error": "Invalid given amount."}
 
         if COIN_NAME in ENABLE_COIN_ERC:
             coin_family = "ERC-20"
@@ -117,34 +64,28 @@ class TipWithdraw(commands.Cog):
             coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
             real_amount = int(amount * get_decimal(COIN_NAME)) if coin_family in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else float(amount)
             MinTx = get_min_tx_amount(COIN_NAME)
-            MaxTX = get_max_tx_amount(COIN_NAME)
-        if is_maintenance_coin(COIN_NAME):
-            await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
-            return
+            MaxTx = get_max_tx_amount(COIN_NAME)
 
-        try:
+        user = await store.sql_get_userwallet(str(ctx.author.id), COIN_NAME)
+        if user is None:
+            if COIN_NAME in ENABLE_COIN_ERC:
+                w = await create_address_eth()
+                user = await store.sql_register_user(str(ctx.author.id), COIN_NAME, SERVER_BOT, 0, w)
+            elif COIN_NAME in ENABLE_COIN_TRC:
+                result = await store.create_address_trx()
+                user = await store.sql_register_user(str(ctx.author.id), COIN_NAME, SERVER_BOT, 0, result)
+            else:
+                user = await store.sql_register_user(str(ctx.author.id), COIN_NAME, SERVER_BOT, 0)
             user = await store.sql_get_userwallet(str(ctx.author.id), COIN_NAME)
-            if user is None:
-                if COIN_NAME in ENABLE_COIN_ERC:
-                    w = await create_address_eth()
-                    user = await store.sql_register_user(str(ctx.author.id), COIN_NAME, SERVER_BOT, 0, w)
-                elif COIN_NAME in ENABLE_COIN_TRC:
-                    result = await store.create_address_trx()
-                    user = await store.sql_register_user(str(ctx.author.id), COIN_NAME, SERVER_BOT, 0, result)
-                else:
-                    user = await store.sql_register_user(str(ctx.author.id), COIN_NAME, SERVER_BOT, 0)
-                user = await store.sql_get_userwallet(str(ctx.author.id), COIN_NAME)
 
-            if user['user_wallet_address'] is None:
-                extra_txt = ""
-                if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                    extra_txt = " " + COIN_NAME
-                await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have a withdrawal address for **{COIN_NAME}**, please use '
-                               f'`{server_prefix}register wallet_address{extra_txt}` to register. Alternatively, please use `{server_prefix}send <amount> <coin_address>`')
-                return
-
+        if user['user_wallet_address'] is None and action.upper()=="WITHDRAW":
+            extra_txt = ""
+            if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                extra_txt = " " + COIN_NAME
+            return {"error": f"You do not have a registered address for **{COIN_NAME}**, please use `{prefix}register wallet_address{extra_txt}` to register. Alternatively, please use `{prefix}send <amount> <coin_address>`."}
+        elif user['user_wallet_address'] and action.upper()=="WITHDRAW":
+            to_address = user['user_wallet_address']
+        try:
             NetFee = 0
             userdata_balance = await store.sql_user_balance(str(ctx.author.id), COIN_NAME)
             xfer_in = 0
@@ -162,7 +103,7 @@ class TipWithdraw(commands.Cog):
                 token_info = await store.get_token_info(COIN_NAME)
                 NetFee = token_info['real_withdraw_fee']
                 MinTx = token_info['real_min_tx']
-                MaxTX = token_info['real_max_tx']
+                MaxTx = token_info['real_max_tx']
             else:
                 NetFee = get_tx_node_fee(coin = COIN_NAME)
             # Negative check
@@ -175,53 +116,40 @@ class TipWithdraw(commands.Cog):
 
             # add redis action
             random_string = str(uuid.uuid4())
-            await add_tx_action_redis(json.dumps([random_string, "WITHDRAW", str(ctx.author.id), ctx.author.name, float("%.3f" % time.time()), ctx.message.content, SERVER_BOT, "START"]), False)
+            msg_content = "SLASH COMMAND"
+            if hasattr(ctx, 'message'):
+                msg_content = ctx.message.content
+            await add_tx_action_redis(json.dumps([random_string, "WITHDRAW", str(ctx.author.id), ctx.author.name, float("%.3f" % time.time()), msg_content, SERVER_BOT, "START"]), False)
 
             # If balance 0, no need to check anything
             if actual_balance <= 0:
-                await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Please check your **{COIN_NAME}** balance.')
-                return
+                return {"error": f"Please check your **{COIN_NAME}** balance."}
             elif real_amount + NetFee > actual_balance:
                 extra_fee_txt = ''
                 if NetFee > 0:
                     extra_fee_txt = f'You need to leave a node/tx fee: {num_format_coin(NetFee, COIN_NAME)} {COIN_NAME}'
-                await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to withdraw '
-                               f'{num_format_coin(real_amount, COIN_NAME)} '
-                               f'{COIN_NAME}. {extra_fee_txt}')
-                return
-            elif real_amount > MaxTX:
+                return {"error": f"Insufficient balance to {action.lower()} {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}. {extra_fee_txt}"}
+            elif real_amount > MaxTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
-                               f'{num_format_coin(MaxTX, COIN_NAME)} '
+                               f'{num_format_coin(MaxTx, COIN_NAME)} '
                                f'{COIN_NAME}')
-                return
+                return {"error": f"Transactions cannot be bigger than {num_format_coin(MaxTx, COIN_NAME)} {COIN_NAME}."}
             elif real_amount < MinTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be lower than '
                                f'{num_format_coin(MinTx, COIN_NAME)} '
                                f'{COIN_NAME}')
-                return
+                return {"error": f"Transactions cannot be lower than {num_format_coin(MinTx, COIN_NAME)} {COIN_NAME}."}
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
             await logchanbot(traceback.format_exc())
-            return
-        withdrawTx = None
-        withdraw_txt = ''
-        # add to queue withdraw
+            return {"error": "Internal error!"}
+
         if ctx.author.id not in TX_IN_PROCESS:
             TX_IN_PROCESS.append(ctx.author.id)
-        else:
-            # reject and tell to wait
-            await botLogChan.send(f'A user tried to executed `.withdraw {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}` while there is in queue of **TX_IN_PROCESS**.')
-            try:
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You have another tx in process. Please wait it to finish. ')
-            except Exception as e:
-                pass
-            await msg.add_reaction(EMOJI_OK_BOX)
-            return
         try:
+            withdraw_txt = None
             if coin_family in ["TRTL", "BCN"]:
                 withdrawTx = await store.sql_external_cn_single(str(ctx.author.id), user['user_wallet_address'], real_amount, COIN_NAME, SERVER_BOT, 'WITHDRAW')
                 if withdrawTx:
@@ -261,17 +189,126 @@ class TipWithdraw(commands.Cog):
                 if withdrawTx:
                     withdraw_txt = f'Transaction hash: `{withdrawTx}`\nFee `{NetFee} {COIN_NAME}` deducted from your balance.'
             # add redis action
-            await add_tx_action_redis(json.dumps([random_string, "WITHDRAW", str(ctx.author.id), ctx.author.name, float("%.3f" % time.time()), ctx.message.content, SERVER_BOT, "COMPLETE"]), False)
+            await add_tx_action_redis(json.dumps([random_string, action.upper(), str(ctx.author.id), ctx.author.name, float("%.3f" % time.time()), msg_content, SERVER_BOT, "COMPLETE"]), False)
+            if ctx.author.id in TX_IN_PROCESS:
+                TX_IN_PROCESS.remove(ctx.author.id)
+            return {
+                "result": withdraw_txt, 
+                "to_address": to_address, 
+                "coin_family": coin_family,
+                "real_amount": real_amount
+            }
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
             await logchanbot(traceback.format_exc())
-        # remove to queue withdraw
-        if ctx.author.id in TX_IN_PROCESS:
-            TX_IN_PROCESS.remove(ctx.author.id)
 
-        if withdrawTx:
-            withdrawAddress = user['user_wallet_address']
-            if coin_family == "ERC-20" or coin_family == "TRC-20":
+
+    @inter_client.slash_command(usage="withdraw <amount> <coin>",
+                                options=[
+                                    Option('amount', 'Enter amount of coin to withdraw', OptionType.NUMBER, required=True),
+                                    Option("coin", "Enter coin ticker/name", OptionType.STRING)
+                                ],
+                                description="Withdraw to your registered address.")
+    async def withdraw(
+        self, 
+        ctx, 
+        amount: str, 
+        coin: str
+    ):
+        prefix = "/"
+        # check if bot is going to restart
+        if IS_RESTARTING:
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.', ephemeral=True)
+            return
+
+        # check if account locked
+        account_lock = await alert_if_userlock(ctx, 'withdraw')
+        if account_lock:
+            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}', ephemeral=True)
+            return
+        # end of check if account locked
+        # Check if tx in progress
+        if ctx.author.id in TX_IN_PROCESS:
+            await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.', ephemeral=True)
+            return
+
+        botLogChan = self.bot.get_channel(LOG_CHAN)
+        amount = str(amount).replace(",", "")
+
+        # Check flood of tip
+        floodTip = await store.sql_get_countLastTip(str(ctx.author.id), config.floodTipDuration)
+        if floodTip >= config.floodTip:
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Cool down your tip or TX. or increase your amount next time.', ephemeral=True)
+            await botLogChan.send('A user reached max. TX threshold. Currently halted: `.withdraw`')
+            return
+        # End of Check flood of tip
+
+        # Check if maintenance
+        if IS_MAINTENANCE == 1 and int(ctx.author.id) not in MAINTENANCE_OWNER:
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}', ephemeral=True)
+            return
+        # End Check if maintenance
+
+
+    @commands.command(
+        usage="withdraw <amount> <coin>", 
+        description="Withdraw <amount> <coin> to your registered address."
+    )
+    async def withdraw(
+        self, 
+        ctx, 
+        amount: str, 
+        coin: str = None
+    ):
+        # check if bot is going to restart
+        if IS_RESTARTING:
+            await ctx.message.add_reaction(EMOJI_REFRESH)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+            return
+
+        # check if account locked
+        account_lock = await alert_if_userlock(ctx, 'withdraw')
+        if account_lock:
+            await ctx.message.add_reaction(EMOJI_LOCKED) 
+            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            return
+        # end of check if account locked
+
+        botLogChan = self.bot.get_channel(LOG_CHAN)
+        amount = amount.replace(",", "")
+
+        server_prefix = '.'
+        if isinstance(ctx.channel, discord.DMChannel) == False:
+            serverinfo = await get_info_pref_coin(ctx)
+            server_prefix = serverinfo['server_prefix']
+            # check if bot channel is set:
+            if serverinfo and serverinfo['botchan']:
+                try: 
+                    if ctx.channel.id != int(serverinfo['botchan']):
+                        await ctx.message.add_reaction(EMOJI_ERROR)
+                        botChan = self.bot.get_channel(int(serverinfo['botchan']))
+                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
+                        return
+                except ValueError:
+                    pass
+            # end of bot channel check
+
+        if coin is None:
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Please have **ticker** (coin name) after amount for `withdraw`.')
+            return
+
+        COIN_NAME = coin.upper()
+        withdrawTx = await self.withdraw_action(ctx, amount, COIN_NAME, "WITHDRAW", server_prefix, None)
+        if withdrawTx and 'error' in withdrawTx:
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send('{} {}, {}'.format(EMOJI_RED_NO, ctx.author.mention, withdrawTx['error']))
+            return
+        elif withdrawTx and 'result' in withdrawTx:
+            withdrawAddress = withdrawTx['to_address']
+            withdraw_txt = withdrawTx['result']
+            real_amount = withdrawTx['real_amount']
+            if withdrawTx['coin_family'] == "ERC-20" or withdrawTx['coin_family'] == "TRC-20":
                 await ctx.message.add_reaction(TOKEN_EMOJI)
             else:
                 await ctx.message.add_reaction(get_emoji(COIN_NAME))
@@ -465,7 +502,7 @@ class TipWithdraw(commands.Cog):
 
         if coin_family in ["TRTL", "BCN"]:
             MinTx = get_min_tx_amount(COIN_NAME)
-            MaxTX = get_max_tx_amount(COIN_NAME)
+            MaxTx = get_max_tx_amount(COIN_NAME)
             real_amount = int(amount * get_decimal(COIN_NAME))
             addressLength = get_addrlen(COIN_NAME)
             IntaddressLength = get_intaddrlen(COIN_NAME)
@@ -632,10 +669,10 @@ class TipWithdraw(commands.Cog):
 
                 return
 
-            if real_amount > MaxTX:
+            if real_amount > MaxTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
-                               f'{num_format_coin(MaxTX, COIN_NAME)} '
+                               f'{num_format_coin(MaxTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
             elif real_amount < MinTx:
@@ -759,7 +796,7 @@ class TipWithdraw(commands.Cog):
                     return
         elif coin_family == "XMR" or coin_family == "XCH":
             MinTx = get_min_tx_amount(COIN_NAME)
-            MaxTX = get_max_tx_amount(COIN_NAME)
+            MaxTx = get_max_tx_amount(COIN_NAME)
             real_amount = int(amount * get_decimal(COIN_NAME))
 
             # If not Masari
@@ -821,10 +858,10 @@ class TipWithdraw(commands.Cog):
                                f'{num_format_coin(MinTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
-            if real_amount > MaxTX:
+            if real_amount > MaxTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transaction cannot be bigger than '
-                               f'{num_format_coin(MaxTX, COIN_NAME)} '
+                               f'{num_format_coin(MaxTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
 
@@ -872,7 +909,7 @@ class TipWithdraw(commands.Cog):
             return
         elif coin_family == "NANO":
             MinTx = get_min_tx_amount(COIN_NAME)
-            MaxTX = get_max_tx_amount(COIN_NAME)
+            MaxTx = get_max_tx_amount(COIN_NAME)
             real_amount = int(amount * get_decimal(COIN_NAME))
             addressLength = get_addrlen(COIN_NAME)
 
@@ -923,10 +960,10 @@ class TipWithdraw(commands.Cog):
                                f'{num_format_coin(MinTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
-            if real_amount > MaxTX:
+            if real_amount > MaxTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transaction cannot be bigger than '
-                               f'{num_format_coin(MaxTX, COIN_NAME)} '
+                               f'{num_format_coin(MaxTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
 
@@ -969,11 +1006,11 @@ class TipWithdraw(commands.Cog):
             if coin_family == "ERC-20" or coin_family == "TRC-20":
                 token_info = await store.get_token_info(COIN_NAME)
                 MinTx = token_info['real_min_tx']
-                MaxTX = token_info['real_max_tx']
+                MaxTx = token_info['real_max_tx']
                 NetFee = token_info['real_withdraw_fee']
             else:
                 MinTx = get_min_tx_amount(coin = COIN_NAME)
-                MaxTX = get_max_tx_amount(coin = COIN_NAME)
+                MaxTx = get_max_tx_amount(coin = COIN_NAME)
                 NetFee = get_tx_node_fee(coin = COIN_NAME)
                 valid_address = await doge_validaddress(str(CoinAddress), COIN_NAME)
                 if 'isvalid' in valid_address:
@@ -1027,10 +1064,10 @@ class TipWithdraw(commands.Cog):
                                f'{num_format_coin(MinTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
-            if real_amount > MaxTX:
+            if real_amount > MaxTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transaction cannot be bigger than '
-                               f'{num_format_coin(MaxTX, COIN_NAME)} '
+                               f'{num_format_coin(MaxTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
             SendTx = None
