@@ -14,6 +14,7 @@ class Coininfo(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        redis_utils.openRedis()
 
 
     async def get_coininfo(
@@ -45,7 +46,6 @@ class Coininfo(commands.Cog):
         response_text += "```"
         try:
             if not is_maintenance_coin(COIN_NAME):
-                redis_utils.openRedis()
                 height = int(redis_utils.redis_conn.get(f'{config.redis_setting.prefix_daemon_height}{COIN_NAME}').decode())
                 if height:
                     response_text += "Height: {:,.0f}".format(height) + "\n"
@@ -112,24 +112,24 @@ class Coininfo(commands.Cog):
                                 description="Get coin's information in TipBot.")
     async def coininfo(
         self, 
-        inter, 
+        ctx, 
         coin: str
     ):
         prefix = "/"
-        if isinstance(inter.channel, discord.DMChannel) == False and inter.guild.id == TRTL_DISCORD:
+        if isinstance(ctx.channel, discord.DMChannel) == False and ctx.guild.id == TRTL_DISCORD:
             return
         COIN_NAME = coin.upper()
         is_private = False
         guild_id = 0
-        if isinstance(inter.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, discord.DMChannel) == True:
             is_private = True
         else:
-            guild_id = inter.guild.id
+            guild_id = ctx.guild.id
             coin_info = await self.get_coininfo(COIN_NAME, is_private, guild_id)
             if coin_info and 'result' in coin_info:
-                await inter.reply("{}\n{}".format(inter.author.mention, coin_info['result']))
+                await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['result']))
             elif coin_info and 'error' in coin_info:
-                await inter.reply("{}\n{}".format(inter.author.mention, coin_info['error']))
+                await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['error']))
 
 
     @commands.command(
