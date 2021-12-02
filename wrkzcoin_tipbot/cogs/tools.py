@@ -8,11 +8,16 @@ import random
 
 import discord
 from discord.ext import commands
+from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice
 
 import store
 from Bot import *
 
 from config import config
+
+## NOTE:
+##  * Not all message commands are available in slash commands
+
 
 class Tool(commands.Cog):
 
@@ -20,6 +25,77 @@ class Tool(commands.Cog):
         self.bot = bot
 
 
+    @inter_client.slash_command(description="Various tool's commands.")
+    async def tool(self, ctx):
+        # This is just a parent for subcommands
+        # It's not necessary to do anything here,
+        # but if you do, it runs for any subcommand nested below
+        pass
+
+
+    # For each subcommand you can specify individual options and other parameters,
+    # see the "Objects and methods" reference to learn more.
+    @tool.sub_command(
+        usage="tool avatar <member>", 
+        options=[
+            Option('member', 'member', OptionType.USER, required=True)
+        ],
+        description="Get avatar of a user."
+    )
+    async def avatar(
+        self,
+        ctx,
+        member: discord.Member
+    ):
+        if member is None:
+            member = ctx.author
+        try:
+            msg = await ctx.reply(f'Avatar image for {member.mention}:\n{str(member.display_avatar)}')
+        except Exception as e:
+            await logchanbot(traceback.format_exc())
+
+
+    @tool.sub_command(
+        usage="tool prime <number>", 
+        options=[
+            Option('number', 'number', OptionType.STRING, required=True)
+        ],
+        description="Check a given number if it is a prime number."
+    )
+    async def prime(
+        self, 
+        ctx, 
+        number: str
+    ):
+        # https://en.wikipedia.org/wiki/Primality_test
+        def is_prime(n: int) -> bool:
+            """Primality test using 6k+-1 optimization."""
+            if n <= 3:
+                return n > 1
+            if n % 2 == 0 or n % 3 == 0:
+                return False
+            i = 5
+            while i ** 2 <= n:
+                if n % i == 0 or n % (i + 2) == 0:
+                    return False
+                i += 6
+            return True
+
+        number = number.replace(",", "")
+        if len(number) >= 1900:
+            await ctx.reply(f'{ctx.author.mention} {EMOJI_ERROR} given number is too long.')
+            return
+        try:
+            value = is_prime(int(number))
+            if value:
+                await ctx.reply(f'{ctx.author.mention} {EMOJI_CHECKMARK} Given number is a prime number: ```{str(number)}```')
+            else:
+                await ctx.reply(f'{ctx.author.mention} {EMOJI_ERROR} Given number is not a prime number: ```{str(number)}```')
+        except ValueError:
+            await ctx.reply(f'{ctx.author.mention} {EMOJI_ERROR} Number error.')
+
+
+    ### Message commands
     @commands.group(
         usage="tool <subcommand>", 
         aliases=['tools'], 
@@ -77,7 +153,7 @@ class Tool(commands.Cog):
                 i += 6
             return True
         number_test = number_test.replace(",", "")
-        if len(number_test) >= 2000:
+        if len(number_test) >= 1900:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{ctx.author.mention} **{number_test}** too long.')
             return
