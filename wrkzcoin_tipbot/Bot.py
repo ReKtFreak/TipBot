@@ -51,8 +51,6 @@ from decimal import Decimal
 
 from dislash import InteractionClient
 
-# tb
-from tb.tbfun import action as tb_action
 # byte-oriented StringIO was moved to io.BytesIO in py3k
 try:
     from io import BytesIO
