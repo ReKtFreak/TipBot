@@ -14,7 +14,7 @@ class Invite(commands.Cog):
 
     @inter_client.slash_command(description="Get TipBpt's invite link.")
     async def invite(self, inter):
-        await inter.reply(f"**[INVITE LINK]**: {BOT_INVITELINK_PLAIN}", ephemeral=True)
+        await inter.reply(f"**[INVITE LINK]**: {BOT_INVITELINK_PLAIN}", ephemeral=False)
 
 
     @commands.command(usage="invite", description="Get TipBpt's invite link.")
