@@ -528,6 +528,7 @@ class Economy(commands.Cog):
 
 
     async def eco_plant(self, ctx, plant_name):
+        prefix = "/"
         check_this_ctx = await self.check_guild(ctx)
         if "error" in check_this_ctx:
             return check_this_ctx
@@ -1892,7 +1893,7 @@ class Economy(commands.Cog):
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
             return
 
-        prefix = await get_guild_prefix(ctx)
+        prefix = "/"
         if ctx.invoked_subcommand is None:
             await ctx.send(f'{ctx.author.mention} Invalid {prefix}economy command.\n Please use {prefix}help economy')
             return
