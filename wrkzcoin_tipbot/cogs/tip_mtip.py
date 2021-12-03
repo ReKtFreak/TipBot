@@ -144,7 +144,7 @@ class TipMtip(commands.Cog):
                                     # No need to tip if failed to message
                                     await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                                     return
-                                message_talker = await store.sql_get_messages(str(ctx.message.guild.id), str(ctx.message.channel.id), 0, len(ctx.guild.members))
+                                message_talker = await store.sql_get_messages(str(ctx.message.guild.id), str(ctx.channel.id), 0, len(ctx.guild.members))
                                 if ctx.author.id in message_talker:
                                     message_talker.remove(ctx.author.id)
                                 if len(message_talker) == 0:
@@ -165,7 +165,7 @@ class TipMtip(commands.Cog):
                                         await logchanbot(traceback.format_exc())
                                 return
                             elif num_user > 0:
-                                message_talker = await store.sql_get_messages(str(ctx.message.guild.id), str(ctx.message.channel.id), 0, num_user + 1)
+                                message_talker = await store.sql_get_messages(str(ctx.message.guild.id), str(ctx.channel.id), 0, num_user + 1)
                                 if ctx.author.id in message_talker:
                                     message_talker.remove(ctx.author.id)
                                 else:
@@ -258,7 +258,7 @@ class TipMtip(commands.Cog):
                             await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Please try time interval between 5minutes to 24hours.')
                             return
                         else:
-                            message_talker = await store.sql_get_messages(str(ctx.message.guild.id), str(ctx.message.channel.id), time_given, None)
+                            message_talker = await store.sql_get_messages(str(ctx.message.guild.id), str(ctx.channel.id), time_given, None)
                             if len(message_talker) == 0:
                                 await ctx.message.add_reaction(EMOJI_ERROR)
                                 await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} There is no active talker in such period.')

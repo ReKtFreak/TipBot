@@ -145,7 +145,7 @@ class TipRandomTip(commands.Cog):
                                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Number of random users cannot below **{minimum_users}**.')
                                 return
                             elif num_user >= minimum_users:
-                                message_talker = await store.sql_get_messages(str(ctx.message.guild.id), str(ctx.message.channel.id), 0, num_user + 1)
+                                message_talker = await store.sql_get_messages(str(ctx.message.guild.id), str(ctx.channel.id), 0, num_user + 1)
                                 if ctx.author.id in message_talker:
                                     message_talker.remove(ctx.author.id)
                                 else:

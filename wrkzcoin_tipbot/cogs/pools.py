@@ -10,6 +10,7 @@ import json
 from config import config
 from Bot import *
 import redis_utils
+from utils import EmbedPaginator, EmbedPaginatorInter
 
 
 class Pools(commands.Cog):
@@ -104,8 +105,12 @@ class Pools(commands.Cog):
                         if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
                             await ctx.message.add_reaction(EMOJI_ERROR)
                         return
+                pool_nos_per_page = 8
                 if get_pool_data and 'data' in get_pool_data:
-                    try:
+                    if len(get_pool_data['data']) == 0:
+                        await ctx.reply(f"{ctx.author.name}#{ctx.author.discriminator}, Received 0 length of data for **{COIN_NAME}**.")
+                        return
+                    elif len(get_pool_data['data']) <= pool_nos_per_page:
                         embed = discord.Embed(title='Mining Pools for {}'.format(COIN_NAME), description='', timestamp=datetime.utcnow(), colour=7047495)
                         if 'symbol' in get_pool_data:
                             embed.add_field(name="Ticker", value=get_pool_data['symbol'], inline=True)
@@ -113,7 +118,7 @@ class Pools(commands.Cog):
                             embed.add_field(name="Algo", value=get_pool_data['algo'], inline=True)
                         if 'hashrate' in get_pool_data:
                             embed.add_field(name="Hashrate", value=hhashes(get_pool_data['hashrate']), inline=True)
-                        i = 1
+                        
                         if len(get_pool_data['data']) > 0:
                             async def sorted_pools(pool_list):
                                 # https://web.archive.org/web/20150222160237/stygianvision.net/updates/python-sort-list-object-dictionary-multiple-key/
@@ -121,24 +126,23 @@ class Pools(commands.Cog):
                                 return mylist
                             pool_links = ''
                             pool_list = await sorted_pools(get_pool_data['data'])
-
+                            i = 1
                             for each_pool in pool_list:
                                 percentage = "[0.00%]"
-                                if i <= 15:
-                                    try:
-                                        hash_rate = hhashes(each_pool['hashrate'])
-                                        percentage = "[{0:.2f}%]".format(each_pool['hashrate'] / get_pool_data['hashrate'] * 100)
-                                    except Exception as e:
-                                        pass
-                                    pool_name = None
-                                    if 'pool_id' in each_pool:
-                                        pool_name = each_pool['pool_id']
-                                    elif 'text' in each_pool:
-                                        pool_name = each_pool['text']
-                                    if pool_name is None:
-                                        pool_name = each_pool['url'].replace("https://", "").replace("http://", "").replace("www", "")
-                                    pool_links += "#{}. [{}]({}) - {} {}\n".format(i, pool_name, each_pool['url'], hash_rate if hash_rate else '0H/s', percentage)
-                                    i += 1
+                                try:
+                                    hash_rate = hhashes(each_pool['hashrate'])
+                                    percentage = "[{0:.2f}%]".format(each_pool['hashrate'] / get_pool_data['hashrate'] * 100)
+                                except Exception as e:
+                                    pass
+                                pool_name = None
+                                if 'pool_id' in each_pool:
+                                    pool_name = each_pool['pool_id']
+                                elif 'text' in each_pool:
+                                    pool_name = each_pool['text']
+                                if pool_name is None:
+                                    pool_name = each_pool['url'].replace("https://", "").replace("http://", "").replace("www", "")
+                                pool_links += "#{}. [{}]({}) - {} __{}__\n".format(i, pool_name, each_pool['url'], hash_rate if hash_rate else '0H/s', percentage)
+                                i += 1
                             try:
                                 embed.add_field(name="Pool List", value=pool_links)
                             except Exception as e:
@@ -152,14 +156,90 @@ class Pools(commands.Cog):
                                                                 '{}#{}'.format(ctx.author.name, ctx.author.discriminator), 
                                                                 requested_date, respond_date, json.dumps(get_pool_data), str(ctx.guild.id) if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
                                                                 ctx.guild.name if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
-                                                                str(ctx.message.channel.id), is_cache, SERVER_BOT, 'NO')
+                                                                str(ctx.channel.id), is_cache, SERVER_BOT, 'NO')
                             await msg.add_reaction(EMOJI_OK_BOX)
                         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                             if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
                                 await ctx.message.add_reaction(EMOJI_ERROR)
                             await logchanbot(traceback.format_exc())
-                    except Exception as e:
-                        await logchanbot(traceback.format_exc())
+                    else:
+                        ## if pool list more than pool_nos_per_page
+                        try:                            
+                            async def sorted_pools(pool_list):
+                                # https://web.archive.org/web/20150222160237/stygianvision.net/updates/python-sort-list-object-dictionary-multiple-key/
+                                mylist = sorted(pool_list, key=lambda k: -k['hashrate'])
+                                return mylist
+                            pool_links = ''
+                            pool_list = await sorted_pools(get_pool_data['data'])
+                            num_pool = 0
+                            all_pages = []
+                            for each_pool in pool_list:
+                                if num_pool == 0 or num_pool % pool_nos_per_page == 0:
+                                    pool_links = ''
+                                    page = discord.Embed(title='Mining Pools for {}'.format(COIN_NAME), description='', timestamp=datetime.utcnow(), colour=7047495)
+                                    if 'symbol' in get_pool_data:
+                                        page.add_field(name="Ticker", value=get_pool_data['symbol'], inline=True)
+                                    if 'algo' in get_pool_data:
+                                        page.add_field(name="Algo", value=get_pool_data['algo'], inline=True)
+                                    if 'hashrate' in get_pool_data:
+                                        page.add_field(name="Hashrate", value=hhashes(get_pool_data['hashrate']), inline=True)
+
+                                    page.set_footer(text=f"Requested by: {ctx.author.name}#{ctx.author.discriminator} | Use the reactions to flip pages.")
+                                percentage = "[0.00%]"
+
+                                try:
+                                    hash_rate = hhashes(each_pool['hashrate'])
+                                    percentage = "[{0:.2f}%]".format(each_pool['hashrate'] / get_pool_data['hashrate'] * 100)
+                                except Exception as e:
+                                    pass
+                                pool_name = None
+                                if 'pool_id' in each_pool:
+                                    pool_name = each_pool['pool_id']
+                                elif 'text' in each_pool:
+                                    pool_name = each_pool['text']
+                                if pool_name is None:
+                                    pool_name = each_pool['url'].replace("https://", "").replace("http://", "").replace("www", "")
+                                pool_links += "#{}. [{}]({}) - {} __{}__\n".format(num_pool+1, pool_name, each_pool['url'], hash_rate if hash_rate else '0H/s', percentage)
+                                num_pool += 1
+                                if num_pool > 0 and num_pool % pool_nos_per_page == 0:
+                                    page.add_field(name="Pool List", value=pool_links)
+                                    page.add_field(name="OTHER LINKS", value="{} / {} / {} / {}".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), "[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                                    page.set_footer(text=f"Data from https://miningpoolstats.stream | Requested by: {ctx.author.name}#{ctx.author.discriminator}")
+                                    all_pages.append(page)
+                                    if num_pool < len(pool_list):
+                                        pool_links = ''
+                                        page = discord.Embed(title='Mining Pools for {}'.format(COIN_NAME), description='', timestamp=datetime.utcnow(), colour=7047495)
+                                        if 'symbol' in get_pool_data:
+                                            page.add_field(name="Ticker", value=get_pool_data['symbol'], inline=True)
+                                        if 'algo' in get_pool_data:
+                                            page.add_field(name="Algo", value=get_pool_data['algo'], inline=True)
+                                        if 'hashrate' in get_pool_data:
+                                            page.add_field(name="Hashrate", value=hhashes(get_pool_data['hashrate']), inline=True)
+                                        page.set_footer(text=f"Data from https://miningpoolstats.stream | Requested by: {ctx.author.name}#{ctx.author.discriminator}")
+                                    else:
+                                        page.add_field(name="Pool List", value=pool_links)
+                                        page.add_field(name="OTHER LINKS", value="{} / {} / {} / {}".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), "[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                                        page.set_footer(text=f"Data from https://miningpoolstats.stream | Requested by: {ctx.author.name}#{ctx.author.discriminator}")
+                                        all_pages.append(page)
+                                        break
+                                elif num_pool == len(pool_list):
+                                    page.add_field(name="Pool List", value=pool_links)
+                                    page.add_field(name="OTHER LINKS", value="{} / {} / {} / {}".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), "[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                                    page.set_footer(text=f"Data from https://miningpoolstats.stream | Requested by: {ctx.author.name}#{ctx.author.discriminator}")
+                                    all_pages.append(page)
+                                    break
+                            try:
+                                paginator = EmbedPaginatorInter(self.bot, ctx, all_pages)
+                                await store.sql_miningpoolstat_fetch(COIN_NAME, str(ctx.author.id), 
+                                                                    '{}#{}'.format(ctx.author.name, ctx.author.discriminator), 
+                                                                    requested_date, int(time.time()), json.dumps(get_pool_data), str(ctx.guild.id) if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
+                                                                    ctx.guild.name if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
+                                                                    str(ctx.channel.id), is_cache, SERVER_BOT, 'NO')
+                                await paginator.paginate_with_slash()
+                            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                                await logchanbot(traceback.format_exc())
+                        except Exception as e:
+                            await logchanbot(traceback.format_exc())
                     if ctx.author.id in MINGPOOLSTAT_IN_PROCESS:
                         MINGPOOLSTAT_IN_PROCESS.remove(ctx.author.id)
                 else:
@@ -222,7 +302,7 @@ class Pools(commands.Cog):
                                                                         '{}#{}'.format(ctx.author.name, ctx.author.discriminator), 
                                                                         requested_date, respond_date, json.dumps(result), str(ctx.guild.id) if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
                                                                         ctx.guild.name if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
-                                                                        str(ctx.message.channel.id), is_cache, SERVER_BOT, 'YES')
+                                                                        str(ctx.channel.id), is_cache, SERVER_BOT, 'YES')
                                     # sleep 3s
                                     await msg.add_reaction(EMOJI_OK_BOX)
                                     break

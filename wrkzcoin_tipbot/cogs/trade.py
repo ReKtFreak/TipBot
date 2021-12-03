@@ -562,7 +562,7 @@ class Trade(commands.Cog):
                                             except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                                                 pass
                                     # add message to trade channel as well.
-                                    if ctx.message.channel.id != NOTIFY_TRADE_CHAN:
+                                    if ctx.channel.id != NOTIFY_TRADE_CHAN:
                                         botLogChan = self.bot.get_channel(NOTIFY_TRADE_CHAN)
                                         await botLogChan.send(f'A user has bought #**{ref_number}**\n```Sold: {sold}\nGet: {bought}\nFee: {fee}```')
                                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:

@@ -70,7 +70,7 @@ class Feedback(commands.Cog):
                                 # OK, let's add
                                 feedback_id = str(uuid.uuid4())
                                 text_in = "DM"
-                                if isinstance(ctx.channel, discord.DMChannel) == False: text_in = str(ctx.message.channel.id)
+                                if isinstance(ctx.channel, discord.DMChannel) == False: text_in = str(ctx.channel.id)
                                 howto_contact_back = "N/A"
                                 msg = await ctx.send(f'{ctx.author.mention} (Optional) Please let us know if and how we can contact you back '
                                                      f'(timeout {config.feedback_setting.waiting_for_feedback_text}s) - default N/A:')
