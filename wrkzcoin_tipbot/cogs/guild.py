@@ -37,7 +37,6 @@ class Guild(commands.Cog):
         coin: str
     ):
         await self.bot_log()
-
         if isinstance(ctx.channel, discord.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
@@ -211,7 +210,7 @@ class Guild(commands.Cog):
         if isinstance(ctx.channel, discord.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         COIN_NAME = coin_name.upper()
         # disable guild tip for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
@@ -356,7 +355,7 @@ class Guild(commands.Cog):
     ):
         await self.bot_log()
 
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         # disable guild tip for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return {"error": f"{EMOJI_LOCKED} Not available in this guild."}
@@ -492,7 +491,7 @@ class Guild(commands.Cog):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         server_coin = DEFAULT_TICKER
         server_tiponly = "ALLCOIN"
@@ -682,7 +681,7 @@ class Guild(commands.Cog):
         self, 
         ctx
     ):
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         await self.bot_log()
         if isinstance(ctx.channel, discord.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
@@ -714,7 +713,7 @@ class Guild(commands.Cog):
         self, 
         ctx
     ):
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
         if isinstance(ctx.channel, discord.DMChannel):
@@ -744,7 +743,7 @@ class Guild(commands.Cog):
         self, 
         ctx
     ):
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
         if isinstance(ctx.channel, discord.DMChannel):
@@ -774,7 +773,7 @@ class Guild(commands.Cog):
         self, 
         ctx
     ):
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
         if isinstance(ctx.channel, discord.DMChannel):
@@ -803,7 +802,7 @@ class Guild(commands.Cog):
         self, 
         ctx
     ):
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
         if isinstance(ctx.channel, discord.DMChannel):
@@ -833,7 +832,7 @@ class Guild(commands.Cog):
         self, 
         ctx
     ):
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
         if isinstance(ctx.channel, discord.DMChannel):
@@ -864,7 +863,7 @@ class Guild(commands.Cog):
         ctx,
         default_coin: str
     ):
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
         if isinstance(ctx.channel, discord.DMChannel):
@@ -896,7 +895,7 @@ class Guild(commands.Cog):
         self, 
         ctx
     ):
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
         if isinstance(ctx.channel, discord.DMChannel):
@@ -926,7 +925,7 @@ class Guild(commands.Cog):
         self, 
         ctx
     ):
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
         if isinstance(ctx.channel, discord.DMChannel):
@@ -950,7 +949,7 @@ class Guild(commands.Cog):
         self, 
         ctx
     ):
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
         if isinstance(ctx.channel, discord.DMChannel):

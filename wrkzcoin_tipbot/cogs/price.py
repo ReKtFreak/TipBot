@@ -13,6 +13,12 @@ class CoinGecko(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
     async def paprika_coin(
@@ -105,6 +111,7 @@ class CoinGecko(commands.Cog):
         ctx, 
         ticker: str
     ):
+        await self.bot_log()
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 
@@ -115,7 +122,7 @@ class CoinGecko(commands.Cog):
                 prefix = serverinfo['prefix']
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Market Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
-                await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}cg** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+                await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}cg** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                 return
         except Exception as e:
             if isinstance(ctx.message.channel, discord.DMChannel) == False:
@@ -206,6 +213,7 @@ class CoinGecko(commands.Cog):
         *, 
         coin_list
     ):
+        await self.bot_log()
         prefix = await get_guild_prefix(ctx)
         coin_list = ' '.join(coin_list.split())
 
@@ -219,7 +227,7 @@ class CoinGecko(commands.Cog):
             and 'enable_market' in serverinfo and serverinfo['enable_market'] == "NO":
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
-                await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}price** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+                await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}price** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                 return
         except Exception as e:
             if isinstance(ctx.message.channel, discord.DMChannel) == False:
@@ -297,6 +305,7 @@ class CoinGecko(commands.Cog):
         ctx, 
         coin: str=None
     ):
+        await self.bot_log()
         # disable game for TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
@@ -306,7 +315,7 @@ class CoinGecko(commands.Cog):
             and 'enable_market' in serverinfo and serverinfo['enable_market'] == "NO":
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
-                await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}gecko** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+                await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}gecko** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                 return
         except Exception as e:
             traceback.format_exc()
@@ -419,6 +428,7 @@ class CoinGecko(commands.Cog):
         ctx, 
         *args
     ):
+        await self.bot_log()
         prefix = await get_guild_prefix(ctx)
         PriceQ = (' '.join(args)).split()
 
@@ -433,7 +443,7 @@ class CoinGecko(commands.Cog):
             and 'enable_market' in serverinfo and serverinfo['enable_market'] == "NO":
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
-                await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}price** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+                await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}price** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                 return
         except Exception as e:
             if isinstance(ctx.message.channel, discord.DMChannel) == False:
@@ -694,17 +704,17 @@ class CoinGecko(commands.Cog):
                                 description="Check coin at Paprika.")
     async def paprika(
         self, 
-        inter, 
+        ctx, 
         coin: str
     ):
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         get_pap = await self.paprika_coin(coin)
         if 'result' in get_pap:
             resp = get_pap['result']
-            await inter.reply(f"{inter.author.name}#{inter.author.discriminator}, {resp}", ephemeral=False)
+            await ctx.reply(f"{ctx.author.name}#{ctx.author.discriminator}, {resp}", ephemeral=False)
         elif 'error' in get_pap:
             resp = get_pap['error']
-            await inter.reply(f"{EMOJI_RED_NO} {inter.author.name}#{inter.author.discriminator}, {resp}", ephemeral=False)
+            await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.name}#{ctx.author.discriminator}, {resp}", ephemeral=False)
 
 
     @commands.command(
@@ -717,6 +727,7 @@ class CoinGecko(commands.Cog):
         ctx, 
         coin: str=None
     ):
+        await self.bot_log()
         # disable game for TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
@@ -727,7 +738,7 @@ class CoinGecko(commands.Cog):
             and 'enable_market' in serverinfo and serverinfo['enable_market'] == "NO":
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
-                await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}pap** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+                await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}pap** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                 return
         except Exception as e:
             traceback.format_exc()

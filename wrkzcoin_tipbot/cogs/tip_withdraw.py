@@ -13,6 +13,12 @@ class TipWithdraw(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
     async def withdraw_action(
@@ -24,6 +30,7 @@ class TipWithdraw(commands.Cog):
         prefix: str=".",
         to_address: str=None # None if withdraw
     ):
+        await self.bot_log()
         COIN_NAME = coin.upper()
         if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
             await logchanbot(f'User {ctx.author.id} tried to withdraw {amount} {COIN_NAME}.')
@@ -43,8 +50,7 @@ class TipWithdraw(commands.Cog):
         floodTip = await store.sql_get_countLastTip(str(ctx.author.id), config.floodTipDuration)
         if floodTip >= config.floodTip:
             return {"error": "Cool down your tip or transaction or increase your amount next time."}
-            botLogChan = self.bot.get_channel(LOG_CHAN)
-            await botLogChan.send('A user reached max. TX threshold. Currently halted: `.withdraw`')
+            await self.botLogChan.send('A user reached max. TX threshold. Currently halted: `.withdraw`')
             return
         # End of Check flood of tip
         
@@ -215,7 +221,8 @@ class TipWithdraw(commands.Cog):
         amount: str, 
         coin: str
     ):
-        prefix = "/"
+        await self.bot_log()
+        prefix = await get_guild_prefix(ctx)
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.', ephemeral=True)
@@ -232,14 +239,13 @@ class TipWithdraw(commands.Cog):
             await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.', ephemeral=True)
             return
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         amount = str(amount).replace(",", "")
 
         # Check flood of tip
         floodTip = await store.sql_get_countLastTip(str(ctx.author.id), config.floodTipDuration)
         if floodTip >= config.floodTip:
             await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Cool down your tip or TX. or increase your amount next time.', ephemeral=True)
-            await botLogChan.send('A user reached max. TX threshold. Currently halted: `.withdraw`')
+            await self.botLogChan.send('A user reached max. TX threshold. Currently halted: `.withdraw`')
             return
         # End of Check flood of tip
 
@@ -260,6 +266,7 @@ class TipWithdraw(commands.Cog):
         amount: str, 
         coin: str = None
     ):
+        await self.bot_log()
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
@@ -274,7 +281,6 @@ class TipWithdraw(commands.Cog):
             return
         # end of check if account locked
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         amount = amount.replace(",", "")
 
         server_prefix = '.'
@@ -324,11 +330,11 @@ class TipWithdraw(commands.Cog):
                                    f'{withdraw_txt}')
                 except Exception as e:
                     pass
-            await botLogChan.send(f'A user successfully executed `.withdraw {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`')
+            await self.botLogChan.send(f'A user successfully executed `.withdraw {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`')
             return
         else:
             msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error during your withdraw, please report or try again later.')
-            await botLogChan.send(f'A user failed to executed `.withdraw {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`')
+            await self.botLogChan.send(f'A user failed to executed `.withdraw {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`')
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
 
@@ -344,6 +350,7 @@ class TipWithdraw(commands.Cog):
         CoinAddress: str, 
         coin: str=None
     ):
+        await self.bot_log()
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
@@ -357,7 +364,6 @@ class TipWithdraw(commands.Cog):
             return
         # end of check if account locked
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         amount = amount.replace(",", "")
 
         # Check if tx in progress
@@ -388,7 +394,7 @@ class TipWithdraw(commands.Cog):
         if floodTip >= config.floodTip:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO}{ctx.author.mention} Cool down your tip or TX. or increase your amount next time.')
-            await botLogChan.send('A user reached max. TX threshold. Currently halted: `.send`')
+            await self.botLogChan.send('A user reached max. TX threshold. Currently halted: `.send`')
             return
         # End of Check flood of tip
 
@@ -740,7 +746,7 @@ class TipWithdraw(commands.Cog):
                     await logchanbot(traceback.format_exc())
                 if tip:
                     await ctx.message.add_reaction(get_emoji(COIN_NAME))
-                    await botLogChan.send(f'A user successfully executed `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}` with paymentid.')
+                    await self.botLogChan.send(f'A user successfully executed `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}` with paymentid.')
                     await ctx.author.send(
                                            f'{EMOJI_ARROW_RIGHTHOOK} You have sent {num_format_coin(real_amount, COIN_NAME)} '
                                            f'{COIN_NAME} '
@@ -751,7 +757,7 @@ class TipWithdraw(commands.Cog):
                     return
                 else:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await botLogChan.send(f'A user failed to execute send `{num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}` with paymentid.')
+                    await self.botLogChan.send(f'A user failed to execute send `{num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}` with paymentid.')
                     msg = await ctx.send(f'{ctx.author.mention} Please try again or report.')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
@@ -781,7 +787,7 @@ class TipWithdraw(commands.Cog):
                     await logchanbot(traceback.format_exc())
                 if tip:
                     await ctx.message.add_reaction(get_emoji(COIN_NAME))
-                    await botLogChan.send(f'A user successfully executed `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
+                    await self.botLogChan.send(f'A user successfully executed `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
                     await ctx.author.send(f'{EMOJI_ARROW_RIGHTHOOK} You have sent {num_format_coin(real_amount, COIN_NAME)} '
                                                   f'{COIN_NAME} '
                                                   f'to `{CoinAddress}`\n'
@@ -789,7 +795,7 @@ class TipWithdraw(commands.Cog):
                     return
                 else:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await botLogChan.send(f'A user failed to execute `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
+                    await self.botLogChan.send(f'A user failed to execute `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
                     await ctx.send(f'{ctx.author.mention} Can not deliver TX for {COIN_NAME} right now. Try again soon.')
                     # add to failed tx table
                     await store.sql_add_failed_tx(COIN_NAME, str(ctx.author.id), ctx.author.name, real_amount, "SEND")
@@ -896,7 +902,7 @@ class TipWithdraw(commands.Cog):
                 SendTx_hash = SendTx['tx_hash']
                 extra_txt = "A node/tx fee `{} {}` deducted from your balance.".format(num_format_coin(get_tx_node_fee(COIN_NAME), COIN_NAME), COIN_NAME)
                 await ctx.message.add_reaction(get_emoji(COIN_NAME))
-                await botLogChan.send(f'A user successfully executed `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
+                await self.botLogChan.send(f'A user successfully executed `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
                 await ctx.author.send(f'{EMOJI_ARROW_RIGHTHOOK} You have sent {num_format_coin(real_amount, COIN_NAME)} '
                                               f'{COIN_NAME} to `{CoinAddress}`.\n'
                                               f'Transaction hash: `{SendTx_hash}`\n'
@@ -904,7 +910,7 @@ class TipWithdraw(commands.Cog):
                 return
             else:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await botLogChan.send(f'A user failed to execute `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
+                await self.botLogChan.send(f'A user failed to execute `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
                 return
             return
         elif coin_family == "NANO":
@@ -992,14 +998,14 @@ class TipWithdraw(commands.Cog):
             if SendTx:
                 SendTx_hash = SendTx['block']
                 await ctx.message.add_reaction(get_emoji(COIN_NAME))
-                await botLogChan.send(f'A user successfully executed `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
+                await self.botLogChan.send(f'A user successfully executed `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
                 await ctx.author.send(f'{EMOJI_ARROW_RIGHTHOOK} You have sent {num_format_coin(real_amount, COIN_NAME)} '
                                               f'{COIN_NAME} to `{CoinAddress}`.\n'
                                               f'Transaction hash: `{SendTx_hash}`')
                 return
             else:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await botLogChan.send(f'A user failed to execute `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
+                await self.botLogChan.send(f'A user failed to execute `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
                 return
             return
         if coin_family == "DOGE" or coin_family == "ERC-20" or coin_family == "TRC-20":
@@ -1104,15 +1110,15 @@ class TipWithdraw(commands.Cog):
                 else:
                     await ctx.message.add_reaction(get_emoji(COIN_NAME))
                     extra_txt = "A node/tx fee `{} {}` deducted from your balance.".format(num_format_coin(get_tx_node_fee(COIN_NAME), COIN_NAME), COIN_NAME)
-                await botLogChan.send(f'A user successfully executed `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
+                await self.botLogChan.send(f'A user successfully executed `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
                 await ctx.author.send(f'{EMOJI_ARROW_RIGHTHOOK} You have sent {num_format_coin(real_amount, COIN_NAME)} '
-                                              f'{COIN_NAME} to `{CoinAddress}`.\n'
-                                              f'Transaction hash: `{SendTx}`\n'
-                                              f'{extra_txt}')
+                                      f'{COIN_NAME} to `{CoinAddress}`.\n'
+                                      f'Transaction hash: `{SendTx}`\n'
+                                      f'{extra_txt}')
                 return
             else:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await botLogChan.send(f'A user failed to execute `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
+                await self.botLogChan.send(f'A user failed to execute `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
                 return
             return
         else:

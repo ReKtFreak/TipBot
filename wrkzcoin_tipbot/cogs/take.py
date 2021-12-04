@@ -10,6 +10,12 @@ class Faucet(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
     @commands.command(
@@ -21,6 +27,7 @@ class Faucet(commands.Cog):
         ctx, 
         info: str=None
     ):
+        await self.bot_log()
         async def bot_faucet(ctx):
             get_game_stat = await store.sql_game_stat()
             table_data = [
@@ -82,7 +89,6 @@ class Faucet(commands.Cog):
             table.padding_right = 0
             return table.table
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.send(f'{EMOJI_RED_NO} This command can not be in private.')
             return
@@ -92,7 +98,7 @@ class Faucet(commands.Cog):
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} (Bot) using **take** {ctx.guild.name} / {ctx.guild.id}')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} (Bot) using **take** {ctx.guild.name} / {ctx.guild.id}')
             return
 
         # Check if tx in progress
@@ -144,7 +150,7 @@ class Faucet(commands.Cog):
         try:
             num_online = len([member for member in ctx.guild.members if member.bot == False and member.status != discord.Status.offline])
             if num_online < 7:
-                await botLogChan.send(f'{ctx.author.name}#{ctx.author.discriminator} / {ctx.author.id} using **take** {ctx.guild.name} / {ctx.guild.id} while there are only {str(num_online)} online. Rejected!')
+                await self.botLogChan.send(f'{ctx.author.name}#{ctx.author.discriminator} / {ctx.author.id} using **take** {ctx.guild.name} / {ctx.guild.id} while there are only {str(num_online)} online. Rejected!')
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} This guild has less than 7 online users. Faucet is disable.')
                 await ctx.message.add_reaction(EMOJI_INFORMATION)
                 return
@@ -184,7 +190,7 @@ class Faucet(commands.Cog):
                         await logchanbot(traceback.format_exc())
                     return
             if serverinfo and serverinfo['enable_faucet'] == "NO":
-                await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **take** in {ctx.guild.name} / {ctx.guild.id} which is disable.')
+                await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **take** in {ctx.guild.name} / {ctx.guild.id} which is disable.')
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, **Faucet** in this guild is disable.')
                 return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:

@@ -23,6 +23,12 @@ class Tool(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
     @inter_client.slash_command(description="Various tool's commands.")
@@ -623,11 +629,6 @@ class Tool(commands.Cog):
         prefix = await get_guild_prefix(ctx)
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if ctx.guild and serverinfo and 'enable_find' in serverinfo and serverinfo['enable_find'] == "NO":
-            ## Disable all guild first. Need to manually set
-            # prefix = serverinfo['prefix']
-            # await ctx.message.add_reaction(EMOJI_ERROR)
-            # await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Find is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING FIND`')
-            # await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}find** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
         if len(searched_text) >= 100:

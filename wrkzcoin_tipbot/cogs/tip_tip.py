@@ -10,6 +10,12 @@ class TipTip(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
     @commands.command(
@@ -22,6 +28,7 @@ class TipTip(commands.Cog):
         amount: str, 
         *args
     ):
+        await self.bot_log()
         secrettip = False
         fromDM = False
         # check if bot is going to restart
@@ -44,9 +51,7 @@ class TipTip(commands.Cog):
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         amount = amount.replace(",", "")
-
         try:
             amount = Decimal(amount)
         except ValueError:
@@ -382,7 +387,7 @@ class TipTip(commands.Cog):
         if floodTip >= config.floodTip:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Cool down your tip or TX. or increase your amount next time.')
-            await botLogChan.send('A user reached max. TX threshold. Currently halted: `.tip`')
+            await self.botLogChan.send('A user reached max. TX threshold. Currently halted: `.tip`')
             return
         # End of Check flood of tip
 
@@ -540,7 +545,7 @@ class TipTip(commands.Cog):
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     await store.sql_toggle_tipnotify(str(member.id), "OFF")
             if secrettip:
-                await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} using a secret tip command {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}.')
+                await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} using a secret tip command {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}.')
             return
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)

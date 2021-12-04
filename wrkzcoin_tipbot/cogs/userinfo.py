@@ -70,7 +70,7 @@ class Userinfo(commands.Cog):
         ctx, 
         user: discord.Member
     ):
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         try:
             get_stat = await self.get_userinfo(user)
             await ctx.reply(embed=get_stat)

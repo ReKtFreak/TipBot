@@ -26,7 +26,7 @@ class Economy(commands.Cog):
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return {"error": "Not available in this guild."}
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy sell** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return {"error": f"Economy is not available in this guild yet. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`"}
@@ -528,7 +528,7 @@ class Economy(commands.Cog):
 
 
     async def eco_plant(self, ctx, plant_name):
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         check_this_ctx = await self.check_guild(ctx)
         if "error" in check_this_ctx:
             return check_this_ctx
@@ -1367,7 +1367,7 @@ class Economy(commands.Cog):
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, Not available in this guild."}
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}economy sell** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, Economy is not available in this guild yet. Please request Guild owner to enable by `{prefix}SETTING ECONOMY`"}
@@ -1893,7 +1893,7 @@ class Economy(commands.Cog):
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
             return
 
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         if ctx.invoked_subcommand is None:
             await ctx.send(f'{ctx.author.mention} Invalid {prefix}economy command.\n Please use {prefix}help economy')
             return

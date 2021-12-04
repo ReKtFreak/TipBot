@@ -10,6 +10,12 @@ class TipSwap(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
     @commands.command(
@@ -22,7 +28,8 @@ class TipSwap(commands.Cog):
         amount: str, 
         coin_from: str, 
         coin_to: str
-    ):	
+    ):
+        await self.bot_log()
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'swap')
         if account_lock:
@@ -187,7 +194,7 @@ class TipSwap(commands.Cog):
                 return	
             else:	
                 await ctx.message.add_reaction(EMOJI_ERROR)	
-                await botLogChan.send(f'A user call failed to swap {COIN_NAME_FROM} to {COIN_NAME_TO}')	
+                await self.botLogChan.send(f'A user call failed to swap {COIN_NAME_FROM} to {COIN_NAME_TO}')	
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error during swap.')	
                 return
         except Exception as e:

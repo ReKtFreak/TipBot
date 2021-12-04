@@ -2318,21 +2318,17 @@ async def add_tx_action_redis(action: str, delete_temp: bool = False):
 
 
 async def get_guild_prefix(ctx):
-    if isinstance(ctx.channel, discord.DMChannel) == True: return "."
-    serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-    if serverinfo is None:
-        return "."
+    if isinstance(ctx.channel, discord.DMChannel) == True:
+        return config.discord.prefixCmd
     else:
-        return serverinfo['prefix']
+        return config.discord.slashPrefix
 
 
 async def get_guild_prefix_msg(message):
-    if isinstance(message.channel, discord.DMChannel) == True: return "."
-    serverinfo = await store.sql_info_by_server(str(message.guild.id))
-    if serverinfo is None:
-        return "."
+    if isinstance(message.channel, discord.DMChannel) == True:
+        return config.discord.prefixCmd
     else:
-        return serverinfo['prefix']
+        return config.discord.slashPrefix
 
 
 async def add_msg_redis(msg: str, delete_temp: bool = False):

@@ -15,7 +15,13 @@ class Balance(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
 
     @inter_client.slash_command(description="Ping command")
     async def ping(self, ctx):
@@ -34,9 +40,9 @@ class Balance(commands.Cog):
         ctx, 
         coin: str=None
     ):
-        prefix = "/"
+        await self.bot_log()
+        prefix = await get_guild_prefix(ctx)
         user_id = ctx.author.id
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'balance')
         if account_lock:
@@ -134,9 +140,9 @@ class Balance(commands.Cog):
         ctx, 
         coin: str = None
     ):
+        await self.bot_log()
         prefix = await get_guild_prefix(ctx)
         user_id = ctx.author.id
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'balance')
         if account_lock:
@@ -173,7 +179,7 @@ class Balance(commands.Cog):
                         wallet = await store.sql_get_userwallet(str(user_id), COIN_NAME)
                     if wallet is None:
                         if coin: table_data.append([COIN_NAME, "N/A", "N/A"])
-                        await botLogChan.send(f'A user call `{prefix}balance` failed with {COIN_NAME}')
+                        await self.botLogChan.send(f'A user call `{prefix}balance` failed with {COIN_NAME}')
                     else:
                         userdata_balance = await store.sql_user_balance(str(user_id), COIN_NAME)
                         xfer_in = 0

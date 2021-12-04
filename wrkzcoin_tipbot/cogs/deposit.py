@@ -162,7 +162,7 @@ class Deposit(commands.Cog):
         coin: str, 
         option: str="plain"
     ):
-        prefix = "/"
+        prefix = await get_guild_prefix(ctx)
         COIN_NAME = coin.upper()
         option = option.upper()
         user_id = ctx.author.id
@@ -205,7 +205,6 @@ class Deposit(commands.Cog):
                         if token_info and token_info['deposit_note']:
                             embed.add_field(name="{} Deposit Note".format(COIN_NAME), value="`{}`".format(token_info['deposit_note']), inline=False)
                     embed.set_thumbnail(url=config.deposit_qr.deposit_url + "/tipbot_deposit_qr/" + deposit_address + ".png")
-                    prefix = "/"
                     embed.set_footer(text=f"Use:{prefix}deposit {COIN_NAME} plain (for plain text)")
                     try:
                         return await ctx.reply(embed=embed, ephemeral=True)

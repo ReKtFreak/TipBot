@@ -115,7 +115,6 @@ class Account(commands.Cog):
                         img.save(config.deposit_qr.path_deposit_qr_create + wallet['balance_wallet_address'] + ".png")
                 except Exception as e:
                     await logchanbot(traceback.format_exc())
-        prefix = "/"
         local_address = await store.sql_deposit_getall_address_user(str(ctx.author.id), SERVER_BOT)
         remote_address = await store.sql_deposit_getall_address_user_remote(str(ctx.author.id), SERVER_BOT)
         diff_address = local_address
@@ -263,6 +262,7 @@ class Account(commands.Cog):
         ctx, 
         disable: str=None
     ):
+        prefix = await get_guild_prefix(ctx)
         async def create_qr_on_remote(ctx, coin):
             COIN_NAME = coin.upper()
             if not is_maintenance_coin(COIN_NAME):
@@ -288,7 +288,6 @@ class Account(commands.Cog):
                         img.save(config.deposit_qr.path_deposit_qr_create + wallet['balance_wallet_address'] + ".png")
                 except Exception as e:
                     await logchanbot(traceback.format_exc())
-        prefix = await get_guild_prefix(ctx)
         local_address = await store.sql_deposit_getall_address_user(str(ctx.author.id), SERVER_BOT)
         remote_address = await store.sql_deposit_getall_address_user_remote(str(ctx.author.id), SERVER_BOT)
         diff_address = local_address

@@ -16,6 +16,12 @@ class Trade(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
     async def get_open_orders(
@@ -25,6 +31,7 @@ class Trade(commands.Cog):
         coin1: str,
         coin2: str=None
     ):
+        await self.bot_log()
         table_list = []
         item_selling_list = []
         per_page = 8
@@ -114,6 +121,7 @@ class Trade(commands.Cog):
         buy_amount: str, 
         buy_ticker: str
     ):
+        await self.bot_log()
         sell_ticker = sell_ticker.upper()
         buy_ticker = buy_ticker.upper()
         sell_amount = str(sell_amount).replace(",", "")
@@ -258,6 +266,7 @@ class Trade(commands.Cog):
         buy_amount: str, 
         buy_ticker: str
     ):
+        await self.bot_log()
         if isinstance(ctx.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
         botLogChan = self.bot.get_channel(LOG_CHAN)
@@ -290,9 +299,7 @@ class Trade(commands.Cog):
         coin: str, 
         option_order: str
     ):
-        botLogChan = self.bot.get_channel(LOG_CHAN)
-        # only him can see with slash command
-
+        await self.bot_log()
         if option_order is None:
             option_order = "ASC" # ascending
         elif option_order and (option_order.upper() not in ["DESC", "ASC"]):
@@ -366,6 +373,7 @@ class Trade(commands.Cog):
         buy_amount: str, 
         buy_ticker: str
     ):
+        await self.bot_log()
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 
@@ -380,7 +388,7 @@ class Trade(commands.Cog):
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}sell command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+                    await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}sell command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
             if isinstance(ctx.message.channel, discord.DMChannel) == False:
@@ -410,11 +418,11 @@ class Trade(commands.Cog):
         ctx, 
         ref_number: str
     ):
+        await self.bot_log()
         # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         try:
             if isinstance(ctx.message.channel, discord.DMChannel) == True:
                 pass
@@ -425,7 +433,7 @@ class Trade(commands.Cog):
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}buy command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+                    await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}buy command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
             if isinstance(ctx.message.channel, discord.DMChannel) == False:
@@ -564,7 +572,7 @@ class Trade(commands.Cog):
                                     # add message to trade channel as well.
                                     if ctx.channel.id != NOTIFY_TRADE_CHAN:
                                         botLogChan = self.bot.get_channel(NOTIFY_TRADE_CHAN)
-                                        await botLogChan.send(f'A user has bought #**{ref_number}**\n```Sold: {sold}\nGet: {bought}\nFee: {fee}```')
+                                        await self.botLogChan.send(f'A user has bought #**{ref_number}**\n```Sold: {sold}\nGet: {bought}\nFee: {fee}```')
                                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                                     pass
                             except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
@@ -591,11 +599,11 @@ class Trade(commands.Cog):
         coin: str, 
         option_order: str=None
     ):
+        await self.bot_log()
         # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         try:
             if isinstance(ctx.message.channel, discord.DMChannel) == True:
                 pass
@@ -606,7 +614,7 @@ class Trade(commands.Cog):
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}trade/market command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+                    await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}trade/market command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
             if isinstance(ctx.message.channel, discord.DMChannel) == False:
@@ -684,11 +692,11 @@ class Trade(commands.Cog):
         ctx, 
         order_num: str = 'ALL'
     ):
+        await self.bot_log()
         # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         try:
             if isinstance(ctx.message.channel, discord.DMChannel) == True:
                 pass
@@ -699,7 +707,7 @@ class Trade(commands.Cog):
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}cancel trade command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+                    await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}cancel trade command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
             if isinstance(ctx.message.channel, discord.DMChannel) == False:
@@ -770,11 +778,11 @@ class Trade(commands.Cog):
         ctx, 
         order_num: str
     ):
+        await self.bot_log()
         # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         try:
             if isinstance(ctx.message.channel, discord.DMChannel) == True:
                 pass
@@ -785,7 +793,7 @@ class Trade(commands.Cog):
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}order command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+                    await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}order command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
             if isinstance(ctx.message.channel, discord.DMChannel) == False:
@@ -844,11 +852,11 @@ class Trade(commands.Cog):
         ctx, 
         ticker: str = None
     ):
+        await self.bot_log()
         # TRTL discord
         if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
             return
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         try:
             if isinstance(ctx.message.channel, discord.DMChannel) == True:
                 pass
@@ -859,7 +867,7 @@ class Trade(commands.Cog):
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}myorder command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+                    await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}myorder command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
             if isinstance(ctx.message.channel, discord.DMChannel) == False:

@@ -10,6 +10,12 @@ class TipDonate(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
     @commands.command(
@@ -22,6 +28,7 @@ class TipDonate(commands.Cog):
         amount: str, 
         coin: str=None
     ):
+        await self.bot_log()
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
@@ -42,7 +49,6 @@ class TipDonate(commands.Cog):
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         donate_msg = ''
         if amount.upper() == "LIST":
             # if .donate list
@@ -73,7 +79,7 @@ class TipDonate(commands.Cog):
         if floodTip >= config.floodTip:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Cool down your tip or TX. or increase your amount next time.')
-            await botLogChan.send('A user reached max. TX threshold. Currently halted: `.donate`')
+            await self.botLogChan.send('A user reached max. TX threshold. Currently halted: `.donate`')
             return
         # End of Check flood of tip
 
@@ -184,7 +190,7 @@ class TipDonate(commands.Cog):
                 await logchanbot(traceback.format_exc())
 
             await ctx.message.add_reaction(get_emoji(COIN_NAME))
-            await botLogChan.send(f'{EMOJI_MONEYFACE} TipBot got donation: {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}')
+            await self.botLogChan.send(f'{EMOJI_MONEYFACE} TipBot got donation: {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}')
             await ctx.author.send(
                                     f'{EMOJI_MONEYFACE} TipBot got donation: {num_format_coin(real_amount, COIN_NAME)} '
                                     f'{COIN_NAME} '
@@ -194,7 +200,7 @@ class TipDonate(commands.Cog):
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)
             msg = await ctx.send(f'{ctx.author.mention} Donating failed, try again. Thank you.')
-            await botLogChan.send(f'A user failed to donate `{num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
+            await self.botLogChan.send(f'A user failed to donate `{num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
             await msg.add_reaction(EMOJI_OK_BOX)
             # add to failed tx table
             await store.sql_add_failed_tx(COIN_NAME, str(ctx.author.id), ctx.author.name, real_amount, "DONATE")

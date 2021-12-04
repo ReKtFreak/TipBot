@@ -14,6 +14,12 @@ class Admin(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
     @commands.group(
@@ -360,12 +366,13 @@ class Admin(commands.Cog):
         ctx, 
         coin: str
     ):
+        await self.bot_log()
+
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
             return
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         COIN_NAME = coin.upper()
         if is_maintenance_coin(COIN_NAME):
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)
@@ -376,7 +383,7 @@ class Admin(commands.Cog):
             await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
             if COIN_NAME in WALLET_API_COIN:
                 duration = await walletapi.save_walletapi(COIN_NAME)
-                await botLogChan.send(f'{ctx.author.name}#{ctx.author.discriminator} called `save` for {COIN_NAME}')
+                await self.botLogChan.send(f'{ctx.author.name}#{ctx.author.discriminator} called `save` for {COIN_NAME}')
                 if duration:
                     await ctx.author.send(f'{get_emoji(COIN_NAME)} {COIN_NAME} `save` took {round(duration, 3)}s.')
                 else:
@@ -384,7 +391,7 @@ class Admin(commands.Cog):
                 return
             else:
                 duration = await rpc_cn_wallet_save(COIN_NAME)
-                await botLogChan.send(f'{ctx.author.name}#{ctx.author.discriminator} called `save` for {COIN_NAME}')
+                await self.botLogChan.send(f'{ctx.author.name}#{ctx.author.discriminator} called `save` for {COIN_NAME}')
                 if duration:
                     await ctx.author.send(f'{get_emoji(COIN_NAME)} {COIN_NAME} `save` took {round(duration, 3)}s.')
                 else:
@@ -397,7 +404,7 @@ class Admin(commands.Cog):
             start = time.time()
             duration_msg = "```"
             await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-            await botLogChan.send(f'{ctx.author.name}#{ctx.author.discriminator} called `save all`')
+            await self.botLogChan.send(f'{ctx.author.name}#{ctx.author.discriminator} called `save all`')
             SAVING_ALL = True
             for coinItem in (ENABLE_COIN+ENABLE_XMR):
                 if is_maintenance_coin(coinItem):
@@ -441,7 +448,6 @@ class Admin(commands.Cog):
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
             return
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         if IS_DEBUG:
             IS_DEBUG == False
             await ctx.send(f'{EMOJI_REFRESH} {ctx.author.mention} Switch debug from **ON** to **OFF**')
@@ -462,19 +468,20 @@ class Admin(commands.Cog):
         self, 
         ctx
     ):
+        await self.bot_log()
+
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be in public.')
             return
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         if IS_RESTARTING:
             await ctx.send(f'{EMOJI_REFRESH} {ctx.author.mention} I already got this command earlier.')
             return
         IS_MAINTENANCE = 1
         IS_RESTARTING = True
         await ctx.send(f'{EMOJI_REFRESH} {ctx.author.mention} .. I will restarting in 30s.. back soon.')
-        await botLogChan.send(f'{EMOJI_REFRESH} {ctx.author.name}#{ctx.author.discriminator} called `restart`. I am restarting in 30s and will back soon hopefully.')
+        await self.botLogChan.send(f'{EMOJI_REFRESH} {ctx.author.name}#{ctx.author.discriminator} called `restart`. I am restarting in 30s and will back soon hopefully.')
         await asyncio.sleep(30)
         await self.bot.logout()
 

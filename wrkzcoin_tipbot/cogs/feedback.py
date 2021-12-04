@@ -11,6 +11,12 @@ class Feedback(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
     @commands.group(
@@ -19,6 +25,7 @@ class Feedback(commands.Cog):
         description="Submit a feedback."
     )
     async def feedback(self, ctx):
+        await self.bot_log()
         prefix = await get_guild_prefix(ctx)
         if ctx.invoked_subcommand is None:
             if config.feedback_setting.enable != 1:
@@ -85,11 +92,7 @@ class Feedback(commands.Cog):
                                 if add:
                                     msg = await ctx.send(f'{ctx.author.mention} Thank you for your feedback / inquiry. Your feedback ref: **{feedback_id}**')
                                     await msg.add_reaction(EMOJI_OK_BOX)
-                                    try:
-                                        botLogChan = self.bot.get_channel(LOG_CHAN)
-                                        await botLogChan.send(f'{EMOJI_INFORMATION} A user has submitted a feedback `{feedback_id}`')
-                                    except Exception as e:
-                                        await logchanbot(traceback.format_exc())
+                                    await self.botLogChan.send(f'{EMOJI_INFORMATION} A user has submitted a feedback `{feedback_id}`')
                                     return
                                 else:
                                     msg = await ctx.send(f'{ctx.author.mention} Internal Error.')

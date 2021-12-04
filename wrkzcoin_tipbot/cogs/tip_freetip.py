@@ -10,6 +10,12 @@ class TipFreeTip(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
     ## TODO: Improve this usage.
@@ -26,6 +32,7 @@ class TipFreeTip(commands.Cog):
         *, 
         comment: str=None
     ):
+        await self.bot_log()
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
@@ -46,9 +53,7 @@ class TipFreeTip(commands.Cog):
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         amount = amount.replace(",", "")
-
         try:
             amount = Decimal(amount)
         except ValueError:
@@ -138,7 +143,7 @@ class TipFreeTip(commands.Cog):
         if floodTip >= config.floodTip:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Cool down your tip or TX. or increase your amount next time.')
-            await botLogChan.send('A user reached max. TX threshold. Currently halted: `.tip`')
+            await self.botLogChan.send('A user reached max. TX threshold. Currently halted: `.tip`')
             return
         # End of Check flood of tip
 

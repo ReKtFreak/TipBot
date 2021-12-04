@@ -115,7 +115,6 @@ class Coininfo(commands.Cog):
         ctx, 
         coin: str
     ):
-        prefix = "/"
         if isinstance(ctx.channel, discord.DMChannel) == False and ctx.guild.id == TRTL_DISCORD:
             return
         COIN_NAME = coin.upper()

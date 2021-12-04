@@ -10,6 +10,12 @@ class Help(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
     @commands.command(usage="help <section>")
@@ -20,6 +26,7 @@ class Help(commands.Cog):
         *, 
         section: str='MAIN'
     ):
+        await self.bot_log()
         async def help_main_embed(ctx, prefix, section: str='MAIN'):
             prefix = await get_guild_prefix(ctx)
             embed = discord.Embed(title="List of commands", description="To avoid spamming other, you can do in Direct Message or Bot Channel", timestamp=datetime.utcnow(), color=0xDEADBF)
@@ -105,7 +112,6 @@ class Help(commands.Cog):
                 embed.set_footer(text=f"Help requested by {ctx.author.name}#{ctx.author.discriminator}")
             return embed
         try:
-            botLogChan = self.bot.get_channel(LOG_CHAN)
             prefix = await get_guild_prefix(ctx)
 
             if not re.match('^[a-zA-Z0-9-_ ]+$', section):
@@ -124,7 +130,7 @@ class Help(commands.Cog):
                             if botChan:
                                 await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
                             else:
-                                await botLogChan.send(f'Guild {ctx.guild.name} / {ctx.guild.id} has defined botchan but I can not find it! ')
+                                await self.botLogChan.send(f'Guild {ctx.guild.name} / {ctx.guild.id} has defined botchan but I can not find it! ')
                                 msg = await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, bot channel was defined but I can not find it in this guild. Please command help in DM instead.')
                                 await msg.add_reaction(EMOJI_OK_BOX)
                             return
@@ -199,7 +205,7 @@ class Help(commands.Cog):
                     embed = await help_main_embed(ctx, prefix, section)
                     await msg.edit(embed=embed)
             except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                await botLogChan.send(f'**Failed** Missing Permissions for sending help in guild {ctx.guild.id} / {ctx.guild.name} / # {ctx.message.channel.name}')
+                await self.botLogChan.send(f'**Failed** Missing Permissions for sending help in guild {ctx.guild.id} / {ctx.guild.name} / # {ctx.message.channel.name}')
                 await message.add_reaction(EMOJI_ERROR)
             except Exception as e:
                 await logchanbot(traceback.format_exc())
@@ -212,7 +218,7 @@ class Help(commands.Cog):
         message, 
         prefix
     ):
-        botLogChan = self.bot.get_channel(LOG_CHAN)
+        await self.bot_log()
         embed = discord.Embed(title=f"List of SETTING command {message.guild.name}", description="Required Managed Channel Permission", timestamp=datetime.utcnow())
         if isinstance(message.channel, discord.DMChannel) == True:
             await message.add_reaction(EMOJI_ERROR) 
@@ -232,7 +238,7 @@ class Help(commands.Cog):
             msg = await message.channel.send(embed=embed)
             await msg.add_reaction(EMOJI_OK_BOX)
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-            await botLogChan.send(f'**Failed** Missing Permissions for sending help_setting in guild {message.guild.id} / {message.guild.name} / # {message.channel.name}')
+            await self.botLogChan.send(f'**Failed** Missing Permissions for sending help_setting in guild {message.guild.id} / {message.guild.name} / # {message.channel.name}')
             await message.add_reaction(EMOJI_ERROR)
         return
 

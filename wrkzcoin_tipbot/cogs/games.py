@@ -18,6 +18,12 @@ class Games(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
     @commands.group(
@@ -26,30 +32,31 @@ class Games(commands.Cog):
         description="Various game commands."
     )
     async def game(self, ctx):
+        await self.bot_log()
+
         # disable game for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
             await ctx.message.add_reaction(EMOJI_LOCKED)
             return
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} (Bot) using **game** {ctx.guild.name} / {ctx.guild.id}')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} (Bot) using **game** {ctx.guild.name} / {ctx.guild.id}')
             return
 
         if isinstance(ctx.channel, discord.DMChannel) == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} No, not working with DM.')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried using **game** in **DM**')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried using **game** in **DM**')
             return
 
         try: 
             # check if game is enabled
             serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
             if serverinfo and serverinfo['enable_game'] == "NO":
-                await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **game** in {ctx.guild.name} / {ctx.guild.id} which is disable.')
+                await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **game** in {ctx.guild.name} / {ctx.guild.id} which is disable.')
                 await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, **Game** in this guild is disable.')
                 return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
@@ -76,6 +83,8 @@ class Games(commands.Cog):
         description="Show game statistic."
     )
     async def stat(self, ctx):
+        await self.bot_log()
+
         # disable game for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
             await ctx.message.add_reaction(EMOJI_LOCKED)
@@ -106,11 +115,7 @@ class Games(commands.Cog):
         description="Blackjack, original code by Al Sweigart al@inventwithpython.com."
     )
     async def blackjack(self, ctx):
-        # bot check in the first place
-        if ctx.author.bot == True:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
-            return
+        await self.bot_log()
 
         # disable game for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
@@ -122,7 +127,7 @@ class Games(commands.Cog):
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
         free_game = False
@@ -358,13 +363,7 @@ class Games(commands.Cog):
         description="Play a slot game."
     )
     async def slot(self, ctx):
-        botLogChan = self.bot.get_channel(LOG_CHAN)
-        # bot check in the first place
-        if ctx.author.bot == True:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} (Bot) using **take** {ctx.guild.name} / {ctx.guild.id}')
-            return
+        await self.bot_log()
 
         # disable game for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
@@ -376,7 +375,7 @@ class Games(commands.Cog):
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
         free_game = False
@@ -509,11 +508,7 @@ class Games(commands.Cog):
         description="Bagels, a deductive logic game."
     )
     async def bagel(self, ctx):
-        # bot check in the first place
-        if ctx.author.bot == True:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
-            return
+        await self.bot_log()
 
         # disable game for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
@@ -525,7 +520,7 @@ class Games(commands.Cog):
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
         # Credit: https://github.com/asweigart/PythonStdioGames
@@ -712,11 +707,7 @@ class Games(commands.Cog):
         description="Bagels, a deductive logic game."
     )
     async def bagel2(self, ctx):
-        # bot check in the first place
-        if ctx.author.bot == True:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
-            return
+        await self.bot_log()
 
         # disable game for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
@@ -728,7 +719,7 @@ class Games(commands.Cog):
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
         # Credit: https://github.com/asweigart/PythonStdioGames
@@ -942,11 +933,7 @@ class Games(commands.Cog):
         description="Bagels, a deductive logic game."
     )
     async def bagel3(self, ctx):
-        # bot check in the first place
-        if ctx.author.bot == True:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
-            return
+        await self.bot_log()
 
         # disable game for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
@@ -958,7 +945,7 @@ class Games(commands.Cog):
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
         # Credit: https://github.com/asweigart/PythonStdioGames
@@ -1180,11 +1167,7 @@ class Games(commands.Cog):
         description="Interactive 2D ascii maze game."
     )
     async def maze(self, ctx):
-        # bot check in the first place
-        if ctx.author.bot == True:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
-            return
+        await self.bot_log()
 
         # disable game for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
@@ -1196,7 +1179,7 @@ class Games(commands.Cog):
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
         # Credit: https://github.com/asweigart/PythonStdioGames
@@ -1410,11 +1393,7 @@ class Games(commands.Cog):
         description="Old hangman game."
     )
     async def hangman(self, ctx):
-        # bot check in the first place
-        if ctx.author.bot == True:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
-            return
+        await self.bot_log()
 
         # disable game for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
@@ -1426,7 +1405,7 @@ class Games(commands.Cog):
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
         # Credit: https://github.com/asweigart/PythonStdioGames
@@ -1616,11 +1595,7 @@ class Games(commands.Cog):
         description="Simple dice game."
     )
     async def dice(self, ctx):
-        # bot check in the first place
-        if ctx.author.bot == True:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
-            return
+        await self.bot_log()
 
         # disable game for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
@@ -1632,7 +1607,7 @@ class Games(commands.Cog):
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
         # Credit: https://github.com/asweigart/PythonStdioGames
@@ -1787,11 +1762,7 @@ class Games(commands.Cog):
         ctx, 
         bet_numb: str=None
     ):
-        # bot check in the first place
-        if ctx.author.bot == True:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
-            return
+        await self.bot_log()
 
         # disable game for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
@@ -1803,7 +1774,7 @@ class Games(commands.Cog):
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
         # Credit: https://github.com/asweigart/PythonStdioGames
@@ -1894,7 +1865,7 @@ class Games(commands.Cog):
                     except Exception as e:
                         if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                             GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
-                        await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} **GAME SNAIL** failed to send message in {ctx.guild.name} / {ctx.guild.id}')
+                        await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} **GAME SNAIL** failed to send message in {ctx.guild.name} / {ctx.guild.id}')
                         return
 
                     # sleep 2s
@@ -2000,11 +1971,7 @@ class Games(commands.Cog):
         description="Classic 2048 game. Slide all the tiles on the board in one of four directions."
     )
     async def g2048(self, ctx):
-        # bot check in the first place
-        if ctx.author.bot == True:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
-            return
+        await self.bot_log()
 
         # disable game for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
@@ -2016,7 +1983,7 @@ class Games(commands.Cog):
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
         # Credit: https://github.com/asweigart/PythonStdioGames
@@ -2084,7 +2051,7 @@ class Games(commands.Cog):
             except Exception as e:
                 if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                     GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
-                await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} **GAME 2048** failed to send message in {ctx.guild.name} / {ctx.guild.id}')
+                await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} **GAME 2048** failed to send message in {ctx.guild.name} / {ctx.guild.id}')
                 return
 
             await msg.add_reaction(EMOJI_UP)
@@ -2218,17 +2185,7 @@ class Games(commands.Cog):
     @commands.is_owner()
     @game.command(usage="game sokotest", hidden = True)
     async def sokotest(self, ctx, level:int=0):
-        # For testing display
-        # bot check in the first place
-        if ctx.author.bot == True:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
-            return
-
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            await ctx.message.add_reaction(EMOJI_LOCKED)
-            return
+        await self.bot_log()
 
         # Set up the constants:
         WIDTH = 'width'
@@ -2329,7 +2286,7 @@ class Games(commands.Cog):
             msg = await ctx.send(embed=embed)
         except Exception as e:
             await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} **GAME SOKOBAN** failed to send embed in {ctx.guild.name} / {ctx.guild.id}')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} **GAME SOKOBAN** failed to send embed in {ctx.guild.name} / {ctx.guild.id}')
             return
 
 
@@ -2339,25 +2296,19 @@ class Games(commands.Cog):
         description="Sokoban interactive game."
     )
     async def sokoban(self, ctx):
-        # bot check in the first place
-        if ctx.author.bot == True:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
-            return
+        await self.bot_log()
 
         # disable game for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
             await ctx.message.add_reaction(EMOJI_LOCKED)
             return
 
-        botLogChan = self.bot.get_channel(LOG_CHAN)
-
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
         free_game = False
@@ -2461,7 +2412,7 @@ class Games(commands.Cog):
                 GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
             await ctx.send(f'{ctx.author.mention} Check back later.')
             await ctx.message.add_reaction(EMOJI_INFORMATION)
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} **GAME SOKOBAN** failed get level **{str(level)}** in {ctx.guild.name} / {ctx.guild.id}')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} **GAME SOKOBAN** failed get level **{str(level)}** in {ctx.guild.name} / {ctx.guild.id}')
             return
 
 
@@ -2520,7 +2471,7 @@ class Games(commands.Cog):
                 if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                     GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
                 await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
-                await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} **GAME SOKOBAN** failed to send embed in {ctx.guild.name} / {ctx.guild.id}')
+                await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} **GAME SOKOBAN** failed to send embed in {ctx.guild.name} / {ctx.guild.id}')
                 await ctx.send(f'{ctx.author.mention} I can not send any embed message here. Seemed no permission.')
                 return
             await msg.add_reaction(EMOJI_UP)

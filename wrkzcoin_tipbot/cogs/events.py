@@ -15,22 +15,28 @@ class Events(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
-        botLogChan = self.bot.get_channel(LOG_CHAN)
+        await self.bot_log()
         add_server_info = await store.sql_addinfo_by_server(str(guild.id), guild.name,
                                                             config.discord.prefixCmd, "WRKZ", True)
-        await botLogChan.send(f'Bot joins a new guild {guild.name} / {guild.id} / Users: {len(guild.members)}. Total guilds: {len(self.bot.guilds)}.')
+        await self.botLogChan.send(f'Bot joins a new guild {guild.name} / {guild.id} / Users: {len(guild.members)}. Total guilds: {len(self.bot.guilds)}.')
         return
 
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
-        botLogChan = self.bot.get_channel(LOG_CHAN)
+        await self.bot_log()
         add_server_info = await store.sql_updateinfo_by_server(str(guild.id), "status", "REMOVED")
-        await botLogChan.send(f'Bot was removed from guild {guild.name} / {guild.id}. Total guilds: {len(self.bot.guilds)}')
+        await self.botLogChan.send(f'Bot was removed from guild {guild.name} / {guild.id}. Total guilds: {len(self.bot.guilds)}')
         return
 
 
