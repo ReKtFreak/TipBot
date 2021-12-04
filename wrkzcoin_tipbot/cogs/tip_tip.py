@@ -449,16 +449,16 @@ class TipTip(commands.Cog):
             real_amount = float(amount)
             token_info = await store.get_token_info(COIN_NAME)
             MinTx = token_info['real_min_tip']
-            MaxTX = token_info['real_max_tip']
+            MaxTx = token_info['real_max_tip']
         else:
             real_amount = int(Decimal(amount) * get_decimal(COIN_NAME)) if coin_family in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else float(amount)
             MinTx = get_min_mv_amount(COIN_NAME)
-            MaxTX = get_max_mv_amount(COIN_NAME)
+            MaxTx = get_max_mv_amount(COIN_NAME)
 
-        if real_amount > MaxTX:
+        if real_amount > MaxTx:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
-                                    f'{num_format_coin(MaxTX, COIN_NAME)} '
+                                    f'{num_format_coin(MaxTx, COIN_NAME)} '
                                     f'{COIN_NAME}.')
             return
         elif real_amount > actual_balance:

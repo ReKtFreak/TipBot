@@ -162,14 +162,14 @@ class TipFreeTip(commands.Cog):
             token_info = await store.get_token_info(COIN_NAME)
             real_amount = float(amount)
             MinTx = token_info['real_min_tip']
-            MaxTX = token_info['real_max_tip']
+            MaxTx = token_info['real_max_tip']
         else:
             real_amount = int(amount * get_decimal(COIN_NAME)) if coin_family in ["XMR", "TRTL", "BCN", "NANO", "XCH"] else float(amount)
             MinTx = get_min_mv_amount(COIN_NAME)
-            MaxTX = get_max_mv_amount(COIN_NAME)
+            MaxTx = get_max_mv_amount(COIN_NAME)
         if comment and len(comment) > 0:
             MinTx = MinTx * config.freetip.with_comment_x_amount
-            MaxTX = MaxTX * config.freetip.with_comment_x_amount
+            MaxTx = MaxTx * config.freetip.with_comment_x_amount
 
         user_from = await store.sql_get_userwallet(str(ctx.author.id), COIN_NAME)
         if user_from is None:
@@ -201,10 +201,10 @@ class TipFreeTip(commands.Cog):
         except Exception as e:
             await logchanbot(traceback.format_exc())
 
-        if real_amount > MaxTX:
+        if real_amount > MaxTx:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
-                           f'{num_format_coin(MaxTX, COIN_NAME)} '
+                           f'{num_format_coin(MaxTx, COIN_NAME)} '
                            f'{COIN_NAME}.')
             return
         elif real_amount < MinTx:

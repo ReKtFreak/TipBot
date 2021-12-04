@@ -402,15 +402,15 @@ class TipMtip(commands.Cog):
         real_amount = int(Decimal(amount) * get_decimal(COIN_NAME)) if coin_family in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else float(amount)
         if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
             MinTx = token_info['real_min_tip']
-            MaxTX = token_info['real_max_tip']
+            MaxTx = token_info['real_max_tip']
         else:
             MinTx = get_min_mv_amount(COIN_NAME)
-            MaxTX = get_max_mv_amount(COIN_NAME)
+            MaxTx = get_max_mv_amount(COIN_NAME)
 
-        if real_amount > MaxTX:
+        if real_amount > MaxTx:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
-                                    f'{num_format_coin(MaxTX, COIN_NAME)} '
+                                    f'{num_format_coin(MaxTx, COIN_NAME)} '
                                     f'{COIN_NAME}.')
             return
         elif real_amount > actual_balance:

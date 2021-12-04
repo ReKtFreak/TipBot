@@ -418,7 +418,7 @@ async def get_prefix(bot, message):
     pre_cmd = config.discord.prefixCmd
     if isinstance(message.channel, discord.DMChannel):
         pre_cmd = config.discord.prefixCmd
-        extras = [pre_cmd, 'tb!', 'tipbot!', '?', '.', '+', '!', '-']
+        extras = [pre_cmd, 'tb!', 'tipbot!', '?', '.', '+', '!', '-', '/']
         return when_mentioned_or(*extras)(bot, message)
 
     serverinfo = await store.sql_info_by_server(str(message.guild.id))
