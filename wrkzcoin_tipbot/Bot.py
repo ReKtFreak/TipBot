@@ -583,10 +583,22 @@ async def on_reaction_add(reaction, user):
                     # he already re-acted and tipped once
                     return
                 # get the amount of 100 from defined
-                COIN_NAME = serverinfo['default_coin']
-                real_amount = int(serverinfo['react_tip_100']) * get_decimal(COIN_NAME)
-                MinTx = get_min_mv_amount(COIN_NAME)
-                MaxTX = get_max_mv_amount(COIN_NAME)
+                COIN_NAME = serverinfo['react_tip_coin']
+                if COIN_NAME in ENABLE_COIN_ERC:
+                    coin_family = "ERC-20"
+                    token_info = await store.get_token_info(COIN_NAME)
+                    MinTx = token_info['real_min_tip']
+                    MaxTx = token_info['real_max_tip']
+                elif COIN_NAME in ENABLE_COIN_TRC:
+                    coin_family = "TRC-20"
+                    token_info = await store.get_token_info(COIN_NAME)
+                    MinTx = token_info['real_min_tip']
+                    MaxTx = token_info['real_max_tip']
+                else:
+                    coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
+                    MinTx = get_min_mv_amount(COIN_NAME)
+                    MaxTx = get_max_mv_amount(COIN_NAME)
+                real_amount = int(Decimal(amount) * get_decimal(COIN_NAME)) if coin_family in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else float(amount)
 
                 user_from = await store.sql_get_userwallet(str(user.id), COIN_NAME)
                 if user_from is None:
@@ -616,7 +628,7 @@ async def on_reaction_add(reaction, user):
                     await logchanbot(traceback.format_exc())
                 # process other check balance
                 if real_amount > actual_balance or \
-                    real_amount > MaxTX or real_amount < MinTx:
+                    real_amount > MaxTx or real_amount < MinTx:
                     return
                 else:
                     # add queue also react-tip
@@ -684,7 +696,7 @@ async def on_reaction_add(reaction, user):
                 COIN_NAME = "TRTL"
                 real_amount = 99 * get_decimal(COIN_NAME)
                 MinTx = get_min_mv_amount(COIN_NAME)
-                MaxTX = get_max_mv_amount(COIN_NAME)
+                MaxTx = get_max_mv_amount(COIN_NAME)
 
                 user_from = await store.sql_get_userwallet(str(user.id), COIN_NAME)
                 if user_from is None:
@@ -713,7 +725,7 @@ async def on_reaction_add(reaction, user):
                     userregister = await store.sql_register_user(str(reaction.message.author.id), COIN_NAME, SERVER_BOT, 0)
                 # process other check balance
                 if real_amount > actual_balance or \
-                    real_amount > MaxTX or real_amount < MinTx:
+                    real_amount > MaxTx or real_amount < MinTx:
                     return
                 else:
                     # add queue also react-tip
@@ -1381,11 +1393,11 @@ async def _tip(ctx, amount, coin: str, if_guild: bool=False):
         real_amount = float(amount)
         token_info = await store.get_token_info(COIN_NAME)
         MinTx = token_info['real_min_tip']
-        MaxTX = token_info['real_max_tip']
+        MaxTx = token_info['real_max_tip']
     else:
         real_amount = int(Decimal(amount) * get_decimal(COIN_NAME)) if coin_family in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else float(amount)
         MinTx = get_min_mv_amount(COIN_NAME)
-        MaxTX = get_max_mv_amount(COIN_NAME)
+        MaxTx = get_max_mv_amount(COIN_NAME)
 
     user_from = await store.sql_get_userwallet(id_tipper, COIN_NAME)
     if user_from is None:
@@ -1418,10 +1430,10 @@ async def _tip(ctx, amount, coin: str, if_guild: bool=False):
     except Exception as e:
         await logchanbot(traceback.format_exc())
 
-    if real_amount > MaxTX:
+    if real_amount > MaxTx:
         await ctx.message.add_reaction(EMOJI_ERROR)
         await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
-                                f'{num_format_coin(MaxTX, COIN_NAME)} '
+                                f'{num_format_coin(MaxTx, COIN_NAME)} '
                                 f'{COIN_NAME}.')
         return
     elif real_amount < MinTx:
@@ -1468,10 +1480,10 @@ async def _tip(ctx, amount, coin: str, if_guild: bool=False):
             
 
     TotalAmount = real_amount * len(list_receivers)
-    if TotalAmount > MaxTX:
+    if TotalAmount > MaxTx:
         await ctx.message.add_reaction(EMOJI_ERROR)
         await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Total transactions cannot be bigger than '
-                                f'{num_format_coin(MaxTX, COIN_NAME)} '
+                                f'{num_format_coin(MaxTx, COIN_NAME)} '
                                 f'{COIN_NAME}.')
         return
     elif real_amount < MinTx:
@@ -1624,11 +1636,11 @@ async def _tip_talker(ctx, amount, list_talker, if_guild: bool=False, coin: str 
         real_amount = float(amount)
         token_info = await store.get_token_info(COIN_NAME)
         MinTx = token_info['real_min_tip']
-        MaxTX = token_info['real_max_tip']
+        MaxTx = token_info['real_max_tip']
     else:
         real_amount = int(amount * get_decimal(COIN_NAME)) if coin_family in ["XMR", "TRTL", "BCN", "NANO", "XCH"] else float(amount)
         MinTx = get_min_mv_amount(COIN_NAME)
-        MaxTX = get_max_mv_amount(COIN_NAME)
+        MaxTx = get_max_mv_amount(COIN_NAME)
 
     user_from = await store.sql_get_userwallet(str(ctx.author.id), COIN_NAME)
     if user_from is None:
@@ -1666,10 +1678,10 @@ async def _tip_talker(ctx, amount, list_talker, if_guild: bool=False, coin: str 
     except Exception as e:
         await logchanbot(traceback.format_exc())
 
-    if real_amount > MaxTX:
+    if real_amount > MaxTx:
         await ctx.message.add_reaction(EMOJI_ERROR)
         await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
-                                f'{num_format_coin(MaxTX, COIN_NAME)} '
+                                f'{num_format_coin(MaxTx, COIN_NAME)} '
                                 f'{COIN_NAME}.')
         return
     elif real_amount < MinTx:
@@ -1723,10 +1735,10 @@ async def _tip_talker(ctx, amount, list_talker, if_guild: bool=False, coin: str 
 
     TotalAmount = real_amount * len(list_receivers)
 
-    if TotalAmount > MaxTX:
+    if TotalAmount > MaxTx:
         await ctx.message.add_reaction(EMOJI_ERROR)
         await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Total transactions cannot be bigger than '
-                                f'{num_format_coin(MaxTX, COIN_NAME)} '
+                                f'{num_format_coin(MaxTx, COIN_NAME)} '
                                 f'{COIN_NAME}.')
         return
     elif real_amount < MinTx:
@@ -1933,11 +1945,11 @@ async def _tip_react(reaction, user, amount, coin: str):
         token_info = await store.get_token_info(COIN_NAME)
         real_amount = float(amount)
         MinTx = token_info['real_min_tip']
-        MaxTX = token_info['real_max_tip']
+        MaxTx = token_info['real_max_tip']
     else:
         real_amount = int(Decimal(amount) * get_decimal(COIN_NAME)) if coin_family in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else float(amount)
         MinTx = get_min_mv_amount(COIN_NAME)
-        MaxTX = get_max_mv_amount(COIN_NAME)
+        MaxTx = get_max_mv_amount(COIN_NAME)
 
     user_from = await store.sql_get_userwallet(str(user.id), COIN_NAME)
     if user_from is None:

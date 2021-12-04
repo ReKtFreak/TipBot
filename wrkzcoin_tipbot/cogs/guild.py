@@ -5,9 +5,12 @@ import time
 import traceback
 from datetime import datetime
 import random
+import qrcode
 
 import discord
 from discord.ext import commands
+from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice, SlashInteraction
+import dislash
 
 import store
 from Bot import *
@@ -19,491 +22,32 @@ class Guild(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
-    @commands.command(
-        usage="info [coin]", 
-        description="Check guild's information"
-    )
-    async def info(
+    async def bot_log(self):
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    async def guild_deposit(
         self, 
-        ctx, 
-        coin: str = None
-    ):
-        # check if account locked
-        account_lock = await alert_if_userlock(ctx, 'info')
-        if account_lock:
-            await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
-            return
-        # end of check if account locked
-
-        # Check if maintenance
-        if IS_MAINTENANCE == 1:
-            if int(ctx.author.id) in MAINTENANCE_OWNER:
-                await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-                pass
-            else:
-                await ctx.message.add_reaction(EMOJI_WARNING)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
-                return
-        else:
-            pass
-        # End Check if maintenance
-
-        wallet = None
-        COIN_NAME = None
-        if coin is None:
-            if len(ctx.message.mentions) == 0:
-                cmdName = ctx.message.content
-            else:
-                cmdName = ctx.message.content.split(" ")[0]
-            cmdName = cmdName[1:]
-
-            if cmdName.lower() not in ['wallet', 'info']:
-                cmdName = ctx.message.content.split(" ")[1]
-            if isinstance(ctx.channel, discord.DMChannel):
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} This command can not be in DM. If you want to deposit, use **DEPOSIT** command instead.')
-                return
-            else:
-                serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-                prefix = config.discord.prefixCmd
-                server_coin = DEFAULT_TICKER
-                server_tiponly = "ALLCOIN"
-                react_tip_value = "N/A"
-                if serverinfo is None:
-                    # Let's add some info if server return None
-                    add_server_info = await store.sql_addinfo_by_server(str(ctx.guild.id),
-                                                                        ctx.message.guild.name, config.discord.prefixCmd, "WRKZ")
-                else:
-                    prefix = serverinfo['prefix']
-                    server_coin = serverinfo['default_coin'].upper()
-                    server_tiponly = serverinfo['tiponly'].upper()
-                    if serverinfo['react_tip'].upper() == "ON":
-                        COIN_NAME = serverinfo['default_coin'].upper()
-                        react_tip_value = str(serverinfo['react_tip_100']) + COIN_NAME
-                try:
-                    MUTE_CHANNEL = await store.sql_list_mutechan()
-                    LIST_IGNORECHAN = await store.sql_listignorechan()
-                    chanel_ignore_list = ''
-                    if LIST_IGNORECHAN and str(ctx.guild.id) in LIST_IGNORECHAN:
-                        for item in LIST_IGNORECHAN[str(ctx.guild.id)]:
-                            try:
-                                chanel_ignore = bot.get_channel(int(item))
-                                chanel_ignore_list += '#'  + chanel_ignore.name + ' '
-                            except Exception as e:
-                                pass
-                    if chanel_ignore_list == '': chanel_ignore_list = 'N/A'
-
-                    chanel_mute_list = ''
-                    if MUTE_CHANNEL and str(ctx.guild.id) in MUTE_CHANNEL:
-                        for item in MUTE_CHANNEL[str(ctx.guild.id)]:
-                            try:
-                                chanel_mute = bot.get_channel(int(item))
-                                chanel_mute_list += '#'  + chanel_mute.name + ' '
-                            except Exception as e:
-                                pass
-                    if chanel_mute_list == '': chanel_mute_list = 'N/A'
-                except Exception as e:
-                    await logchanbot(traceback.format_exc())
-                extra_text = f'Type: {prefix}setting or {prefix}help setting for more info. (Required permission)'
-                try:
-                    embed = discord.Embed(title=f'Guild {ctx.guild.id} / {ctx.guild.name}', timestamp=datetime.utcnow())
-                    embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon)
-                    embed.add_field(name="Default Ticker", value=f'`{server_coin}`', inline=True)
-                    embed.add_field(name="Default Prefix", value=f'`{prefix}`', inline=True)
-                    embed.add_field(name="TipOnly Coins", value=f'`{server_tiponly}`', inline=True)
-                    embed.add_field(name=f"Re-act Tip {EMOJI_TIP}", value=f'`{react_tip_value}`', inline=True)
-                    embed.add_field(name="Ignored Tip", value=f'`{chanel_ignore_list}`', inline=True)
-                    embed.add_field(name="Mute in", value=f'`{chanel_mute_list}`', inline=True)
-                    embed.set_footer(text=f"{extra_text}")
-                    msg = await ctx.send(embed=embed)
-                    await msg.add_reaction(EMOJI_OK_BOX)
-                    await ctx.message.add_reaction(EMOJI_OK_HAND)
-                except (discord.errors.NotFound, discord.errors.Forbidden, Exception) as e:
-                    msg = await ctx.send(
-                        '\n```'
-                        f'Server ID:      {ctx.guild.id}\n'
-                        f'Server Name:    {ctx.message.guild.name}\n'
-                        f'Default Ticker: {server_coin}\n'
-                        f'Default Prefix: {prefix}\n'
-                        f'TipOnly Coins:  {server_tiponly}\n'
-                        f'Re-act Tip:     {react_tip_value}\n'
-                        f'Ignored Tip in: {chanel_ignore_list}\n'
-                        f'Mute in:        {chanel_mute_list}\n'
-                        f'```{extra_text}')
-                    await msg.add_reaction(EMOJI_OK_BOX)
-                    await ctx.message.add_reaction(EMOJI_OK_HAND)
-                return
-        else:
-            COIN_NAME = coin.upper()
-
-        if COIN_NAME:
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Please use **DEPOSIT** command instead.')
-            return
-
-
-    @commands.command(
-        usage="setting <expression>", 
-        aliases=['settings', 'set'], 
-        description="Settings view and set for prefix, default coin. Requires permission manage_channels."
-    )
-    @commands.has_permissions(manage_channels=True)
-    async def setting(
-        self, 
-        ctx, 
-        *args
-    ):
-        # Check if address is valid first
-        if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.send('This command is not available in DM.')
-            return
-        botLogChan = self.bot.get_channel(LOG_CHAN)
-        tickers = '|'.join(ENABLE_COIN).lower()
-        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-        server_prefix = config.discord.prefixCmd
-        if serverinfo is None:
-            # Let's add some info if server return None
-            add_server_info = await store.sql_addinfo_by_server(str(ctx.guild.id),
-                                                                ctx.message.guild.name, config.discord.prefixCmd, "WRKZ")
-            server_id = str(ctx.guild.id)
-            server_coin = DEFAULT_TICKER
-            server_reacttip = "OFF"
-        else:
-            server_id = str(ctx.guild.id)
-            server_prefix = serverinfo['prefix']
-            server_coin = serverinfo['default_coin'].upper()
-            server_reacttip = serverinfo['react_tip'].upper()
-        
-        if len(args) == 0:
-            embed = discord.Embed(title = "CHANGE {} SETTING".format(ctx.guild.name), timestamp=datetime.utcnow())
-            embed.add_field(name="Change Prefix", value=f'`{server_prefix}setting prefix .|?|*|!`', inline=False)
-            embed.add_field(name="Change Default Coin", value=f'`{server_prefix}setting default_coin <coin_name> Use allcoin for every supported coin`', inline=False)
-            embed.add_field(name="Tip Only", value=f'`{server_prefix}setting tiponly <coin1> [coin2] ..`', inline=False)
-            embed.add_field(name="Bot Channel", value=f'`{server_prefix}setting botchan #channel_name`', inline=False)
-            embed.add_field(name="Ignore Tipping this Channel", value=f'`{server_prefix}setting ignorechan`', inline=False)
-            embed.add_field(name="Delete Ignored Channel", value=f'`{server_prefix}setting del_ignorechan`', inline=False)
-            n_mute = 0
-            n_ignore = 0
-            
-            MUTE_CHANNEL = await store.sql_list_mutechan()
-            LIST_IGNORECHAN = await store.sql_listignorechan()
-            if MUTE_CHANNEL and str(ctx.guild.id) in MUTE_CHANNEL:
-                n_mute = len(MUTE_CHANNEL[str(ctx.guild.id)])
-            if LIST_IGNORECHAN and str(ctx.guild.id) in LIST_IGNORECHAN:
-                n_ignore = len(LIST_IGNORECHAN[str(ctx.guild.id)])
-            embed.add_field(name="Num. Mute/Ignore Channel", value=f'`{n_mute} / {n_ignore}`', inline=False)
-            try:
-                msg = await ctx.send(embed=embed)
-                await msg.add_reaction(EMOJI_OK_BOX)
-            except Exception as e:
-                await logchanbot(traceback.format_exc())
-                await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
-            return
-        elif len(args) == 1:
-            if args[0].upper() == "TIPONLY":
-                await ctx.send(f'{ctx.author.mention} Please tell what coins to be allowed here. Separated by space.')
-                return
-            # enable / disable trade
-            elif args[0].upper() == "TRADE":
-                if serverinfo['enable_trade'] == "YES":
-                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_trade', 'NO')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} DISABLE trade in their guild {ctx.guild.name} / {ctx.guild.id}')
-                    await ctx.send(f'{ctx.author.mention} DISABLE TRADE feature in this guild {ctx.guild.name}.')
-                    return
-                elif serverinfo['enable_trade'] == "NO":
-                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_trade', 'YES')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} ENABLE trade in their guild {ctx.guild.name} / {ctx.guild.id}')
-                    await ctx.send(f'{ctx.author.mention} ENABLE TRADE feature in this guild {ctx.guild.name}.')
-                return
-            # enable / disable nsfw
-            elif args[0].upper() == "NSFW":
-                if serverinfo['enable_nsfw'] == "YES":
-                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_nsfw', 'NO')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} DISABLE NSFW in their guild {ctx.guild.name} / {ctx.guild.id}')
-                    await ctx.send(f'{ctx.author.mention} DISABLE NSFW command in this guild {ctx.guild.name}.')
-                    return
-                elif serverinfo['enable_nsfw'] == "NO":
-                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_nsfw', 'YES')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} ENABLE NSFW in their guild {ctx.guild.name} / {ctx.guild.id}')
-                    await ctx.send(f'{ctx.author.mention} ENABLE NSFW command in this guild {ctx.guild.name}.')
-                return
-            # enable / disable game
-            elif args[0].upper() == "GAME":
-                if serverinfo['enable_game'] == "YES":
-                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_game', 'NO')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} DISABLE game in their guild {ctx.guild.name} / {ctx.guild.id}')
-                    await ctx.send(f'{ctx.author.mention} DISABLE GAME feature in this guild {ctx.guild.name}.')
-                    return
-                elif serverinfo['enable_game'] == "NO":
-                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_game', 'YES')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} ENABLE game in their guild {ctx.guild.name} / {ctx.guild.id}')
-                    await ctx.send(f'{ctx.author.mention} ENABLE GAME feature in this guild {ctx.guild.name}.')
-                return
-            # enable / disable game
-            elif args[0].upper() == "MARKET":
-                if serverinfo['enable_market'] == "YES":
-                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_market', 'NO')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} DISABLE market command in their guild {ctx.guild.name} / {ctx.guild.id}')
-                    await ctx.send(f'{ctx.author.mention} DISABLE market command in this guild {ctx.guild.name}.')
-                    return
-                elif serverinfo['enable_market'] == "NO":
-                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_market', 'YES')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} ENABLE market command in their guild {ctx.guild.name} / {ctx.guild.id}')
-                    await ctx.send(f'{ctx.author.mention} ENABLE market command in this guild {ctx.guild.name}.')
-                return
-            # enable / disable faucet
-            elif args[0].upper() == "FAUCET":
-                if serverinfo['enable_faucet'] == "YES":
-                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_faucet', 'NO')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} DISABLE faucet (take) command in their guild {ctx.guild.name} / {ctx.guild.id}')
-                    await ctx.send(f'{ctx.author.mention} DISABLE faucet (take) command in this guild {ctx.guild.name}.')
-                    return
-                elif serverinfo['enable_faucet'] == "NO":
-                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_faucet', 'YES')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} ENABLE market command in their guild {ctx.guild.name} / {ctx.guild.id}')
-                    await ctx.send(f'{ctx.author.mention} ENABLE market command in this guild {ctx.guild.name}.')
-                return
-            elif args[0].upper() == "IGNORE_CHAN" or args[0].upper() == "IGNORECHAN":
-                if LIST_IGNORECHAN is None:
-                    await store.sql_addignorechan_by_server(str(ctx.guild.id), str(ctx.channel.id), str(ctx.author.id), ctx.author.name)
-                    LIST_IGNORECHAN = await store.sql_listignorechan()
-                    await ctx.send(f'{ctx.author.mention} Added #{ctx.channel.name} to ignore tip action list.')
-                    return
-                if str(ctx.guild.id) in LIST_IGNORECHAN:
-                    if str(ctx.channel.id) in LIST_IGNORECHAN[str(ctx.guild.id)]:
-                        await ctx.send(f'{ctx.author.mention} This channel #{ctx.channel.name} is already in ignore list.')
-                        return
-                    else:
-                        await store.sql_addignorechan_by_server(str(ctx.guild.id), str(ctx.channel.id), str(ctx.author.id), ctx.author.name)
-                        LIST_IGNORECHAN = await store.sql_listignorechan()
-                        await ctx.send(f'{ctx.author.mention} Added #{ctx.channel.name} to ignore tip action list.')
-                        return
-                else:
-                    await store.sql_addignorechan_by_server(str(ctx.guild.id), str(ctx.channel.id), str(ctx.author.id), ctx.author.name)
-                    await ctx.send(f'{ctx.author.mention} Added #{ctx.channel.name} to ignore tip action list.')
-                    return
-            elif args[0].upper() == "DEL_IGNORE_CHAN" or args[0].upper() == "DEL_IGNORECHAN" or args[0].upper() == "DELIGNORECHAN":
-                if str(ctx.guild.id) in LIST_IGNORECHAN:
-                    if str(ctx.channel.id) in LIST_IGNORECHAN[str(ctx.guild.id)]:
-                        await store.sql_delignorechan_by_server(str(ctx.guild.id), str(ctx.channel.id))
-                        LIST_IGNORECHAN = await store.sql_listignorechan()
-                        await ctx.send(f'{ctx.author.mention} This channel #{ctx.channel.name} is deleted from ignore tip list.')
-                        return
-                    else:
-                        await ctx.send(f'{ctx.author.mention} Channel #{ctx.channel.name} is not in ignore tip action list.')
-                        return
-                else:
-                    await ctx.send(f'{ctx.author.mention} Channel #{ctx.channel.name} is not in ignore tip action list.')
-                    return
-            elif args[0].upper() == "MUTE":
-                if MUTE_CHANNEL is None:
-                    await store.sql_add_mutechan_by_server(str(ctx.guild.id), str(ctx.channel.id), str(ctx.author.id), ctx.author.name)
-                    MUTE_CHANNEL = await store.sql_list_mutechan()
-                    await ctx.send(f'{ctx.author.mention} Added #{ctx.channel.name} to mute. I will ignore anything here.')
-                    return
-                if str(ctx.guild.id) in MUTE_CHANNEL:
-                    if str(ctx.channel.id) in MUTE_CHANNEL[str(ctx.guild.id)]:
-                        await ctx.send(f'{ctx.author.mention} This channel #{ctx.channel.name} is already in mute mode.')
-                        return
-                    else:
-                        await store.sql_add_mutechan_by_server(str(ctx.guild.id), str(ctx.channel.id), str(ctx.author.id), ctx.author.name)
-                        MUTE_CHANNEL = await store.sql_list_mutechan()
-                        await ctx.send(f'{ctx.author.mention} Added #{ctx.channel.name} to mute. I will ignore anything here.')
-                        return
-                else:
-                    await store.sql_add_mutechan_by_server(str(ctx.guild.id), str(ctx.channel.id), str(ctx.author.id), ctx.author.name)
-                    await ctx.send(f'{ctx.author.mention} Added #{ctx.channel.name} to mute. I will ignore anything here.')
-                    return
-            elif args[0].upper() == "UNMUTE":
-                if str(ctx.guild.id) in MUTE_CHANNEL:
-                    if str(ctx.channel.id) in MUTE_CHANNEL[str(ctx.guild.id)]:
-                        await store.sql_del_mutechan_by_server(str(ctx.guild.id), str(ctx.channel.id))
-                        MUTE_CHANNEL = await store.sql_list_mutechan()
-                        await ctx.send(f'{ctx.author.mention} This channel #{ctx.channel.name} is unmute.')
-                        return
-                    else:
-                        await ctx.send(f'{ctx.author.mention} Channel #{ctx.channel.name} is not mute right now!')
-                        return
-                else:
-                    await ctx.send(f'{ctx.author.mention} Channel #{ctx.channel.name} is not mute right now!')
-                    return
-            elif args[0].upper() == "BOTCHAN" or args[0].upper() == "BOTCHANNEL" or args[0].upper() == "BOT_CHAN":
-                if serverinfo['botchan']:
-                    try: 
-                        if ctx.channel.id == int(serverinfo['botchan']):
-                            await ctx.send(f'{EMOJI_RED_NO} {ctx.channel.name} is already the bot channel here!')
-                            return
-                        else:
-                            # change channel info
-                            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'botchan', str(ctx.channel.id))
-                            await ctx.send(f'Bot channel has set to {ctx.channel.mention}.')
-                            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} change bot channel {ctx.guild.name} / {ctx.guild.id} to #{ctx.channel.name}.')
-                            return
-                    except ValueError:
-                        return
-                else:
-                    # change channel info
-                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'botchan', str(ctx.channel.id))
-                    await ctx.send(f'Bot channel has set to {ctx.channel.mention}.')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed bot channel {ctx.guild.name} / {ctx.guild.id} to #{ctx.channel.name}.')
-                    return
-        elif len(args) == 2:
-            if args[0].upper() == "TIPONLY":
-                if (args[1].upper() not in (ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_NANO+ENABLE_XMR+ENABLE_COIN_TRC+ENABLE_XCH)) and (args[1].upper() not in ["ALLCOIN", "*", "ALL", "TIPALL", "ANY"]):
-                    await ctx.send(f'{ctx.author.mention} {args[1].upper()} is not in any known coin we set.')
-                    return
-                else:
-                    set_coin = args[1].upper()
-                    if set_coin in ["ALLCOIN", "*", "ALL", "TIPALL", "ANY"]:
-                        set_coin = "ALLCOIN"
-                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'tiponly', set_coin)
-                    if set_coin == "ALLCOIN":
-                        await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed tiponly in {ctx.guild.name} / {ctx.guild.id} to `ALLCOIN`')
-                        await ctx.send(f'{ctx.author.mention} Any coin is **allowed** here.')
-                    else:
-                        await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed tiponly in {ctx.guild.name} / {ctx.guild.id} to `{args[1].upper()}`')
-                        await ctx.send(f'{ctx.author.mention} {set_coin} will be the only tip here.')
-                    return
-            elif args[0].upper() == "PREFIX":
-                if args[1] not in [".", "?", "*", "!", "$", "~"]:
-                    await ctx.send(f'{ctx.author.mention} Invalid prefix **{args[1]}**')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} wanted to changed prefix in {ctx.guild.name} / {ctx.guild.id} to `{args[1].lower()}`')
-                    return
-                else:
-                    if server_prefix == args[1]:
-                        await ctx.send(f'{ctx.author.mention} That\'s the default prefix. Nothing changed.')
-                        return
-                    else:
-                        changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'prefix', args[1].lower())
-                        await ctx.send(f'{ctx.author.mention} Prefix changed from `{server_prefix}` to `{args[1].lower()}`.')
-                        await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed prefix in {ctx.guild.name} / {ctx.guild.id} to `{args[1].lower()}`')
-                        return
-            elif args[0].upper() == "DEFAULT_COIN" or args[0].upper() == "DEFAULTCOIN" or args[0].upper() == "COIN":
-                if args[1].upper() not in (ENABLE_COIN + ENABLE_XMR + ENABLE_COIN_DOGE + ENABLE_COIN_ERC + ENABLE_COIN_NANO + ENABLE_COIN_TRC + ENABLE_XCH):
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!')
-                    return
-                else:
-                    if server_coin.upper() == args[1].upper():
-                        await ctx.send(f'{ctx.author.mention} That\'s the default coin. Nothing changed.')
-                        return
-                    else:
-                        changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'default_coin', args[1].upper())
-                        await ctx.send(f'Default Coin changed from `{server_coin}` to `{args[1].upper()}`.')
-                        await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed default coin in {ctx.guild.name} / {ctx.guild.id} to {args[1].upper()}.')
-                        return
-            elif args[0].upper() == "REACTTIP":
-                if args[1].upper() not in ["ON", "OFF"]:
-                    await ctx.send('Invalid Option. **ON OFF** Only.')
-                    return
-                else:
-                    if server_reacttip == args[1].upper():
-                        await ctx.send(f'{ctx.author.mention} That\'s the default option already. Nothing changed.')
-                        return
-                    else:
-                        changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'react_tip', args[1].upper())
-                        await ctx.send(f'React Tip changed from `{server_reacttip}` to `{args[1].upper()}`.')
-                        return
-            elif args[0].upper() == "REACTAMOUNT" or args[0].upper() == "REACTTIP-AMOUNT":
-                amount = args[1].replace(",", "")
-                try:
-                    amount = Decimal(amount)
-                except ValueError:
-                    await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
-                    return
-                changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'react_tip_100', amount)
-                await ctx.send(f'React tip amount updated to to `{amount}{server_coin}`.')
-                return
-            else:
-                await ctx.send(f'{ctx.author.mention} Invalid command input and parameter.')
-                return
-        elif len(args) >= 3:
-            # If argument is more than 3, such as setting tiponly X Y ..
-            if args[0].upper() == "TIPONLY":
-                if args[1].upper() == "ALLCOIN" or args[1].upper() == "ALL" or args[1].upper() == "TIPALL" or args[1].upper() == "ANY" or args[1].upper() == "*":
-                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'tiponly', "ALLCOIN")
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed tiponly in {ctx.guild.name} / {ctx.guild.id} to `ALLCOIN`')
-                    await ctx.message.add_reaction(EMOJI_OK_HAND)
-                    await ctx.send(f'{ctx.author.mention} all coins will be allowed in here.')
-                    return
-                else:
-                    try:
-                        contained = [x.upper() for x in args if x.upper() in (ENABLE_COIN+ENABLE_XMR+ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_COIN_NANO+ENABLE_XCH)]
-                        if contained and len(contained) >= 2:
-                            tiponly_value = ','.join(contained)
-                            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed tiponly in {ctx.guild.name} / {ctx.guild.id} to `{tiponly_value}`')
-                            await ctx.send(f'{ctx.author.mention} TIPONLY set to: **{tiponly_value}**.')
-                            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'tiponly', tiponly_value.upper())
-                            await ctx.message.add_reaction(EMOJI_OK_HAND)
-                        else:
-                            # Delete tiponly
-                            del args[0]
-                            list_coin = ', '.join(args)
-                            await ctx.message.add_reaction(EMOJI_INFORMATION)
-                            await ctx.send(f'{ctx.author.mention} No known coin in **{list_coin}**. TIPONLY is remained unchanged.')
-                        return
-                    except Exception as e:
-                        await logchanbot(traceback.format_exc())
-            else:
-                await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{ctx.author.mention} In valid setting command input and parameter(s).')
-            return
-
-    @commands.group(
-        usage="guild <subcommand>", 
-        description="Various guild's command"
-    )
-    async def guild(self, ctx):
-        if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
-            return
-
-        prefix = await get_guild_prefix(ctx)
-        if ctx.invoked_subcommand is None:
-            await ctx.send(f'{ctx.author.mention} Invalid {prefix}guild command.\n Please use {prefix}help guild')
-            return
-
-
-    @guild.command(
-        usage="guild deposit <coin>", 
-        description="Get deposit address of a coin for your guild."
-    )
-    async def deposit(
-        self, 
-        ctx, 
-        amount: str, 
+        ctx,
+        amount,
         coin: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
-            return
-
-        amount = amount.replace(",", "")
-        try:
-            amount = Decimal(amount)
-        except ValueError:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
-            return
+        await self.bot_log()
 
         if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.send(f'{EMOJI_RED_NO} This command can not be in private.')
-            return
-
-        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-        COIN_NAME = coin.upper()
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         # disable game for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return
+            return {"error": "Not available in this guild."}
 
+        COIN_NAME = coin.upper()
         if not is_coin_tipable(COIN_NAME):
-            msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} TIPPING is currently disable for {COIN_NAME}.')
-            await msg.add_reaction(EMOJI_OK_BOX)
-            return
+            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} TIPPING is currently disable for {COIN_NAME}."}
 
         if COIN_NAME in ENABLE_COIN_ERC:
             coin_family = "ERC-20"
@@ -512,18 +56,16 @@ class Guild(commands.Cog):
         else:
             coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
         # Check allowed coins
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         tiponly_coins = serverinfo['tiponly'].split(",")
         if COIN_NAME == serverinfo['default_coin'].upper() or serverinfo['tiponly'].upper() == "ALLCOIN":
             pass
         elif COIN_NAME not in tiponly_coins:
-            await ctx.message.add_reaction(EMOJI_LOCKED)
-            return
+            return {"error": f"{EMOJI_LOCKED} {ctx.author.mention} TIPPING is currently disable for {COIN_NAME} in this guild `{ctx.guild.name}`."}
         # End of checking allowed coins
 
         if is_maintenance_coin(COIN_NAME):
-            await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
-            return
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance."}
 
         user_from = await store.sql_get_userwallet(str(ctx.author.id), COIN_NAME)
         if user_from is None:
@@ -532,7 +74,6 @@ class Guild(commands.Cog):
                 user_from = await store.sql_register_user(str(ctx.author.id), COIN_NAME, SERVER_BOT, 0, w)
             elif COIN_NAME in ENABLE_COIN_TRC:
                 result = await store.create_address_trx()
-                print(result)
                 user_from = await store.sql_register_user(str(ctx.author.id), COIN_NAME, SERVER_BOT, 0, result)
             else:
                 user_from = await store.sql_register_user(str(ctx.author.id), COIN_NAME, SERVER_BOT, 0)
@@ -554,6 +95,7 @@ class Guild(commands.Cog):
                 msg_negative = 'Negative balance detected:\nUser: '+str(ctx.author.id)+'\nCoin: '+COIN_NAME+'\nAtomic Balance: '+str(actual_balance)
                 await logchanbot(msg_negative)
         except Exception as e:
+            traceback.print_exc(file=sys.stdout)
             await logchanbot(traceback.format_exc())
 
         user_to = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
@@ -572,39 +114,28 @@ class Guild(commands.Cog):
             real_amount = float(amount)
             token_info = await store.get_token_info(COIN_NAME)
             MinTx = token_info['real_min_tip']
-            MaxTX = token_info['real_max_tip']
+            MaxTx = token_info['real_max_tip']
         else:
             real_amount = int(Decimal(amount) * get_decimal(COIN_NAME)) if coin_family in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else float(amount)
             MinTx = get_min_mv_amount(COIN_NAME)
-            MaxTX = get_max_mv_amount(COIN_NAME)
+            MaxTx = get_max_mv_amount(COIN_NAME)
 
-        if real_amount > MaxTX:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
-                           f'{num_format_coin(MaxTX, COIN_NAME)} '
-                           f'{COIN_NAME}.')
-            return
+        if real_amount > MaxTx:
+            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than {num_format_coin(MaxTx, COIN_NAME)} {COIN_NAME}."}
         elif real_amount > actual_balance:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to transfer '
-                           f'{num_format_coin(real_amount, COIN_NAME)} '
-                           f'{COIN_NAME} to this guild **{ctx.guild.name}**.')
-            return
+            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to transfer {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME} to this guild **{ctx.guild.name}**."}
         elif real_amount < MinTx:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
-                           f'{num_format_coin(MinTx, COIN_NAME)} '
-                           f'{COIN_NAME}.')
-            return
+            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than {num_format_coin(MinTx, COIN_NAME)} {COIN_NAME}."}
 
         # add queue also tip
         if ctx.author.id not in TX_IN_PROCESS:
             TX_IN_PROCESS.append(ctx.author.id)
         else:
-            await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-            msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
-            await msg.add_reaction(EMOJI_OK_BOX)
-            return
+            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
+            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress."}
 
         tip = None
         try:
@@ -623,6 +154,7 @@ class Guild(commands.Cog):
             elif coin_family == "TRC-20":
                 tip = await store.sql_mv_trx_single(str(ctx.author.id), str(ctx.guild.id), real_amount, COIN_NAME, "GUILDDEPOSIT", token_info['contract'])
         except Exception as e:
+            traceback.print_exc(file=sys.stdout)
             await logchanbot(traceback.format_exc())
 
         # remove queue from tip
@@ -635,24 +167,22 @@ class Guild(commands.Cog):
                 update_tipstat = await store.sql_user_get_tipstat(str(ctx.author.id), COIN_NAME, True, SERVER_BOT)
                 update_tipstat = await store.sql_user_get_tipstat(str(ctx.guild.id), COIN_NAME, True, SERVER_BOT)
             except Exception as e:
+                traceback.print_exc(file=sys.stdout)
                 await logchanbot(traceback.format_exc())
-
-            await ctx.message.add_reaction(get_emoji(COIN_NAME))
+            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                await ctx.message.add_reaction(get_emoji(COIN_NAME))
             # tipper shall always get DM. Ignore notifyList
             try:
-                await ctx.send(f'{EMOJI_ARROW_RIGHTHOOK} {ctx.author.mention} **{num_format_coin(real_amount, COIN_NAME)} '
-                               f'{COIN_NAME}** was transferred to {ctx.guild.name}.')
-            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
-                await store.sql_toggle_tipnotify(str(ctx.author.id), "OFF")
-                try:
-                    await ctx.author.send(f'{EMOJI_ARROW_RIGHTHOOK} {ctx.author.mention} **{num_format_coin(real_amount, COIN_NAME)} '
-                                          f'{COIN_NAME}** was transferred to {ctx.guild.name}.')
-                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
-                    pass
+                await ctx.reply(f'{EMOJI_ARROW_RIGHTHOOK} {ctx.author.mention} **{num_format_coin(real_amount, COIN_NAME)} '
+                                f'{COIN_NAME}** was transferred to {ctx.guild.name}.')
+            except Exception as e:
+                traceback.print_exc(file=sys.stdout)
             # TODO: notify guild owner, if fail, to logchannel
-            guild_found = self.bot.get_guild(id=ctx.guild.id)
+            guild_found = self.bot.get_guild(ctx.guild.id)
             if guild_found: user_found = self.bot.get_user(guild_found.owner.id)
             if guild_found and user_found:
+                if user_found == ctx.author:
+                    return {"result": True}
                 notifyList = await store.sql_get_tipnotify()
                 if str(guild_found.owner.id) not in notifyList:
                     try:
@@ -661,15 +191,1227 @@ class Guild(commands.Cog):
                                               f'{NOTIFICATION_OFF_CMD}\n')
                     except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                         await store.sql_toggle_tipnotify(str(member.id), "OFF")
-            return
+            return {"result": True}
         else:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} Can not deliver TX for {COIN_NAME} right now. Try again soon.')
+            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                await ctx.message.add_reaction(EMOJI_ERROR)
             # add to failed tx table
             await store.sql_add_failed_tx(COIN_NAME, str(ctx.author.id), ctx.author.name, real_amount, "TIP")
+            return {"error": f"{ctx.author.mention} Can not deliver TX for {COIN_NAME} right now. Try again soon."}
+
+
+    async def guild_mdeposit(
+        self, 
+        ctx, 
+        coin_name: str, 
+        option: str=None
+    ):
+        await self.bot_log()
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        prefix = "/"
+        COIN_NAME = coin_name.upper()
+        # disable guild tip for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return {"error": f"{EMOJI_LOCKED} Not available in this guild."}
+
+        # Check if maintenance
+        if IS_MAINTENANCE == 1:
+            if int(ctx.author.id) in MAINTENANCE_OWNER:
+                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                    await ctx.message.add_reaction(EMOJI_MAINTENANCE)
+                pass
+            else:
+                return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}"}
+        # End Check if maintenance
+
+        if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!'"}
+
+        if not is_coin_depositable(COIN_NAME):
+            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} DEPOSITING is currently disable for {COIN_NAME}."}
+
+        try:
+            if COIN_NAME in ENABLE_COIN_ERC:
+                coin_family = "ERC-20"
+            elif COIN_NAME in ENABLE_COIN_TRC:
+                coin_family = "TRC-20"
+            else:
+                coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
+        except Exception as e:
+            await logchanbot(traceback.format_exc())
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**"}
+
+        if is_maintenance_coin(COIN_NAME) and (ctx.author.id not in MAINTENANCE_OWNER):
+            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_MAINTENANCE)
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance."}
+
+        if coin_family in ["TRTL", "BCN"]:
+            wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+            if wallet is None:
+                userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0)
+                wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+        elif coin_family == "XMR":
+            wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+            if wallet is None:
+                userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0)
+                wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+        elif coin_family == "DOGE":
+            wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+            if wallet is None:
+                wallet = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0)
+                wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+        elif coin_family == "NANO":
+            wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+            if wallet is None:
+                wallet = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0)
+                wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+        elif coin_family == "ERC-20":
+            wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+            if wallet is None:
+                w = await create_address_eth()
+                wallet = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, w)
+                wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+        elif coin_family == "TRC-20":
+            wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+            if wallet is None:
+                result = await store.create_address_trx()
+                wallet = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, result)
+                wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+        else:
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**"}
+        if wallet is None:
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Internal Error for `mdeposit`"}
+        if not os.path.exists(config.deposit_qr.path_deposit_qr_create + wallet['balance_wallet_address'] + ".png"):
+            try:
+                # do some QR code
+                qr = qrcode.QRCode(
+                    version=1,
+                    error_correction=qrcode.constants.ERROR_CORRECT_L,
+                    box_size=10,
+                    border=2,
+                )
+                qr.add_data(wallet['balance_wallet_address'])
+                qr.make(fit=True)
+                img = qr.make_image(fill_color="black", back_color="white")
+                img = img.resize((256, 256))
+                img.save(config.deposit_qr.path_deposit_qr_create + wallet['balance_wallet_address'] + ".png")
+            except Exception as e:
+                await logchanbot(traceback.format_exc())
+            # https://deposit.bot.tips/
+        if not os.path.exists(config.qrsettings.path + wallet['balance_wallet_address'] + ".png"):
+            try:
+                # do some QR code
+                qr = qrcode.QRCode(
+                    version=1,
+                    error_correction=qrcode.constants.ERROR_CORRECT_L,
+                    box_size=10,
+                    border=2,
+                )
+                qr.add_data(wallet['balance_wallet_address'])
+                qr.make(fit=True)
+                img = qr.make_image(fill_color="black", back_color="white")
+                img = img.resize((256, 256))
+                img.save(config.qrsettings.path + wallet['balance_wallet_address'] + ".png")
+            except Exception as e:
+                await logchanbot(traceback.format_exc())
+        if option and option.upper() in ["PLAIN", "TEXT", "NOEMBED"]:
+            deposit = wallet['balance_wallet_address']
+            try:
+                msg = await ctx.reply(f'{ctx.author.mention} Guild {ctx.guild.name} **{COIN_NAME}**\'s deposit address (not yours): ```{deposit}```')
+                await msg.add_reaction(EMOJI_OK_BOX)
+                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_OK_HAND)
+            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
+            return
+
+        embed = discord.Embed(title=f'**Guild {ctx.guild.name}** deposit / **{COIN_NAME}**', description='`This is guild\'s tipjar address. Do not deposit here unless you want to deposit to this guild and not yours!`', timestamp=datetime.utcnow(), colour=7047495)
+        embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon)
+        embed.add_field(name="{} Deposit Address".format(COIN_NAME), value="`{}`".format(wallet['balance_wallet_address']), inline=False)
+        if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+            token_info = await store.get_token_info(COIN_NAME)
+            if token_info and COIN_NAME in ENABLE_COIN_ERC and token_info['contract'] and len(token_info['contract']) == 42:
+                embed.add_field(name="{} Contract".format(COIN_NAME), value="`{}`".format(token_info['contract']), inline=False)
+            elif token_info and COIN_NAME in ENABLE_COIN_TRC and token_info['contract'] and len(token_info['contract']) >= 6:
+                embed.add_field(name="{} Contract/Token ID".format(COIN_NAME), value="`{}`".format(token_info['contract']), inline=False)
+            if token_info and token_info['deposit_note']:
+                embed.add_field(name="{} Deposit Note".format(COIN_NAME), value="`{}`".format(token_info['deposit_note']), inline=False)
+        embed.set_thumbnail(url=config.deposit_qr.deposit_url + "/tipbot_deposit_qr/" + wallet['balance_wallet_address'] + ".png")
+        embed.set_footer(text=f"Use:{prefix}guild mdeposit {COIN_NAME}")
+        try:
+            msg = await ctx.reply(embed=embed)
+            await msg.add_reaction(EMOJI_OK_BOX)
+            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_OK_HAND)
+            return
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
+
+
+    async def guild_mbalance(
+        self, 
+        ctx,
+        coin: str=None
+    ):
+        await self.bot_log()
+
+        prefix = "/"
+        # disable guild tip for TRTL discord
+        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
+            return {"error": f"{EMOJI_LOCKED} Not available in this guild."}
+
+        # If DM, error
+        if isinstance(ctx.channel, discord.DMChannel) == True:
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        embed = discord.Embed(title=f'[ GUILD {ctx.guild.name} BALANCE ]', timestamp=datetime.utcnow())
+        any_balance = 0
+        if coin is None:
+            for COIN_NAME in [coinItem.upper() for coinItem in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH]:
+                if not is_maintenance_coin(COIN_NAME):
+                    wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+                    if wallet is None:
+                        if COIN_NAME in ENABLE_COIN_ERC:
+                            w = await create_address_eth()
+                            userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, w)
+                        elif COIN_NAME in ENABLE_COIN_TRC:
+                            result = await store.create_address_trx()
+                            userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, result)
+                        else:
+                            userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0)
+                        wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+                    if wallet is None:
+                        await self.botLogChan.send(f'A user call `{prefix}mbalance` failed with {COIN_NAME} in guild {ctx.guild.id} / {ctx.guild.name} / # {ctx.message.channel.name} ')
+                        return
+                    else:
+                        userdata_balance = await store.sql_user_balance(str(ctx.guild.id), COIN_NAME)
+                        xfer_in = 0
+                        if COIN_NAME not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                            xfer_in = await store.sql_user_balance_get_xfer_in(str(ctx.guild.id), COIN_NAME)
+                        if COIN_NAME in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                            actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
+                        elif COIN_NAME in ENABLE_COIN_NANO:
+                            actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
+                            actual_balance = round(actual_balance / get_decimal(COIN_NAME), 6) * get_decimal(COIN_NAME)
+                        else:
+                            actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
+                        # Negative check
+                        try:
+                            if actual_balance < 0:
+                                msg_negative = 'Negative balance detected:\nGuild: '+str(ctx.guild.id)+'\nCoin: '+COIN_NAME+'\nAtomic Balance: '+str(actual_balance)
+                                await logchanbot(msg_negative)
+                        except Exception as e:
+                            await logchanbot(traceback.format_exc())
+                        balance_actual = num_format_coin(actual_balance, COIN_NAME)
+                        coinName = COIN_NAME
+                        if actual_balance > 0:
+                            any_balance += 1
+                            embed.add_field(name=COIN_NAME, value=balance_actual+" "+COIN_NAME, inline=True)
+            if any_balance == 0:
+                embed.add_field(name="INFO", value='`This guild has no balance for any coin yet.`', inline=True)
+            embed.add_field(name='Related commands', value=f'`{prefix}mbalance TICKER` or `{prefix}mdeposit TICKER`', inline=False)
+            embed.set_footer(text=f"Guild balance requested by {ctx.author.name}#{ctx.author.discriminator}")
+            try:
+                msg = await ctx.reply(embed=embed)
+                await msg.add_reaction(EMOJI_OK_BOX)
+            except Exception as e:
+                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                    await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
+            return
+        else:
+            COIN_NAME = coin.upper()
+
+        if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!"}
+
+        try:
+            if COIN_NAME in ENABLE_COIN_ERC:
+                coin_family = "ERC-20"
+            elif COIN_NAME in ENABLE_COIN_TRC:
+                coin_family = "TRC-20"
+            else:
+                coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
+        except Exception as e:
+            await logchanbot(traceback.format_exc())
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!"}
+
+        if is_maintenance_coin(COIN_NAME) and ctx.author.id not in MAINTENANCE_OWNER:
+            return {"error": f"{EMOJI_RED_NO} {COIN_NAME} in maintenance."}
+
+        if COIN_NAME in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
+            wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+            if wallet is None:
+                if COIN_NAME in ENABLE_COIN_ERC:
+                    w = await create_address_eth()
+                    userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, w)
+                elif COIN_NAME in ENABLE_COIN_TRC:
+                    result = await store.create_address_trx()
+                    userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, result)
+                else:
+                    userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0)
+            userdata_balance = await store.sql_user_balance(str(ctx.guild.id), COIN_NAME)
+            xfer_in = 0
+            if COIN_NAME not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                xfer_in = await store.sql_user_balance_get_xfer_in(str(ctx.guild.id), COIN_NAME)
+            if COIN_NAME in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
+                actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
+            elif COIN_NAME in ENABLE_COIN_NANO:
+                actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
+                actual_balance = round(actual_balance / get_decimal(COIN_NAME), 6) * get_decimal(COIN_NAME)
+            else:
+                actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
+
+            # Negative check
+            try:
+                if actual_balance < 0:
+                    msg_negative = 'Negative balance detected:\nGuild: '+str(ctx.guild.id)+'\nCoin: '+COIN_NAME+'\nAtomic Balance: '+str(actual_balance)
+                    await logchanbot(msg_negative)
+            except Exception as e:
+                await logchanbot(traceback.format_exc())
+
+            balance_actual = num_format_coin(actual_balance, COIN_NAME)
+            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                await ctx.message.add_reaction(EMOJI_OK_HAND)
+            msg = await ctx.reply(f'**[GUILD {ctx.guild.name} - {COIN_NAME} BALANCE ]**\n\n'
+                    f'{EMOJI_MONEYBAG} Available: {balance_actual} '
+                    f'{COIN_NAME}\n'
+                    f'{get_notice_txt(COIN_NAME)}')
+            await msg.add_reaction(EMOJI_OK_BOX)
+            return {"result": True}
+        else:
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} There is no such ticker {COIN_NAME}."}
+
+
+    async def guild_info(
+        self, 
+        ctx
+    ):
+        await self.bot_log()
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
+            return
+        prefix = "/"
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        server_coin = DEFAULT_TICKER
+        server_tiponly = "ALLCOIN"
+        react_tip_value = "N/A"
+        if serverinfo is None:
+            # Let's add some info if server return None
+            add_server_info = await store.sql_addinfo_by_server(str(ctx.guild.id),
+                                                                ctx.guild.name, config.discord.prefixCmd, "WRKZ")
+        else:
+            server_coin = serverinfo['default_coin'].upper()
+            server_tiponly = serverinfo['tiponly'].upper()
+            if serverinfo['react_tip'].upper() == "ON":
+                COIN_NAME = serverinfo['default_coin'].upper()
+                react_tip_value = str(serverinfo['react_tip_100']) + COIN_NAME
+        try:
+            MUTE_CHANNEL = await store.sql_list_mutechan()
+            LIST_IGNORECHAN = await store.sql_listignorechan()
+            chanel_ignore_list = ''
+            if LIST_IGNORECHAN and str(ctx.guild.id) in LIST_IGNORECHAN:
+                for item in LIST_IGNORECHAN[str(ctx.guild.id)]:
+                    try:
+                        chanel_ignore = bot.get_channel(int(item))
+                        chanel_ignore_list += '#'  + chanel_ignore.name + ' '
+                    except Exception as e:
+                        pass
+            if chanel_ignore_list == '': chanel_ignore_list = 'N/A'
+
+            chanel_mute_list = ''
+            if MUTE_CHANNEL and str(ctx.guild.id) in MUTE_CHANNEL:
+                for item in MUTE_CHANNEL[str(ctx.guild.id)]:
+                    try:
+                        chanel_mute = bot.get_channel(int(item))
+                        chanel_mute_list += '#'  + chanel_mute.name + ' '
+                    except Exception as e:
+                        pass
+            if chanel_mute_list == '': chanel_mute_list = 'N/A'
+        except Exception as e:
+            await logchanbot(traceback.format_exc())
+        extra_text = f'Type: {prefix}setting or {prefix}help setting for more info. (Required permission)'
+        try:
+            embed = discord.Embed(title=f'Guild {ctx.guild.id} / {ctx.guild.name}', timestamp=datetime.utcnow())
+            embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon)
+            embed.add_field(name="Default Ticker", value=f'`{server_coin}`', inline=True)
+            embed.add_field(name="Default Prefix", value=f'`{prefix}`', inline=True)
+            embed.add_field(name="TipOnly Coins", value=f'`{server_tiponly}`', inline=True)
+            embed.add_field(name=f"Re-act Tip {EMOJI_TIP}", value=f'`{react_tip_value}`', inline=True)
+            embed.add_field(name="Ignored Tip", value=f'`{chanel_ignore_list}`', inline=True)
+            embed.add_field(name="Mute in", value=f'`{chanel_mute_list}`', inline=True)
+            embed.set_footer(text=f"{extra_text}")
+            msg = await ctx.reply(embed=embed)
+            await msg.add_reaction(EMOJI_OK_BOX)
+        except (discord.errors.NotFound, discord.errors.Forbidden, Exception) as e:
+            msg = await ctx.reply(
+                '\n```'
+                f'Server ID:      {ctx.guild.id}\n'
+                f'Server Name:    {ctx.guild.name}\n'
+                f'Default Ticker: {server_coin}\n'
+                f'Default Prefix: {prefix}\n'
+                f'TipOnly Coins:  {server_tiponly}\n'
+                f'Re-act Tip:     {react_tip_value}\n'
+                f'Ignored Tip in: {chanel_ignore_list}\n'
+                f'Mute in:        {chanel_mute_list}\n'
+                f'```{extra_text}')
+            await msg.add_reaction(EMOJI_OK_BOX)
+
+
+    async def guild_botchan(
+        self, 
+        ctx
+    ):
+        await self.bot_log()
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo['botchan']:
+            try: 
+                if ctx.channel.id == int(serverinfo['botchan']):
+                    return {"error": f"{EMOJI_RED_NO} {ctx.channel.mention} is already the bot channel here!"}
+                else:
+                    # change channel info
+                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'botchan', str(ctx.channel.id))
+                    await ctx.reply(f'Bot channel has set to {ctx.channel.mention}.')
+                    await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} change bot channel {ctx.guild.name} / {ctx.guild.id} to #{ctx.channel.name}.')
+                    return {"result": True}
+            except Exception as e:
+                traceback.print_exc(file=sys.stdout)
+                await logchanbot(traceback.format_exc())
+        else:
+            # change channel info
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'botchan', str(ctx.channel.id))
+            await ctx.reply(f'Bot channel has set to {ctx.channel.mention}.')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed bot channel {ctx.guild.name} / {ctx.guild.id} to #{ctx.channel.name}.')
+            return {"result": True}
+
+
+    async def guild_gamechan(
+        self, 
+        ctx,
+        game: str=None
+    ):
+        await self.bot_log()
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        game_list = config.game.game_list.split(",")
+        if game is None:
+            return {"error": f"{EMOJI_RED_NO} {ctx.channel.mention} please mention a game name to set game channel for it. Game list: {config.game.game_list}."}
+        else:
+            game = game.lower()
+            if game not in game_list:
+                return {"error": f"{EMOJI_RED_NO} {ctx.channel.mention} please mention a game name within this list: {config.game.game_list}."}
+            else:
+                serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+                index_game = "game_" + game + "_channel"
+                if serverinfo[index_game]:
+                    try: 
+                        if ctx.channel.id == int(serverinfo[index_game]):
+                            return {"error": f"{EMOJI_RED_NO} {ctx.channel.mention} is already for game **{game}** channel here!"}
+                        else:
+                            # change channel info
+                            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), index_game, str(ctx.channel.id))
+                            await ctx.reply(f'{ctx.channel.mention} Game **{game}** channel has set to {ctx.channel.mention}.')
+                            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed game **{game}** in channel {ctx.guild.name} / {ctx.guild.id} to #{ctx.channel.name}.')
+                            return {"result": True}
+                    except Exception as e:
+                        traceback.print_exc(file=sys.stdout)
+                        await logchanbot(traceback.format_exc())
+                else:
+                    # change channel info
+                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), index_game, str(ctx.channel.id))
+                    await ctx.reply(f'{ctx.channel.mention} Game **{game}** channel has set to {ctx.channel.mention}.')
+                    await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} set game **{game}** channel in {ctx.guild.name} / {ctx.guild.id} to #{ctx.channel.name}.')
+                    return {"result": True}
+
+
+    async def guild_setting_tiponly(
+        self, 
+        ctx,
+        coin_list: str
+    ):
+        await self.bot_log()
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        coin_list = coin_list.upper()
+        if coin_list in ["ALLCOIN", "*", "ALL", "TIPALL", "ANY"]:
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'tiponly', "ALLCOIN")
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed tiponly in {ctx.guild.name} / {ctx.guild.id} to `ALLCOIN`')
+            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_OK_HAND)
+            await ctx.reply(f'{ctx.author.mention} all coins will be allowed in here.')
+            return {"result": True}
+        elif " " in coin_list or "," in coin_list:
+            # multiple coins
+            if " " in coin_list:
+                coins = coin_list.split()
+            elif "," in coin_list:
+                coins = coin_list.split(",")
+            contained = [x.upper() for x in coins if x.upper() in ENABLE_COIN+ENABLE_XMR+ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_COIN_NANO+ENABLE_XCH]
+            if contained and len(contained) >= 2:
+                tiponly_value = ','.join(contained)
+                await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed tiponly in {ctx.guild.name} / {ctx.guild.id} to `{tiponly_value}`')
+                await ctx.reply(f'{ctx.author.mention} TIPONLY set to: **{tiponly_value}**.')
+                changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'tiponly', tiponly_value.upper())
+                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_OK_HAND)
+            else:
+                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_INFORMATION)
+                await ctx.reply(f'{ctx.author.mention} No known coin in **{coin_list}**. TIPONLY is remained unchanged.')
+            return {"result": True}
+        else:
+            # Single coin
+            if coin_list not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_NANO+ENABLE_XMR+ENABLE_COIN_TRC+ENABLE_XCH:
+                await ctx.reply(f'{ctx.author.mention} {coin_list} is not in any known coin we set.')
+                return {"result": True}
+            else:
+                # coin_list is single coin set_coin
+                changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'tiponly', coin_list)
+                await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed tiponly in {ctx.guild.name} / {ctx.guild.id} to `{coin_list}`')
+                await ctx.send(f'{ctx.author.mention} {coin_list} will be the only tip here.')
+                return {"result": True}
+
+
+    async def guild_setting_info(
+        self, 
+        ctx
+    ):
+        prefix = "/"
+        await self.bot_log()
+        if isinstance(ctx.channel, discord.DMChannel):
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        embed = discord.Embed(title = "GUILD {} SETTING / INFO".format(ctx.guild.name), timestamp=datetime.utcnow())
+        embed.add_field(name="Tip Only", value=f'`{prefix}setting tiponly <coin1> [coin2] ..`', inline=False)
+        embed.add_field(name="Bot Channel", value=f'`{prefix}setting botchan #channel_name`', inline=False)
+        embed.add_field(name="Ignore Tipping this Channel", value=f'`{prefix}setting ignorechan`', inline=False)
+        embed.add_field(name="Delete Ignored Channel", value=f'`{prefix}setting del_ignorechan`', inline=False)
+        n_mute = 0
+        n_ignore = 0
+        
+        MUTE_CHANNEL = await store.sql_list_mutechan()
+        LIST_IGNORECHAN = await store.sql_listignorechan()
+        if MUTE_CHANNEL and str(ctx.guild.id) in MUTE_CHANNEL:
+            n_mute = len(MUTE_CHANNEL[str(ctx.guild.id)])
+        if LIST_IGNORECHAN and str(ctx.guild.id) in LIST_IGNORECHAN:
+            n_ignore = len(LIST_IGNORECHAN[str(ctx.guild.id)])
+        embed.add_field(name="Num. Mute/Ignore Channel", value=f'`{n_mute} / {n_ignore}`', inline=False)
+        try:
+            msg = await ctx.reply(embed=embed)
+            await msg.add_reaction(EMOJI_OK_BOX)
+        except Exception as e:
+            await logchanbot(traceback.format_exc())
+        return
+
+
+    async def guild_setting_trade(
+        self, 
+        ctx
+    ):
+        prefix = "/"
+        await self.bot_log()
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo is None:
+            # Let's add some info if server return None
+            add_server_info = await store.sql_addinfo_by_server(str(ctx.guild.id), ctx.guild.name, prefix, DEFAULT_TICKER)
+            serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+                                                                
+        if serverinfo and serverinfo['enable_trade'] == "YES":
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_trade', 'NO')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} DISABLE trade in their guild {ctx.guild.name} / {ctx.guild.id}')
+            await ctx.reply(f"{ctx.author.mention} DISABLE TRADE feature in this guild {ctx.guild.name}.")
+            return {"result": True}
+        elif serverinfo and serverinfo['enable_trade'] == "NO":
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_trade', 'YES')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} ENABLE trade in their guild {ctx.guild.name} / {ctx.guild.id}')
+            await ctx.reply(f"{ctx.author.mention} ENABLE TRADE feature in this guild {ctx.guild.name}.")
+            return {"result": True}
+        else:
+            return {"error": f"{ctx.author.mention} Internal error when calling serverinfo function."}
+
+
+    async def guild_setting_nsfw(
+        self, 
+        ctx
+    ):
+        prefix = "/"
+        await self.bot_log()
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo is None:
+            # Let's add some info if server return None
+            add_server_info = await store.sql_addinfo_by_server(str(ctx.guild.id), ctx.guild.name, prefix, DEFAULT_TICKER)
+            serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+
+        if serverinfo and serverinfo['enable_nsfw'] == "YES":
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_nsfw', 'NO')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} DISABLE NSFW in their guild {ctx.guild.name} / {ctx.guild.id}')
+            await ctx.reply(f"{ctx.author.mention} DISABLE NSFW command in this guild {ctx.guild.name}.")
+            return {"result": True}
+        elif serverinfo and serverinfo['enable_nsfw'] == "NO":
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_nsfw', 'YES')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} ENABLE NSFW in their guild {ctx.guild.name} / {ctx.guild.id}')
+            await ctx.reply(f"{ctx.author.mention} ENABLE NSFW command in this guild {ctx.guild.name}.")
+            return {"result": True}
+        else:
+            return {"error": f"{ctx.author.mention} Internal error when calling serverinfo function."}
+
+
+    async def guild_setting_game(
+        self, 
+        ctx
+    ):
+        prefix = "/"
+        await self.bot_log()
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo is None:
+            # Let's add some info if server return None
+            add_server_info = await store.sql_addinfo_by_server(str(ctx.guild.id), ctx.guild.name, prefix, DEFAULT_TICKER)
+            serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo and serverinfo['enable_game'] == "YES":
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_game', 'NO')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} DISABLE game in their guild {ctx.guild.name} / {ctx.guild.id}')
+            await ctx.reply(f"{ctx.author.mention} DISABLE GAME feature in this guild {ctx.guild.name}.")
+            return {"result": True}
+        elif serverinfo and serverinfo['enable_game'] == "NO":
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_game', 'YES')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} ENABLE game in their guild {ctx.guild.name} / {ctx.guild.id}')
+            await ctx.reply(f"{ctx.author.mention} ENABLE GAME feature in this guild {ctx.guild.name}.")
+            return {"result": True}
+        else:
+            return {"error": f"{ctx.author.mention} Internal error when calling serverinfo function."}
+
+
+    async def guild_setting_market(
+        self, 
+        ctx
+    ):
+        prefix = "/"
+        await self.bot_log()
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo is None:
+            # Let's add some info if server return None
+            add_server_info = await store.sql_addinfo_by_server(str(ctx.guild.id), ctx.guild.name, prefix, DEFAULT_TICKER)
+            serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+
+        if serverinfo and serverinfo['enable_market'] == "YES":
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_market', 'NO')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} DISABLE market command in their guild {ctx.guild.name} / {ctx.guild.id}')
+            await ctx.reply(f"{ctx.author.mention} DISABLE market command in this guild {ctx.guild.name}.")
+            return {"result": True}
+        elif serverinfo and serverinfo['enable_market'] == "NO":
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_market', 'YES')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} ENABLE market command in their guild {ctx.guild.name} / {ctx.guild.id}')
+            await ctx.reply(f"{ctx.author.mention} ENABLE market command in this guild {ctx.guild.name}.")
+            return {"result": True}
+        else:
+            return {"error": f"{ctx.author.mention} Internal error when calling serverinfo function."}
+
+
+    async def guild_setting_faucet(
+        self, 
+        ctx
+    ):
+        prefix = "/"
+        await self.bot_log()
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo is None:
+            # Let's add some info if server return None
+            add_server_info = await store.sql_addinfo_by_server(str(ctx.guild.id), ctx.guild.name, prefix, DEFAULT_TICKER)
+            serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+
+        if serverinfo and serverinfo['enable_faucet'] == "YES":
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_faucet', 'NO')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} DISABLE faucet (take) command in their guild {ctx.guild.name} / {ctx.guild.id}')
+            await ctx.reply(f"{ctx.author.mention} DISABLE faucet (take) command in this guild {ctx.guild.name}.")
+            return {"result": True}
+        elif serverinfo and serverinfo['enable_faucet'] == "NO":
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'enable_faucet', 'YES')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} ENABLE faucet (take) command in their guild {ctx.guild.name} / {ctx.guild.id}')
+            await ctx.reply(f"{ctx.author.mention} ENABLE faucet (take) command in this guild {ctx.guild.name}.")
+            return {"result": True}
+        else:
+            return {"error": f"{ctx.author.mention} Internal error when calling serverinfo function."}
+
+
+    async def guild_setting_defaultcoin(
+        self, 
+        ctx,
+        default_coin: str
+    ):
+        prefix = "/"
+        await self.bot_log()
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        server_coin = DEFAULT_TICKER
+        if serverinfo is None:
+            # Let's add some info if server return None
+            add_server_info = await store.sql_addinfo_by_server(str(ctx.guild.id), ctx.guild.name, prefix, DEFAULT_TICKER)
+            serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        server_coin = serverinfo['default_coin'].upper()
+
+        if default_coin.upper() not in ENABLE_COIN + ENABLE_XMR + ENABLE_COIN_DOGE + ENABLE_COIN_ERC + ENABLE_COIN_NANO + ENABLE_COIN_TRC + ENABLE_XCH:
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!"}
+        elif server_coin and server_coin.upper() == default_coin.upper():
+            await ctx.reply(f"{ctx.author.mention} **{default_coin.upper()}** was guild's default coin. Nothing changed.")
+            return {"result": True}
+        elif server_coin:
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'default_coin', default_coin.upper())
+            await ctx.reply(f"Guild {ctx.guild.name}'s default coin changed from `{server_coin}` to `{default_coin.upper()}`.")
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed default coin in {ctx.guild.name} / {ctx.guild.id} to {default_coin.upper()}.')
+            return {"result": True}
+        else:
+            return {"error": f"{ctx.author.mention} Internal error when calling serverinfo function."}
+
+
+    async def guild_setting_mutechan(
+        self, 
+        ctx
+    ):
+        prefix = "/"
+        await self.bot_log()
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        if MUTE_CHANNEL is None:
+            await store.sql_add_mutechan_by_server(str(ctx.guild.id), str(ctx.channel.id), str(ctx.author.id), ctx.author.name)
+            MUTE_CHANNEL = await store.sql_list_mutechan()
+            await ctx.reply(f'{ctx.author.mention} Added #{ctx.channel.name} to mute. I will ignore anything here.')
+            return {"result": True}
+        if str(ctx.guild.id) in MUTE_CHANNEL:
+            if str(ctx.channel.id) in MUTE_CHANNEL[str(ctx.guild.id)]:
+                await ctx.reply(f'{ctx.author.mention} This channel #{ctx.channel.name} is already in mute mode.')
+                return {"result": True}
+            else:
+                await store.sql_add_mutechan_by_server(str(ctx.guild.id), str(ctx.channel.id), str(ctx.author.id), ctx.author.name)
+                MUTE_CHANNEL = await store.sql_list_mutechan()
+                await ctx.reply(f'{ctx.author.mention} Added #{ctx.channel.name} to mute. I will ignore anything here.')
+                return {"result": True}
+        else:
+            await store.sql_add_mutechan_by_server(str(ctx.guild.id), str(ctx.channel.id), str(ctx.author.id), ctx.author.name)
+            await ctx.reply(f'{ctx.author.mention} Added #{ctx.channel.name} to mute. I will ignore anything here.')
+            return {"result": True}
+
+
+    async def guild_setting_unmutechan(
+        self, 
+        ctx
+    ):
+        prefix = "/"
+        await self.bot_log()
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        if MUTE_CHANNEL and str(ctx.guild.id) in MUTE_CHANNEL:
+            if str(ctx.channel.id) in MUTE_CHANNEL[str(ctx.guild.id)]:
+                await store.sql_del_mutechan_by_server(str(ctx.guild.id), str(ctx.channel.id))
+                MUTE_CHANNEL = await store.sql_list_mutechan()
+                await ctx.reply(f'{ctx.author.mention} This channel #{ctx.channel.name} is unmute.')
+                return {"result": True}
+            else:
+                await ctx.reply(f'{ctx.author.mention} Channel #{ctx.channel.name} is not mute right now!')
+                return {"result": True}
+        else:
+            await ctx.reply(f'{ctx.author.mention} Channel #{ctx.channel.name} is not mute right now!')
+            return {"result": True}
+
+
+    async def guild_setting_reacttip(
+        self, 
+        ctx
+    ):
+        prefix = "/"
+        await self.bot_log()
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+        if serverinfo is None:
+            # Let's add some info if server return None
+            add_server_info = await store.sql_addinfo_by_server(str(ctx.guild.id), ctx.guild.name, prefix, DEFAULT_TICKER)
+            serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
+
+        if serverinfo and serverinfo['react_tip'] == "ON":
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'react_tip', 'OFF')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} DISABLE react tip in their guild {ctx.guild.name} / {ctx.guild.id}')
+            await ctx.reply(f"{ctx.author.mention} DISABLE react tip in this guild {ctx.guild.name}.")
+            return {"result": True}
+        elif serverinfo and serverinfo['react_tip'] == "OFF":
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'react_tip', 'ON')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} ENABLE react tip in their guild {ctx.guild.name} / {ctx.guild.id}')
+            await ctx.reply(f"{ctx.author.mention} ENABLE react tip in this guild {ctx.guild.name}.")
+            return {"result": True}
+        else:
+            return {"error": f"{ctx.author.mention} Internal error when calling serverinfo function."}
+
+
+    async def guild_setting_reacttip_amount(
+        self, 
+        ctx,
+        amount,
+        coin: str
+    ):
+        await self.bot_log()
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            return {"error": f"{ctx.author.mention} This command can not be DM."}
+
+        COIN_NAME = coin.upper()
+        if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!'"}
+
+        if COIN_NAME in ENABLE_COIN_ERC:
+            coin_family = "ERC-20"
+            token_info = await store.get_token_info(COIN_NAME)
+            MinTx = token_info['real_min_tip']
+            MaxTx = token_info['real_max_tip']
+            decimal_pts = token_info['token_decimal']
+        elif COIN_NAME in ENABLE_COIN_TRC:
+            coin_family = "TRC-20"
+            token_info = await store.get_token_info(COIN_NAME)
+            MinTx = token_info['real_min_tip']
+            MaxTx = token_info['real_max_tip']
+            decimal_pts = token_info['token_decimal']
+        else:
+            coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
+            MinTx = get_min_mv_amount(COIN_NAME)
+            MaxTx = get_max_mv_amount(COIN_NAME)
+            decimal_pts = int(math.log10(get_decimal(COIN_NAME)))
+        try:
+            amount = Decimal(amount)
+        except ValueError:
+            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Invalid amount."}
+        real_amount = int(Decimal(amount) * get_decimal(COIN_NAME)) if coin_family in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else float(amount)
+        if real_amount < MinTx or real_amount >  MaxTx:
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} amount of **{COIN_NAME}** out of range!"}
+        else:
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'react_tip_100', real_amount)
+            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'react_tip_coin', COIN_NAME)
+            await ctx.reply(f'{ctx.author.mention} changed react tip amount updated to to `{num_format_coin(real_amount, COIN_NAME)}{COIN_NAME}`.')
+            return {"result": True}
+
+
+    @inter_client.slash_command(description="Guild setting commands.")
+    async def setting(self, ctx):
+        pass
+
+
+    @setting.sub_command(
+        usage="setting tiponly <coin1, coin2, ....>", 
+        options=[
+            Option('coin_list', 'coin_list', OptionType.STRING, required=True)
+        ],
+        description="Deposit from your balance to guild's balance"
+    )
+    @dislash.has_permissions(manage_channels=True)
+    async def tiponly(
+        self, 
+        ctx,
+        coin_list: str
+    ):
+        guild_setting_tiponly = await self.guild_setting_tiponly(ctx, coin_list)
+        if guild_setting_tiponly and "error" in guild_setting_tiponly:
+            await ctx.reply(guild_setting_tiponly['error'])
+
+
+    # No permission needed
+    @setting.sub_command(
+        usage="setting info", 
+        description="Get Guild's setting / informatin"
+    )
+    async def info(
+        self, 
+        ctx
+    ):
+        guild_setting_info = await self.guild_setting_info(ctx)
+        if guild_setting_info and "error" in guild_setting_info:
+            await ctx.reply(guild_setting_info['error'])
+
+
+    @setting.sub_command(
+        usage="setting trade", 
+        description="Toggle trade enable ON/OFF in your guild"
+    )
+    @dislash.has_permissions(manage_channels=True)
+    async def trade(
+        self, 
+        ctx,
+    ):
+        guild_setting_trade = await self.guild_setting_trade(ctx)
+        if guild_setting_trade and "error" in guild_setting_trade:
+            await ctx.reply(guild_setting_trade['error'])
+
+
+    @setting.sub_command(
+        usage="setting nsfw", 
+        description="Toggle nsfw enable ON/OFF in your guild"
+    )
+    @dislash.has_permissions(manage_channels=True)
+    async def nsfw(
+        self, 
+        ctx,
+    ):
+        guild_setting_nsfw = await self.guild_setting_nsfw(ctx)
+        if guild_setting_nsfw and "error" in guild_setting_nsfw:
+            await ctx.reply(guild_setting_nsfw['error'])
+
+
+    @setting.sub_command(
+        usage="setting game", 
+        description="Toggle game enable ON/OFF in your guild"
+    )
+    @dislash.has_permissions(manage_channels=True)
+    async def game(
+        self, 
+        ctx,
+    ):
+        guild_setting_game = await self.guild_setting_game(ctx)
+        if guild_setting_game and "error" in guild_setting_game:
+            await ctx.reply(guild_setting_game['error'])
+
+
+    @setting.sub_command(
+        usage="setting market", 
+        description="Toggle market enable ON/OFF in your guild"
+    )
+    @dislash.has_permissions(manage_channels=True)
+    async def market(
+        self, 
+        ctx,
+    ):
+        guild_setting_market = await self.guild_setting_market(ctx)
+        if guild_setting_market and "error" in guild_setting_market:
+            await ctx.reply(guild_setting_market['error'])
+
+
+    @setting.sub_command(
+        usage="setting faucet", 
+        description="Toggle faucet enable ON/OFF in your guild"
+    )
+    @dislash.has_permissions(manage_channels=True)
+    async def faucet(
+        self, 
+        ctx,
+    ):
+        guild_setting_faucet = await self.guild_setting_faucet(ctx)
+        if guild_setting_faucet and "error" in guild_setting_faucet:
+            await ctx.reply(guild_setting_faucet['error'])
+
+
+    @setting.sub_command(
+        usage="setting defaultcoin <coin>", 
+        options=[
+            Option('coin', 'coin', OptionType.STRING, required=True)
+        ],
+        description="Deposit from your balance to guild's balance"
+    )
+    @dislash.has_permissions(manage_channels=True)
+    async def defaultcoin(
+        self, 
+        ctx,
+        coin: str
+    ):
+        guild_setting_defaultcoin = await self.guild_setting_defaultcoin(ctx, coin)
+        if guild_setting_defaultcoin and "error" in guild_setting_defaultcoin:
+            await ctx.reply(guild_setting_defaultcoin['error'])
+
+
+    @setting.sub_command(
+        usage="setting mute", 
+        description="Mute in your guild's said channel."
+    )
+    @dislash.has_permissions(manage_channels=True)
+    async def mute(
+        self, 
+        ctx,
+    ):
+        guild_setting_mutechan = await self.guild_setting_mutechan(ctx)
+        if guild_setting_mutechan and "error" in guild_setting_mutechan:
+            await ctx.reply(guild_setting_mutechan['error'])
+
+
+    @setting.sub_command(
+        usage="setting unmute", 
+        description="Unmute in your guild's said channel."
+    )
+    @dislash.has_permissions(manage_channels=True)
+    async def unmute(
+        self, 
+        ctx,
+    ):
+        guild_setting_unmutechan = await self.guild_setting_unmutechan(ctx)
+        if guild_setting_unmutechan and "error" in guild_setting_unmutechan:
+            await ctx.reply(guild_setting_unmutechan['error'])
+
+
+    @setting.sub_command(
+        usage="setting reacttip", 
+        description="Toggle reacttip enable ON/OFF in your guild"
+    )
+    @dislash.has_permissions(manage_channels=True)
+    async def reacttip(
+        self, 
+        ctx,
+    ):
+        guild_setting_reacttip = await self.guild_setting_reacttip(ctx)
+        if guild_setting_reacttip and "error" in guild_setting_reacttip:
+            await ctx.reply(guild_setting_reacttip['error'])
+
+
+    @setting.sub_command(
+        usage="setting reactamount <amount> <coin>", 
+        options=[
+            Option('amount', 'amount', OptionType.NUMBER, required=True),
+            Option('coin', 'coin', OptionType.STRING, required=True)
+        ],
+        description="Deposit from your balance to guild's balance"
+    )
+    @dislash.has_permissions(manage_channels=True)
+    async def reactamount(
+        self, 
+        ctx,
+        amount: float,
+        coin: str
+    ):
+        guild_setting_reacttip_amount = await self.guild_setting_reacttip_amount(ctx, amount, coin)
+        if guild_setting_reacttip_amount and "error" in guild_setting_reacttip_amount:
+            await ctx.reply(guild_setting_reacttip_amount['error'])
+
+
+    @inter_client.slash_command(description="Guild commands.")
+    async def guild(self, ctx):
+        pass
+
+
+    @guild.sub_command(
+        usage="guild deposit <amount> <coin>", 
+        options=[
+            Option('amount', 'amount', OptionType.NUMBER, required=True),
+            Option('coin', 'coin', OptionType.STRING, required=True)
+        ],
+        description="Deposit from your balance to guild's balance"
+    )
+    async def deposit(
+        self, 
+        ctx,
+        amount: float,
+        coin: str
+    ):
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        try:
+            amount = Decimal(amount)
+        except ValueError:
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
+            return
+        guild_deposit = await self.guild_deposit(ctx, amount, coin)
+        if guild_deposit and "error" in guild_deposit:
+            await ctx.reply(guild_deposit['error'], ephemeral=False)
+
+
+    @guild.sub_command(
+        usage="guild mdeposit <coin_name>", 
+        options=[
+            Option('coin_name', 'coin_name', OptionType.STRING, required=True)
+        ],
+        description="Get a deposit address for a guild."
+    )
+    async def mdeposit(
+        self, 
+        ctx,
+        coin_name: str
+    ):
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        guild_mdeposit = await self.guild_mdeposit(ctx, coin_name)
+        if guild_mdeposit and "error" in guild_mdeposit:
+            await ctx.reply(guild_mdeposit['error'], ephemeral=True)
+
+
+    @guild.sub_command(
+        usage="guild mbalance", 
+        options=[
+            Option('coin_name', 'coin_name', OptionType.STRING, required=False)
+        ],
+        description="Get guild's balance."
+    )
+    async def mbalance(
+        self, 
+        ctx,
+        coin_name: str=None
+    ):
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
+            return
+        guild_mbalance = await self.guild_mbalance(ctx, coin_name)
+        if guild_mbalance and "error" in guild_mbalance:
+            await ctx.reply(guild_mbalance['error'], ephemeral=True)
+
+
+    @guild.sub_command(
+        usage="guild info", 
+        description="Get guild's info."
+    )
+    async def info(
+        self, 
+        ctx
+    ):
+        await self.guild_info(ctx)
+
+
+    @guild.sub_command(
+        usage="guild botchan", 
+        description="Set Guild's bot channel."
+    )
+    @dislash.has_permissions(manage_channels=True)
+    async def botchan(
+        self, 
+        ctx
+    ):
+        guild_botchan = await self.guild_botchan(ctx)
+        if guild_botchan and "error" in guild_botchan:
+            await ctx.reply(guild_botchan['error'])
+
+
+    @guild.sub_command(
+        usage="guild gamechan <game>", 
+        options=[
+            Option('game', 'game', OptionType.STRING, required=True, choices=[
+                OptionChoice("2048", "2048"),
+                OptionChoice("BLACKJACK", "BLACKJACK"),
+                OptionChoice("DICE", "DICE"),
+                OptionChoice("MAZE", "MAZE"),
+                OptionChoice("SLOT", "SLOT"),
+                OptionChoice("SNAIL", "SNAIL"),
+                OptionChoice("SOKOBAN", "SOKOBAN")
+            ]
+            )
+        ],
+        description="Set Guild's game channel."
+    )
+    @dislash.has_permissions(manage_channels=True)
+    async def gamechan(
+        self, 
+        ctx,
+        game: str
+    ):
+        guild_gamechan = await self.guild_gamechan(ctx, game)
+        if guild_gamechan and "error" in guild_gamechan:
+            await ctx.reply(guild_gamechan['error'])
+
+
+    ## Message commands
+    @commands.command(
+        usage="info", 
+        description="Check guild's information"
+    )
+    async def info(
+        self, 
+        ctx
+    ):
+        await self.guild_info(ctx)
+
+
+    @commands.group(
+        usage="guild <subcommand>", 
+        description="Various guild's command"
+    )
+    async def guild(self, ctx):
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        if self.botLogChan is None:
+            self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+        prefix = await get_guild_prefix(ctx)
+        if ctx.invoked_subcommand is None:
+            await ctx.send(f'{ctx.author.mention} Invalid {prefix}guild command.\n Please use {prefix}help guild')
             return
 
 
+    @guild.command(
+        usage="guild deposit <amount> <coin>", 
+        description="Deposit from your balance to guild's balance."
+    )
+    async def deposit(
+        self, 
+        ctx, 
+        amount: str, 
+        coin: str
+    ):
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        amount = amount.replace(",", "")
+        try:
+            amount = Decimal(amount)
+        except ValueError:
+            await ctx.message.add_reaction(EMOJI_ERROR)
+            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
+            return
+        await self.guild_deposit(ctx, amount, coin)
+
+
+    @guild.command(
+        usage="guild mdeposit <coin_name>", 
+        description="Get a deposited address of a coin in the guild."
+    )
+    async def mdeposit(
+        self, 
+        ctx,
+        coin_name: str,
+        option: str=None
+    ):
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.message.add_reaction(EMOJI_ERROR) 
+            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            return
+        guild_mdeposit = await self.guild_mdeposit(ctx, coin_name, option)
+        if guild_mdeposit and "error" in guild_mdeposit:
+            await ctx.reply(guild_mdeposit['error'], ephemeral=False)
+
+
+    ## message command
     @guild.command(
         usage="guild tipmsg <message>", 
         description="Set guild's tip's message."
@@ -692,12 +1434,11 @@ class Guild(commands.Cog):
         else:
             changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'tip_message', tipmessage)
             changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'tip_message_by', "{}#{}".format(ctx.author.name, ctx.author.discriminator))
-            botLogChan = self.bot.get_channel(LOG_CHAN)
             try:
                 await ctx.send(f'{ctx.author.mention} Tip message for this guild is updated.')
             except Exception as e:
                 await logchanbot(traceback.format_exc())
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed tipmessage in {str(ctx.guild.id)}/{ctx.guild.name}.')
+            await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed tipmessage in {str(ctx.guild.id)}/{ctx.guild.name}.')
             return
 
 
@@ -771,16 +1512,16 @@ class Guild(commands.Cog):
             real_amount = float(amount)
             token_info = await store.get_token_info(COIN_NAME)
             MinTx = token_info['real_min_tip']
-            MaxTX = token_info['real_max_tip']
+            MaxTx = token_info['real_max_tip']
         else:
             real_amount = int(Decimal(amount) * get_decimal(COIN_NAME)) if coin_family in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else float(amount)
             MinTx = get_min_mv_amount(COIN_NAME)
-            MaxTX = get_max_mv_amount(COIN_NAME)
+            MaxTx = get_max_mv_amount(COIN_NAME)
 
-        if real_amount > MaxTX:
+        if real_amount > MaxTx:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Raffle entry fee cannot be bigger than '
-                           f'{num_format_coin(MaxTX, COIN_NAME)} '
+                           f'{num_format_coin(MaxTx, COIN_NAME)} '
                            f'{COIN_NAME}.')
             return
         elif real_amount < MinTx:
@@ -1179,33 +1920,9 @@ class Guild(commands.Cog):
     )
     @commands.has_permissions(manage_channels=True)
     async def botchan(self, ctx):
-        if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
-            return
-
-        serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-        if serverinfo['botchan']:
-            try: 
-                botLogChan = self.bot.get_channel(LOG_CHAN)
-                if ctx.channel.id == int(serverinfo['botchan']):
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.channel.mention} is already the bot channel here!')
-                    return
-                else:
-                    # change channel info
-                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'botchan', str(ctx.channel.id))
-                    await ctx.message.reply(f'Bot channel has set to {ctx.channel.mention}.')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} change bot channel {ctx.guild.name} / {ctx.guild.id} to #{ctx.channel.name}.')
-                    return
-            except Exception as e:
-                traceback.print_exc(file=sys.stdout)
-                await logchanbot(traceback.format_exc())
-        else:
-            # change channel info
-            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'botchan', str(ctx.channel.id))
-            await ctx.message.reply(f'Bot channel has set to {ctx.channel.mention}.')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed bot channel {ctx.guild.name} / {ctx.guild.id} to #{ctx.channel.name}.')
-            return
+        guild_botchan = await self.guild_botchan(ctx)
+        if guild_botchan and "error" in guild_botchan:
+            await ctx.reply(guild_botchan['error'])
 
 
     @guild.command(
@@ -1220,44 +1937,9 @@ class Guild(commands.Cog):
         *, 
         game: str=None
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
-            return
-
-        game_list = config.game.game_list.split(",")
-        if game is None:
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.channel.mention} please mention a game name to set game channel for it. Game list: {config.game.game_list}.')
-            return
-        else:
-            game = game.lower()
-            if game not in game_list:
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.channel.mention} please mention a game name within this list: {config.game.game_list}.')
-                return
-            else:
-                botLogChan = self.bot.get_channel(LOG_CHAN)
-                serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-                index_game = "game_" + game + "_channel"
-                if serverinfo[index_game]:
-                    try: 
-                        if ctx.channel.id == int(serverinfo[index_game]):
-                            await ctx.send(f'{EMOJI_RED_NO} {ctx.channel.mention} is already for game **{game}** channel here!')
-                            return
-                        else:
-                            # change channel info
-                            changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), index_game, str(ctx.channel.id))
-                            await ctx.send(f'{ctx.channel.mention} Game **{game}** channel has set to {ctx.channel.mention}.')
-                            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed game **{game}** in channel {ctx.guild.name} / {ctx.guild.id} to #{ctx.channel.name}.')
-                            return
-                    except Exception as e:
-                        traceback.print_exc(file=sys.stdout)
-                        await logchanbot(traceback.format_exc())
-                else:
-                    # change channel info
-                    changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), index_game, str(ctx.channel.id))
-                    await ctx.send(f'{ctx.channel.mention} Game **{game}** channel has set to {ctx.channel.mention}.')
-                    await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} set game **{game}** channel in {ctx.guild.name} / {ctx.guild.id} to #{ctx.channel.name}.')
-                    return
+        guild_gamechan = await self.guild_gamechan(ctx, game)
+        if guild_gamechan and "error" in guild_gamechan:
+            await ctx.reply(guild_gamechan['error'])
 
 
     @guild.command(
@@ -1274,31 +1956,34 @@ class Guild(commands.Cog):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.send(f'{ctx.author.mention} This command can not be DM.')
             return
-        if prefix_char is None:
-            await ctx.send(f'{ctx.author.mention} Default prefix to `{config.discord.prefixCmd}`.')
+        await ctx.send(f'{ctx.author.mention} Please use slash commands.')
+        return
+
+
+    @inter_client.slash_command(
+        usage="mdeposit <coin_name>", 
+        options=[
+            Option('coin_name', 'coin_name', OptionType.STRING, required=True)
+        ],
+        description="Get a deposit address for a guild."
+    )
+    async def mdeposit(
+        self, 
+        ctx,
+        coin_name: str
+    ):
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
 
-        if prefix_char not in [".", "?", "*", "!", "$", "~"]:
-            await ctx.send(f'{ctx.author.mention} Invalid prefix **{prefix_char}**')
-            await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} wanted to changed prefix in {ctx.guild.name} / {ctx.guild.id} to `{prefix_char.lower()}`')
-            return
-        else:
-            serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-            server_prefix = serverinfo['server_prefix']
-            if server_prefix == prefix_char:
-                await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{ctx.author.mention} That\'s the default prefix. Nothing changed.')
-                return
-            else:
-                changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'prefix', prefix_char.lower())
-                await ctx.send(f'{ctx.author.mention} Prefix changed from `{server_prefix}` to `{prefix_char.lower()}`.')
-                await botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed prefix in {ctx.guild.name} / {ctx.guild.id} to `{prefix_char.lower()}`')
-                return
+        guild_mdeposit = await self.guild_mdeposit(ctx, coin_name)
+        if guild_mdeposit and "error" in guild_mdeposit:
+            await ctx.reply(guild_mdeposit['error'], ephemeral=True)
 
 
     @commands.command(
-        usage='mdeposit [coin] <plain/embed>', 
-        description="Get your a deposit address for a guild."
+        usage='mdeposit [coin_name] <plain/embed>', 
+        description="Get a deposit address for a guild."
     )
     async def mdeposit(
         self, 
@@ -1313,317 +1998,44 @@ class Guild(commands.Cog):
             await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
+        guild_mdeposit = await self.guild_mdeposit(ctx, coin_name, option)
+        if guild_mdeposit and "error" in guild_mdeposit:
+            await ctx.reply(guild_mdeposit['error'])
 
-        # disable guild tip for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            await ctx.message.add_reaction(EMOJI_LOCKED)
-            return
 
-        # Check if maintenance
-        if IS_MAINTENANCE == 1:
-            if int(ctx.author.id) in MAINTENANCE_OWNER:
-                await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-                pass
-            else:
-                await ctx.message.add_reaction(EMOJI_WARNING)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
-                return
-        else:
-            pass
-        # End Check if maintenance
-
-        COIN_NAME = coin_name.upper()
-        if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!')
+    @inter_client.slash_command(
+        usage="mbalance", 
+        options=[
+            Option('coin_name', 'coin_name', OptionType.STRING, required=False)
+        ],
+        description="Get guild's balance."
+    )
+    async def mbalance(
+        self, 
+        ctx,
+        coin_name: str=None
+    ):
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
-
-        if not is_coin_depositable(COIN_NAME):
-            msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} DEPOSITING is currently disable for {COIN_NAME}.')
-            await msg.add_reaction(EMOJI_OK_BOX)
-            return
-
-        try:
-            if COIN_NAME in ENABLE_COIN_ERC:
-                coin_family = "ERC-20"
-            elif COIN_NAME in ENABLE_COIN_TRC:
-                coin_family = "TRC-20"
-            else:
-                coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
-        except Exception as e:
-            await logchanbot(traceback.format_exc())
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**')
-            return
-        
-        if is_maintenance_coin(COIN_NAME) and (ctx.author.id not in MAINTENANCE_OWNER):
-            await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
-            return
-
-        if coin_family in ["TRTL", "BCN"]:
-            wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-            if wallet is None:
-                userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0)
-                wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-        elif coin_family == "XMR":
-            wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-            if wallet is None:
-                userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0)
-                wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-        elif coin_family == "DOGE":
-            wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-            if wallet is None:
-                wallet = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0)
-                wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-        elif coin_family == "NANO":
-            wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-            if wallet is None:
-                wallet = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0)
-                wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-        elif coin_family == "ERC-20":
-            wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-            if wallet is None:
-                w = await create_address_eth()
-                wallet = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, w)
-                wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-        elif coin_family == "TRC-20":
-            wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-            if wallet is None:
-                result = await store.create_address_trx()
-                wallet = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, result)
-                wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-        else:
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**')
-            return
-        if wallet is None:
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Internal Error for `.info`')
-            return
-        if not os.path.exists(config.deposit_qr.path_deposit_qr_create + wallet['balance_wallet_address'] + ".png"):
-            try:
-                # do some QR code
-                qr = qrcode.QRCode(
-                    version=1,
-                    error_correction=qrcode.constants.ERROR_CORRECT_L,
-                    box_size=10,
-                    border=2,
-                )
-                qr.add_data(wallet['balance_wallet_address'])
-                qr.make(fit=True)
-                img = qr.make_image(fill_color="black", back_color="white")
-                img = img.resize((256, 256))
-                img.save(config.deposit_qr.path_deposit_qr_create + wallet['balance_wallet_address'] + ".png")
-            except Exception as e:
-                await logchanbot(traceback.format_exc())
-            # https://deposit.bot.tips/
-        if not os.path.exists(config.qrsettings.path + wallet['balance_wallet_address'] + ".png"):
-            try:
-                # do some QR code
-                qr = qrcode.QRCode(
-                    version=1,
-                    error_correction=qrcode.constants.ERROR_CORRECT_L,
-                    box_size=10,
-                    border=2,
-                )
-                qr.add_data(wallet['balance_wallet_address'])
-                qr.make(fit=True)
-                img = qr.make_image(fill_color="black", back_color="white")
-                img = img.resize((256, 256))
-                img.save(config.qrsettings.path + wallet['balance_wallet_address'] + ".png")
-            except Exception as e:
-                await logchanbot(traceback.format_exc())
-        if option and option.upper() in ["PLAIN", "TEXT", "NOEMBED"]:
-            deposit = wallet['balance_wallet_address']
-            try:
-                msg = await ctx.message.reply(f'{ctx.author.mention} Guild {ctx.guild.name} **{COIN_NAME}**\'s deposit address (not yours): ```{deposit}```')
-                await msg.add_reaction(EMOJI_OK_BOX)
-                await ctx.message.add_reaction(EMOJI_OK_HAND)
-            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
-            return
-
-        embed = discord.Embed(title=f'**Guild {ctx.guild.name}** deposit / **{COIN_NAME}**', description='`This is guild\'s tipjar address. Do not deposit here unless you want to deposit to this guild and not yours!`', timestamp=datetime.utcnow(), colour=7047495)
-        embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon)
-        embed.add_field(name="{} Deposit Address".format(COIN_NAME), value="`{}`".format(wallet['balance_wallet_address']), inline=False)
-        if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-            token_info = await store.get_token_info(COIN_NAME)
-            if token_info and COIN_NAME in ENABLE_COIN_ERC and token_info['contract'] and len(token_info['contract']) == 42:
-                embed.add_field(name="{} Contract".format(COIN_NAME), value="`{}`".format(token_info['contract']), inline=False)
-            elif token_info and COIN_NAME in ENABLE_COIN_TRC and token_info['contract'] and len(token_info['contract']) >= 6:
-                embed.add_field(name="{} Contract/Token ID".format(COIN_NAME), value="`{}`".format(token_info['contract']), inline=False)
-            if token_info and token_info['deposit_note']:
-                embed.add_field(name="{} Deposit Note".format(COIN_NAME), value="`{}`".format(token_info['deposit_note']), inline=False)
-        embed.set_thumbnail(url=config.deposit_qr.deposit_url + "/tipbot_deposit_qr/" + wallet['balance_wallet_address'] + ".png")
-        prefix = await get_guild_prefix(ctx)
-        embed.set_footer(text=f"Use:{prefix}mdeposit {COIN_NAME} plain (for plain text)")
-        try:
-            msg = await ctx.message.reply(embed=embed)
-            await msg.add_reaction(EMOJI_OK_BOX)
-            await ctx.message.add_reaction(EMOJI_OK_HAND)
-            return
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-            try:
-                msg = await ctx.send(embed=embed)
-                await msg.add_reaction(EMOJI_OK_BOX)
-                await ctx.message.add_reaction(EMOJI_OK_HAND)
-                return
-            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
-                return
+        guild_mbalance = await self.guild_mbalance(ctx, coin_name)
+        if guild_mbalance and "error" in guild_mbalance:
+            await ctx.reply(guild_mbalance['error'], ephemeral=False)
 
 
     @commands.command(
         usage='mbalance [coin]', 
         aliases=['mbal'], 
-        description="Get your guild's balance."
+        description="Get guild's balance."
     )
     async def mbalance(
         self, 
         ctx, 
         coin: str = None
     ):
-        prefix = await get_guild_prefix(ctx)
-        botLogChan = self.bot.get_channel(LOG_CHAN)
-        # check if account locked
-        account_lock = await alert_if_userlock(ctx, 'mbalance')
-        if account_lock:
-            await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
-            return
-        # end of check if account locked
-
-        # disable guild tip for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            await ctx.message.add_reaction(EMOJI_LOCKED)
-            return
-
-        # If DM, error
-        if isinstance(ctx.message.channel, discord.DMChannel) == True:
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} This command is available only in public channel (Guild).')
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            return
-
-        COIN_NAME = None
-        embed = discord.Embed(title=f'[ GUILD {ctx.guild.name} BALANCE ]', timestamp=datetime.utcnow())
-        any_balance = 0
-        if coin is None:
-            for COIN_NAME in [coinItem.upper() for coinItem in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH]:
-                if not is_maintenance_coin(COIN_NAME):
-                    wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-                    if wallet is None:
-                        if COIN_NAME in ENABLE_COIN_ERC:
-                            w = await create_address_eth()
-                            userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, w)
-                        elif COIN_NAME in ENABLE_COIN_TRC:
-                            result = await store.create_address_trx()
-                            userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, result)
-                        else:
-                            userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0)
-                        wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-                    if wallet is None:
-                        await botLogChan.send(f'A user call `{prefix}mbalance` failed with {COIN_NAME} in guild {ctx.guild.id} / {ctx.guild.name} / # {ctx.message.channel.name} ')
-                        return
-                    else:
-                        userdata_balance = await store.sql_user_balance(str(ctx.guild.id), COIN_NAME)
-                        xfer_in = 0
-                        if COIN_NAME not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                            xfer_in = await store.sql_user_balance_get_xfer_in(str(ctx.guild.id), COIN_NAME)
-                        if COIN_NAME in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                            actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
-                        elif COIN_NAME in ENABLE_COIN_NANO:
-                            actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-                            actual_balance = round(actual_balance / get_decimal(COIN_NAME), 6) * get_decimal(COIN_NAME)
-                        else:
-                            actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-                        # Negative check
-                        try:
-                            if actual_balance < 0:
-                                msg_negative = 'Negative balance detected:\nGuild: '+str(ctx.guild.id)+'\nCoin: '+COIN_NAME+'\nAtomic Balance: '+str(actual_balance)
-                                await logchanbot(msg_negative)
-                        except Exception as e:
-                            await logchanbot(traceback.format_exc())
-                        balance_actual = num_format_coin(actual_balance, COIN_NAME)
-                        coinName = COIN_NAME
-                        if actual_balance > 0:
-                            any_balance += 1
-                            embed.add_field(name=COIN_NAME, value=balance_actual+" "+COIN_NAME, inline=True)
-            if any_balance == 0:
-                embed.add_field(name="INFO", value='`This guild has no balance for any coin yet.`', inline=True)
-            embed.add_field(name='Related commands', value=f'`{prefix}mbalance TICKER` or `{prefix}mdeposit TICKER`', inline=False)
-            embed.set_footer(text=f"Guild balance requested by {ctx.author.name}#{ctx.author.discriminator}")
-            try:
-                msg = await ctx.message.reply(embed=embed)
-                await msg.add_reaction(EMOJI_OK_BOX)
-            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
-            return
-        else:
-            COIN_NAME = coin.upper()
-
-        if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!')
-            return
-
-        try:
-            if COIN_NAME in ENABLE_COIN_ERC:
-                coin_family = "ERC-20"
-            elif COIN_NAME in ENABLE_COIN_TRC:
-                coin_family = "TRC-20"
-            else:
-                coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
-        except Exception as e:
-            await logchanbot(traceback.format_exc())
-            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**')
-            return
-
-        if is_maintenance_coin(COIN_NAME) and ctx.author.id not in MAINTENANCE_OWNER:
-            await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            msg = await ctx.message.reply(f'{EMOJI_RED_NO} {COIN_NAME} in maintenance.')
-            await msg.add_reaction(EMOJI_OK_BOX)
-            return
-
-        if COIN_NAME in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
-            wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-            if wallet is None:
-                if COIN_NAME in ENABLE_COIN_ERC:
-                    w = await create_address_eth()
-                    userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, w)
-                elif COIN_NAME in ENABLE_COIN_TRC:
-                    result = await store.create_address_trx()
-                    userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, result)
-                else:
-                    userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0)
-            userdata_balance = await store.sql_user_balance(str(ctx.guild.id), COIN_NAME)
-            xfer_in = 0
-            if COIN_NAME not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                xfer_in = await store.sql_user_balance_get_xfer_in(str(ctx.guild.id), COIN_NAME)
-            if COIN_NAME in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
-            elif COIN_NAME in ENABLE_COIN_NANO:
-                actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-                actual_balance = round(actual_balance / get_decimal(COIN_NAME), 6) * get_decimal(COIN_NAME)
-            else:
-                actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-
-            # Negative check
-            try:
-                if actual_balance < 0:
-                    msg_negative = 'Negative balance detected:\nGuild: '+str(ctx.guild.id)+'\nCoin: '+COIN_NAME+'\nAtomic Balance: '+str(actual_balance)
-                    await logchanbot(msg_negative)
-            except Exception as e:
-                await logchanbot(traceback.format_exc())
-
-            balance_actual = num_format_coin(actual_balance, COIN_NAME)
-            await ctx.message.add_reaction(EMOJI_OK_HAND)
-            msg = await ctx.message.reply(f'**[GUILD {ctx.guild.name} - {COIN_NAME} BALANCE ]**\n\n'
-                    f'{EMOJI_MONEYBAG} Available: {balance_actual} '
-                    f'{COIN_NAME}\n'
-                    f'{get_notice_txt(COIN_NAME)}')
-            await msg.add_reaction(EMOJI_OK_BOX)
-            return
-        else:
-            msg = await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} There is no such ticker {COIN_NAME}.')
-            await msg.add_reaction(EMOJI_OK_BOX)
-            return
+        guild_mbalance = await self.guild_mbalance(ctx, coin)
+        if guild_mbalance and "error" in guild_mbalance:
+            await ctx.reply(guild_mbalance['error'])
 
 
 def setup(bot):
