@@ -1407,11 +1407,11 @@ async def start_cmd_handler(message: types.Message):
         if real_amount + NetFee > actual_balance:
             message_text = 'Not enough reserved fee / Insufficient balance to withdraw ' + num_format_coin(real_amount, COIN_NAME) + COIN_NAME + ' to ' + wallet_address
             valid_amount = False
-        elif real_amount > MaxTX:
-            message_text = 'Transactions cannot be bigger than ' + num_format_coin(MaxTX, COIN_NAME) + COIN_NAME
+        elif real_amount > Max_Tx:
+            message_text = 'Transactions cannot be bigger than ' + num_format_coin(Max_Tx, COIN_NAME) + COIN_NAME
             valid_amount = False
-        elif real_amount < MinTx:
-            message_text = 'Transactions cannot be smaller than ' + num_format_coin(MinTx, COIN_NAME) + COIN_NAME
+        elif real_amount < Min_Tx:
+            message_text = 'Transactions cannot be smaller than ' + num_format_coin(Min_Tx, COIN_NAME) + COIN_NAME
             valid_amount = False
         if valid_amount == False:
             await message.reply(message_text,
