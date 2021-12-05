@@ -210,7 +210,7 @@ class Faucet(commands.Cog):
                     if half_claim_interval*3600 - int(time.time()) + int(faucet_penalty['penalty_at']) > 0:
                         time_waiting = seconds_str(half_claim_interval*3600 - int(time.time()) + int(faucet_penalty['penalty_at']))
                         try:
-                            msg = await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You claimed in a wrong channel within last {str(half_claim_interval)}h. '
+                            msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You claimed in a wrong channel within last {str(half_claim_interval)}h. '
                                                           f'Waiting time {time_waiting} for next **take** and be sure to be the right channel set by the guild.')
                             await msg.add_reaction(EMOJI_OK_BOX)
                             await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
@@ -231,7 +231,7 @@ class Faucet(commands.Cog):
                     user_claims = await store.sql_faucet_count_user(str(ctx.author.id))
                     number_user_claimed = '{:,.0f}'.format(user_claims, SERVER_BOT)
                     try:
-                        msg = await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You just claimed within last {claim_interval}h. '
+                        msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You just claimed within last {claim_interval}h. '
                                                       f'Waiting time {time_waiting} for next **take**. Faucet balance:\n```{remaining}```'
                                                       f'Total user claims: **{total_claimed}** times. '
                                                       f'You have claimed: **{number_user_claimed}** time(s). '
@@ -360,7 +360,7 @@ class Faucet(commands.Cog):
                             tip = await store.sql_mv_trx_single(str(bot.user.id), str(ctx.author.id), real_amount, COIN_NAME, "FAUCET", token_info['contract'])
                     else:
                         try:
-                            msg = await ctx.message.reply(f'{EMOJI_MONEYFACE} {ctx.author.mention} Simulated faucet {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}. This is a test only. Use without **ticker** to do real faucet claim.')
+                            msg = await ctx.reply(f'{EMOJI_MONEYFACE} {ctx.author.mention} Simulated faucet {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}. This is a test only. Use without **ticker** to do real faucet claim.')
                             await msg.add_reaction(EMOJI_OK_BOX)
                         except Exception as e:
                             await logchanbot(traceback.format_exc())

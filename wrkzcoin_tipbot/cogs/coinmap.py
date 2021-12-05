@@ -35,11 +35,11 @@ class CoinMap(commands.Cog):
             try:
                 map_image = await self.bot.loop.run_in_executor(None, coin360.get_coin360)
                 if map_image:
-                    msg = await ctx.message.reply(f'{config.coin360.static_coin360_link + map_image}')
+                    msg = await ctx.reply(f'{config.coin360.static_coin360_link + map_image}')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
                 else:
-                    msg = await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error during fetch image.')
+                    msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error during fetch image.')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
             except Exception as e:

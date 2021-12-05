@@ -324,7 +324,7 @@ class CoinGecko(commands.Cog):
             pass
         if coin is None:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Missing coin name.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Missing coin name.')
             return
         else:
             coin = coin.lower()
@@ -339,7 +339,7 @@ class CoinGecko(commands.Cog):
                 openRedis()
                 if redis_conn and redis_conn.exists(key):
                     response_text = redis_conn.get(key).decode()
-                    msg = await ctx.message.reply("{}#{}, {}".format(ctx.author.name, ctx.author.discriminator, response_text))
+                    msg = await ctx.reply("{}#{}, {}".format(ctx.author.name, ctx.author.discriminator, response_text))
                     await msg.add_reaction(EMOJI_OK_BOX)
                     await ctx.message.add_reaction(EMOJI_FLOPPY)
                     return
@@ -367,7 +367,7 @@ class CoinGecko(commands.Cog):
                     id = i['id']
         except Exception as e:
             traceback.format_exc()
-            msg = await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Can not get data for {coin}.')
+            msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Can not get data for {coin}.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
         try:
@@ -382,7 +382,7 @@ class CoinGecko(commands.Cog):
                     if resp.status == 200:
                         j = await resp.json()
                         if 'error' in j and j['error'] == 'Could not find coin with the given id':
-                            msg = await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Can not get data **{coin.upper()}** from coingecko.')
+                            msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Can not get data **{coin.upper()}** from coingecko.')
                             await msg.add_reaction(EMOJI_OK_BOX)
                             return
                         name = j['name']
@@ -410,11 +410,11 @@ class CoinGecko(commands.Cog):
                         except Exception as e:
                             traceback.format_exc()
                             await logchanbot(traceback.format_exc())
-                        msg = await ctx.message.reply("{}#{}, {}".format(ctx.author.name, ctx.author.discriminator, response_text))
+                        msg = await ctx.reply("{}#{}, {}".format(ctx.author.name, ctx.author.discriminator, response_text))
                         await msg.add_reaction(EMOJI_OK_BOX)
                         return
         except:
-            msg = await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Can not get data for {coin}.')
+            msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Can not get data for {coin}.')
             await msg.add_reaction(EMOJI_OK_BOX)
         return
 
@@ -747,19 +747,19 @@ class CoinGecko(commands.Cog):
             pass
         if coin is None:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Missing coin name.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Missing coin name.')
             return
         else:
             get_pap = await self.paprika_coin(coin)
             if 'result' in get_pap:
                 resp = get_pap['result']
-                msg = await ctx.message.reply(f"{ctx.author.name}#{ctx.author.discriminator}, {resp}")
+                msg = await ctx.reply(f"{ctx.author.name}#{ctx.author.discriminator}, {resp}")
                 await msg.add_reaction(EMOJI_OK_BOX)
                 if 'cache' in get_pap:
                     await ctx.message.add_reaction(EMOJI_FLOPPY)
             elif 'error' in get_pap:
                 resp = get_pap['error']
-                msg = await ctx.message.reply(f"{EMOJI_RED_NO} {ctx.author.name}#{ctx.author.discriminator}, {resp}")
+                msg = await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.name}#{ctx.author.discriminator}, {resp}")
                 await msg.add_reaction(EMOJI_OK_BOX)
 
 

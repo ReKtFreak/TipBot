@@ -228,7 +228,7 @@ class TipFreeTip(commands.Cog):
             TX_IN_PROCESS.append(ctx.author.id)
         try:
             embed = discord.Embed(title=f"Free Tip appears {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}", description=f"Re-act {EMOJI_PARTY} to collect", timestamp=ts, color=0x00ff00)
-            msg = await ctx.message.reply(embed=embed)
+            msg = await ctx.reply(embed=embed)
             await msg.add_reaction(EMOJI_PARTY)
             if comment and len(comment) > 0:
                 embed.add_field(name="Comment", value=comment, inline=False)

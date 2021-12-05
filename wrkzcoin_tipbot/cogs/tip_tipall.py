@@ -33,20 +33,20 @@ class TipTipAll(commands.Cog):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
-            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
             return
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'tipall')
         if account_lock:
             await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.message.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
 
         # Check if tx in progress
         if ctx.author.id in TX_IN_PROCESS:
             await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-            msg = await ctx.message.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
+            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
@@ -56,11 +56,11 @@ class TipTipAll(commands.Cog):
             amount = Decimal(amount)
         except ValueError:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
             return
 
         if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.message.reply(f'{EMOJI_RED_NO} This command can not be in private.')
+            await ctx.reply(f'{EMOJI_RED_NO} This command can not be in private.')
             return
 
         COIN_NAME = coin.upper()
@@ -87,12 +87,12 @@ class TipTipAll(commands.Cog):
         if option not in option_list:
             allow_option = ", ".join(option_list)
             await ctx.message.add_reaction(EMOJI_ERROR)
-            msg = await ctx.message.reply(f'{EMOJI_ERROR} {ctx.author.mention} TIPALL is currently support only option **{allow_option}**.')
+            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} TIPALL is currently support only option **{allow_option}**.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
         print('TIPALL COIN_NAME:' + COIN_NAME)
         if not is_coin_tipable(COIN_NAME):
-            msg = await ctx.message.reply(f'{EMOJI_ERROR} {ctx.author.mention} TIPPING is currently disable for {COIN_NAME}.')
+            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} TIPPING is currently disable for {COIN_NAME}.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
         if is_maintenance_coin(COIN_NAME):
@@ -106,7 +106,7 @@ class TipTipAll(commands.Cog):
             pass
         elif COIN_NAME not in tiponly_coins:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} not in allowed coins set by server manager.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} not in allowed coins set by server manager.')
             return
         # End of checking allowed coins
 
@@ -114,7 +114,7 @@ class TipTipAll(commands.Cog):
         floodTip = await store.sql_get_countLastTip(str(ctx.author.id), config.floodTipDuration)
         if floodTip >= config.floodTip:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Cool down your tip or TX. or increase your amount next time.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Cool down your tip or TX. or increase your amount next time.')
             await self.botLogChan.send('A user reached max. TX threshold. Currently halted: `.tipall`')
             return
         # End of Check flood of tip
@@ -152,7 +152,7 @@ class TipTipAll(commands.Cog):
         if len(listMembers) > config.tipallMax_Offchain:
             await ctx.message.add_reaction(EMOJI_ERROR)
             try:
-                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} The number of receivers are too many. This command isn\'t available here.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} The number of receivers are too many. This command isn\'t available here.')
             except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                 await ctx.author.send(f'{EMOJI_RED_NO} The number of receivers are too many in `{ctx.guild.name}`. This command isn\'t available here.')
             return
@@ -212,25 +212,25 @@ class TipTipAll(commands.Cog):
 
         if real_amount > MaxTx:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
                                     f'{num_format_coin(MaxTx, COIN_NAME)} '
                                     f'{COIN_NAME}.')
             return
         elif real_amount < MinTx:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
                                     f'{num_format_coin(MinTx, COIN_NAME)} '
                                     f'{COIN_NAME}.')
             return
         elif real_amount > actual_balance:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to spread tip of '
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to spread tip of '
                                     f'{num_format_coin(real_amount, COIN_NAME)} '
                                     f'{COIN_NAME}.')
             return
         elif (real_amount / len(list_receivers)) < MinTx:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
                                     f'{num_format_coin(MinTx, COIN_NAME)} '
                                     f'{COIN_NAME} for each member. You need at least {num_format_coin(len(list_receivers) * MinTx, COIN_NAME)} {COIN_NAME}.')
             return
@@ -364,13 +364,13 @@ class TipTipAll(commands.Cog):
                         remaining_str = ""
                         if numb_mention < total_found:
                             remaining_str = " and other {} members".format(total_found-numb_mention)
-                        await ctx.message.reply(
+                        await ctx.reply(
                                 f'{EMOJI_MONEYFACE} {list_user_mention_str} {list_user_not_mention_str} {remaining_str}, You got a tip of {amountDiv_str} '
                                 f'{COIN_NAME} from {ctx.author.name}#{ctx.author.discriminator}'
                                 f'{NOTIFICATION_OFF_CMD}')
                     except Exception as e:
                         try:
-                            await ctx.message.reply(f'**({total_found})** members got {amountDiv_str} {COIN_NAME} :) Too many to mention :) Phew!!!')
+                            await ctx.reply(f'**({total_found})** members got {amountDiv_str} {COIN_NAME} :) Too many to mention :) Phew!!!')
                         except Exception as e:
                             await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
             # tipper shall always get DM. Ignore notifyList

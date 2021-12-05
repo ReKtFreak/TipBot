@@ -354,7 +354,7 @@ class TipRandomTip(commands.Cog):
                     await store.sql_toggle_tipnotify(str(user.id), "OFF")
             try:
                 # try message in public also
-                msg = await ctx.message.reply(
+                msg = await ctx.reply(
                                 f'{rand_user.name}#{rand_user.discriminator} got a random tip of {num_format_coin(real_amount, COIN_NAME)} '
                                 f'{COIN_NAME} from {ctx.author.name}#{ctx.author.discriminator}')
                 await msg.add_reaction(EMOJI_OK_BOX)

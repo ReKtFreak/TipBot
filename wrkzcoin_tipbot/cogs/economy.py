@@ -1911,9 +1911,9 @@ class Economy(commands.Cog):
     ):
         eco_sell = await self.eco_sell(ctx, item_name)
         if eco_sell and "error" in eco_sell:
-            await ctx.message.reply(eco_sell['error'])
+            await ctx.reply(eco_sell['error'])
         elif eco_sell and "result" in eco_sell:
-            await ctx.message.reply(eco_sell['result'])
+            await ctx.reply(eco_sell['result'])
 
 
     @economy.command(
@@ -1934,9 +1934,9 @@ class Economy(commands.Cog):
             return
 
         if eco_buy and "error" in eco_buy:
-            await ctx.message.reply(eco_buy['error'])
+            await ctx.reply(eco_buy['error'])
         elif eco_buy and "result" in eco_buy:
-            await ctx.message.reply(eco_buy['result'])
+            await ctx.reply(eco_buy['result'])
         if ctx.author.id in GAME_INTERACTIVE_ECO: GAME_INTERACTIVE_ECO.remove(ctx.author.id)
 
 
@@ -1954,7 +1954,7 @@ class Economy(commands.Cog):
 
         eco_info = await self.eco_info(ctx, member)
         if eco_info and "error" in eco_info:
-            await ctx.message.reply(eco_info['error'])
+            await ctx.reply(eco_info['error'])
         return
 
 
@@ -1986,7 +1986,7 @@ class Economy(commands.Cog):
 
         eco_lumber = await self.eco_lumber(ctx, member)
         if eco_lumber and "error" in eco_lumber:
-            await ctx.message.reply(eco_lumber['error'])
+            await ctx.reply(eco_lumber['error'])
 
 
     @economy.command(

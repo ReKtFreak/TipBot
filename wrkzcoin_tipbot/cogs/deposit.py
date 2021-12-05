@@ -263,7 +263,7 @@ class Deposit(commands.Cog):
 
             if option and option.upper() in ["PLAIN", "TEXT", "NOEMBED"]:
                 try:
-                    msg = await ctx.message.reply(f'{ctx.author.mention} Your **{COIN_NAME}**\'s deposit address: ```{deposit_address}```')
+                    msg = await ctx.reply(f'{ctx.author.mention} Your **{COIN_NAME}**\'s deposit address: ```{deposit_address}```')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     await ctx.message.add_reaction(EMOJI_OK_HAND)
                     return
@@ -300,7 +300,7 @@ class Deposit(commands.Cog):
                 prefix = await get_guild_prefix(ctx)
                 embed.set_footer(text=f"Use:{prefix}deposit {COIN_NAME} plain (for plain text)")
                 try:
-                    msg = await ctx.message.reply(embed=embed)
+                    msg = await ctx.reply(embed=embed)
                     await msg.add_reaction(EMOJI_OK_BOX)
                     await ctx.message.add_reaction(EMOJI_OK_HAND)
                     return

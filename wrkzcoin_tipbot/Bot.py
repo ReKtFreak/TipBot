@@ -1432,15 +1432,15 @@ async def _tip(ctx, amount, coin: str, if_guild: bool=False):
 
     if real_amount > MaxTx:
         await ctx.message.add_reaction(EMOJI_ERROR)
-        await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
-                                f'{num_format_coin(MaxTx, COIN_NAME)} '
-                                f'{COIN_NAME}.')
+        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
+                        f'{num_format_coin(MaxTx, COIN_NAME)} '
+                        f'{COIN_NAME}.')
         return
     elif real_amount < MinTx:
         await ctx.message.add_reaction(EMOJI_ERROR)
-        await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
-                                f'{num_format_coin(MinTx, COIN_NAME)} '
-                                f'{COIN_NAME}.')
+        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
+                        f'{num_format_coin(MinTx, COIN_NAME)} '
+                        f'{COIN_NAME}.')
         return
 
     listMembers = []
@@ -1482,21 +1482,21 @@ async def _tip(ctx, amount, coin: str, if_guild: bool=False):
     TotalAmount = real_amount * len(list_receivers)
     if TotalAmount > MaxTx:
         await ctx.message.add_reaction(EMOJI_ERROR)
-        await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Total transactions cannot be bigger than '
-                                f'{num_format_coin(MaxTx, COIN_NAME)} '
-                                f'{COIN_NAME}.')
+        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Total transactions cannot be bigger than '
+                        f'{num_format_coin(MaxTx, COIN_NAME)} '
+                        f'{COIN_NAME}.')
         return
     elif real_amount < MinTx:
         await ctx.message.add_reaction(EMOJI_ERROR)
-        await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Total transactions cannot be smaller than '
-                                f'{num_format_coin(MinTx, COIN_NAME)} '
-                                f'{COIN_NAME}.')
+        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Total transactions cannot be smaller than '
+                        f'{num_format_coin(MinTx, COIN_NAME)} '
+                        f'{COIN_NAME}.')
         return
     elif TotalAmount > actual_balance:
         await ctx.message.add_reaction(EMOJI_ERROR)
-        await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to send total {tip_type_text} of '
-                                f'{num_format_coin(TotalAmount, COIN_NAME)} '
-                                f'{COIN_NAME}.')
+        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to send total {tip_type_text} of '
+                        f'{num_format_coin(TotalAmount, COIN_NAME)} '
+                        f'{COIN_NAME}.')
         return
 
     # add queue also tip
@@ -1671,30 +1671,30 @@ async def _tip_talker(ctx, amount, list_talker, if_guild: bool=False, coin: str 
             msg_negative = 'Negative or zero balance detected:\nUser: '+str(ctx.author.id)+'\nCoin: '+COIN_NAME+'\nAtomic Balance: '+str(actual_balance)
             await logchanbot(msg_negative)
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to send {tip_type_text} of '
-                                    f'{num_format_coin(real_amount, COIN_NAME)} '
-                                    f'{COIN_NAME}.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to send {tip_type_text} of '
+                            f'{num_format_coin(real_amount, COIN_NAME)} '
+                            f'{COIN_NAME}.')
             return
     except Exception as e:
         await logchanbot(traceback.format_exc())
 
     if real_amount > MaxTx:
         await ctx.message.add_reaction(EMOJI_ERROR)
-        await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
-                                f'{num_format_coin(MaxTx, COIN_NAME)} '
-                                f'{COIN_NAME}.')
+        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
+                        f'{num_format_coin(MaxTx, COIN_NAME)} '
+                        f'{COIN_NAME}.')
         return
     elif real_amount < MinTx:
         await ctx.message.add_reaction(EMOJI_ERROR)
-        await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
-                                f'{num_format_coin(MinTx, COIN_NAME)} '
-                                f'{COIN_NAME}.')
+        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
+                        f'{num_format_coin(MinTx, COIN_NAME)} '
+                        f'{COIN_NAME}.')
         return
     elif real_amount > actual_balance:
         await ctx.message.add_reaction(EMOJI_ERROR)
-        await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to send {tip_type_text} of '
-                                f'{num_format_coin(real_amount, COIN_NAME)} '
-                                f'{COIN_NAME}.')
+        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to send {tip_type_text} of '
+                        f'{num_format_coin(real_amount, COIN_NAME)} '
+                        f'{COIN_NAME}.')
         return
 
     list_receivers = []
@@ -1727,7 +1727,7 @@ async def _tip_talker(ctx, amount, list_talker, if_guild: bool=False, coin: str 
     if len(list_receivers) > config.tipallMax:
         await ctx.message.add_reaction(EMOJI_ERROR)
         try:
-            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} The number of receivers are too many.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} The number of receivers are too many.')
         except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
             await ctx.author.send(f'{EMOJI_RED_NO} The number of receivers are too many in `{ctx.guild.name}`.')
         return
@@ -1737,26 +1737,26 @@ async def _tip_talker(ctx, amount, list_talker, if_guild: bool=False, coin: str 
 
     if TotalAmount > MaxTx:
         await ctx.message.add_reaction(EMOJI_ERROR)
-        await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Total transactions cannot be bigger than '
-                                f'{num_format_coin(MaxTx, COIN_NAME)} '
-                                f'{COIN_NAME}.')
+        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Total transactions cannot be bigger than '
+                        f'{num_format_coin(MaxTx, COIN_NAME)} '
+                        f'{COIN_NAME}.')
         return
     elif real_amount < MinTx:
         await ctx.message.add_reaction(EMOJI_ERROR)
-        await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Total transactions cannot be smaller than '
-                                f'{num_format_coin(MinTx, COIN_NAME)} '
-                                f'{COIN_NAME}.')
+        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Total transactions cannot be smaller than '
+                        f'{num_format_coin(MinTx, COIN_NAME)} '
+                        f'{COIN_NAME}.')
         return
     elif TotalAmount > actual_balance:
         await ctx.message.add_reaction(EMOJI_ERROR)
-        await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {guild_name} Insufficient balance to send total {tip_type_text} of '
-                                f'{num_format_coin(TotalAmount, COIN_NAME)} '
-                                f'{COIN_NAME}.')
+        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {guild_name} Insufficient balance to send total {tip_type_text} of '
+                        f'{num_format_coin(TotalAmount, COIN_NAME)} '
+                        f'{COIN_NAME}.')
         return
 
     if len(list_receivers) < 1:
         await ctx.message.add_reaction(EMOJI_ERROR)
-        await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} There is no active talker in such period. Please increase more duration or tip directly!')
+        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} There is no active talker in such period. Please increase more duration or tip directly!')
         return
 
     # add queue also tip
@@ -1872,7 +1872,7 @@ async def _tip_talker(ctx, amount, list_talker, if_guild: bool=False, coin: str 
                     remaining_str = ""
                     if numb_mention < total_found:
                         remaining_str = " and other {} members".format(total_found-numb_mention)
-                    await ctx.message.reply(
+                    await ctx.reply(
                         f'{EMOJI_MONEYFACE} {list_user_mention_str} {list_user_not_mention_str} {remaining_str}, You got a {tip_type_text} of `{num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}` '
                         f'from {ctx.author.name}#{ctx.author.discriminator} for active talking.\n'
                         f'{NOTIFICATION_OFF_CMD}\n{tipmsg}')
@@ -1893,7 +1893,7 @@ async def _tip_talker(ctx, amount, list_talker, if_guild: bool=False, coin: str 
         await ctx.message.add_reaction(get_emoji(COIN_NAME))
         if tip_public == False:
             try:
-                await ctx.message.reply(f'{discord.utils.escape_markdown(mention_list_name)}\n\n**({total_found})** members got {tip_type_text} :) for active talking in `{ctx.guild.name}` {ctx.channel.mention} :)')
+                await ctx.reply(f'{discord.utils.escape_markdown(mention_list_name)}\n\n**({total_found})** members got {tip_type_text} :) for active talking in `{ctx.guild.name}` {ctx.channel.mention} :)')
                 await ctx.message.add_reaction(EMOJI_SPEAK)
             except discord.errors.Forbidden:
                 serverinfo = await store.sql_info_by_server(str(ctx.guild.id))

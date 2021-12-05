@@ -182,9 +182,9 @@ class Coininfo(commands.Cog):
                 guild_id = ctx.guild.id
             coin_info = await self.get_coininfo(COIN_NAME, is_private, guild_id)
             if coin_info and 'result' in coin_info:
-                await ctx.message.reply("{}\n{}".format(ctx.author.mention, coin_info['result']))
+                await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['result']))
             elif coin_info and 'error' in coin_info:
-                await ctx.message.reply("{}\n{}".format(ctx.author.mention, coin_info['error']))
+                await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['error']))
 
 
 def setup(bot):

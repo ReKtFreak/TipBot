@@ -242,7 +242,7 @@ class Balance(commands.Cog):
                     return
             else:
                 if PUBMSG.upper() == "PUB" or PUBMSG.upper() == "PUBLIC":
-                    msg = await ctx.message.reply('**[ BALANCE LIST ]**\n'
+                    msg = await ctx.reply('**[ BALANCE LIST ]**\n'
                                     f'```{table.table}```'
                                     f'Related command: `{prefix}balance TICKER` or `{prefix}deposit TICKER`\n`***`: On Maintenance\n')
                 else:
@@ -257,12 +257,12 @@ class Balance(commands.Cog):
 
         if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!')
             return
 
         if is_maintenance_coin(COIN_NAME) and user_id not in MAINTENANCE_OWNER:
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            msg = await ctx.message.reply(f'{EMOJI_RED_NO} {COIN_NAME} in maintenance.')
+            msg = await ctx.reply(f'{EMOJI_RED_NO} {COIN_NAME} in maintenance.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
         if COIN_NAME in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
@@ -341,14 +341,14 @@ class Balance(commands.Cog):
                 await msg.add_reaction(EMOJI_OK_BOX)
             except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                 try:
-                    msg = await ctx.message.reply(embed=embed)
+                    msg = await ctx.reply(embed=embed)
                     await ctx.message.add_reaction(EMOJI_OK_HAND)
                     await msg.add_reaction(EMOJI_OK_BOX)
                 except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                     await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                 return
         else:
-            msg = await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention} There is no such ticker {COIN_NAME}.')
+            msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} There is no such ticker {COIN_NAME}.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 

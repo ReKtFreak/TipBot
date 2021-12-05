@@ -115,7 +115,7 @@ class Help(commands.Cog):
             prefix = await get_guild_prefix(ctx)
 
             if not re.match('^[a-zA-Z0-9-_ ]+$', section):
-                await ctx.message.reply(f'{EMOJI_ERROR} {ctx.author.mention} Invalid help topic.')
+                await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} Invalid help topic.')
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 return
 
@@ -128,10 +128,10 @@ class Help(commands.Cog):
                             await ctx.message.add_reaction(EMOJI_ERROR)
                             botChan = self.bot.get_channel(int(serverinfo['botchan']))
                             if botChan:
-                                await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
+                                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
                             else:
                                 await self.botLogChan.send(f'Guild {ctx.guild.name} / {ctx.guild.id} has defined botchan but I can not find it! ')
-                                msg = await ctx.message.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, bot channel was defined but I can not find it in this guild. Please command help in DM instead.')
+                                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, bot channel was defined but I can not find it in this guild. Please command help in DM instead.')
                                 await msg.add_reaction(EMOJI_OK_BOX)
                             return
             except (discord.errors.NotFound, discord.errors.Forbidden) as e:
