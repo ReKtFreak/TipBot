@@ -367,47 +367,6 @@ async def sql_user_get_tipstat(userID: str, coin: str, update: bool=False, user_
     return user_stat
 
 
-async def sql_user_balance_adjust(userID: str, coin: str, update: bool=False, user_server: str = 'DISCORD'):
-    user_server = user_server.upper()
-    if user_server not in ['DISCORD', 'TELEGRAM', 'REDDIT']:
-        return
-
-    COIN_NAME = coin.upper()
-    key = f"TIPBOT:TIPBAL_{COIN_NAME}:" + f"{user_server}_{userID}"
-    if update == False:
-        try:
-            if redis_conn is None: redis_conn = redis.Redis(connection_pool=redis_pool)
-            if redis_conn and redis_conn.exists(key):
-                balance = redis_conn.get(key).decode()
-                if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_COIN_DOGE:
-                    return float(balance)
-                elif COIN_NAME in ENABLE_COIN+ENABLE_COIN_NANO+ENABLE_XMR:
-                    return int(balance)
-        except Exception as e:
-            await logchanbot(traceback.format_exc())
-
-    userdata_balance = await sql_user_balance(userID, COIN_NAME, user_server)
-    xfer_in = 0
-    if COIN_NAME not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-        xfer_in = await sql_user_balance_get_xfer_in(userID, COIN_NAME, user_server)
-    if COIN_NAME in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-        actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
-    elif COIN_NAME in ENABLE_COIN_NANO:
-        actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-        actual_balance = round(actual_balance / wallet.get_decimal(COIN_NAME), 6) * wallet.get_decimal(COIN_NAME)
-    else:
-        actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-
-    # store in redis
-    try:
-        openRedis()
-        if redis_conn:
-            redis_conn.set(key, str(actual_balance), ex=config.redis_setting.balance_in_redis)
-    except Exception as e:
-        await logchanbot(traceback.format_exc())
-    return actual_balance
-
-
 async def sql_user_balance(userID: str, coin: str, user_server: str = 'DISCORD'):
     global pool
     user_server = user_server.upper()

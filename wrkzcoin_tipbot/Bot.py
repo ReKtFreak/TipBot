@@ -2512,6 +2512,7 @@ def get_min_sell(coin: str, token_info = None):
     else:
         return getattr(config,"daemon"+coin,config.daemonWRKZ).min_buysell
 
+
 def get_max_sell(coin: str, token_info = None):
     COIN_NAME = coin.upper()
     if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
@@ -2520,7 +2521,7 @@ def get_max_sell(coin: str, token_info = None):
         return getattr(config,"daemon"+coin,config.daemonWRKZ).max_buysell
 
 
-async def get_balance_coin_user(user_id, coin: str):
+async def get_balance_coin_user(user_id, coin: str, discord_guild: bool=False, server__bot: str=SERVER_BOT):
     COIN_NAME = coin.upper()
     wallet = await store.sql_get_userwallet(str(user_id), COIN_NAME)
     real_deposit_balance = 0
@@ -2528,12 +2529,12 @@ async def get_balance_coin_user(user_id, coin: str):
     if wallet is None:
         if COIN_NAME in ENABLE_COIN_ERC:
             w = await create_address_eth()
-            userregister = await store.sql_register_user(str(user_id), COIN_NAME, SERVER_BOT, 0, w)
+            userregister = await store.sql_register_user(str(user_id), COIN_NAME, server__bot.upper(), 0, w)
         elif COIN_NAME in ENABLE_COIN_TRC:
             result = await store.create_address_trx()
-            userregister = await store.sql_register_user(str(user_id), COIN_NAME, SERVER_BOT, 0, result)
+            userregister = await store.sql_register_user(str(user_id), COIN_NAME, server__bot.upper(), 0, result)
         else:
-            userregister = await store.sql_register_user(str(user_id), COIN_NAME, SERVER_BOT, 0)
+            userregister = await store.sql_register_user(str(user_id), COIN_NAME, server__bot.upper(), 0)
         wallet = await store.sql_get_userwallet(str(user_id), COIN_NAME)
     if COIN_NAME in ENABLE_COIN_ERC:
         token_info = await store.get_token_info(COIN_NAME)
@@ -2543,10 +2544,15 @@ async def get_balance_coin_user(user_id, coin: str):
         token_info = await store.get_token_info(COIN_NAME)
         deposit_balance = await store.trx_wallet_getbalance(wallet['balance_wallet_address'], COIN_NAME)
         real_deposit_balance = round(deposit_balance, 6)
-    userdata_balance = await store.sql_user_balance(str(user_id), COIN_NAME, SERVER_BOT)
+    userdata_balance = await store.sql_user_balance(str(user_id), COIN_NAME, server__bot.upper())
     xfer_in = 0
+    actual_deposit = 0
+    # Get actual_deposit
     if COIN_NAME not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
         xfer_in = await store.sql_user_balance_get_xfer_in(str(user_id), COIN_NAME)
+        actual_deposit = xfer_in
+    else:
+        actual_deposit = userdata_balance['Deposit']
     if COIN_NAME in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
         actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
     elif COIN_NAME in ENABLE_COIN_NANO:
@@ -2569,6 +2575,7 @@ async def get_balance_coin_user(user_id, coin: str):
         deposit_note = token_info['deposit_note']
         
     return {
+        'discord_guild': discord_guild,
         'balance_wallet_address': wallet['balance_wallet_address'],
         'user_wallet_address': wallet['user_wallet_address'] if wallet['user_wallet_address'] else None,
         'real_deposit_balance': real_deposit_balance,
@@ -2579,7 +2586,11 @@ async def get_balance_coin_user(user_id, coin: str):
         'raffle_reward': userdata_balance['raffle_reward'],
         'economy_balance': userdata_balance['economy_balance'],
         'min_deposit_txt': min_deposit_txt,
-        'deposit_note': deposit_note
+        'deposit_note': deposit_note,
+        'actual_tip_expense': userdata_balance['Expense'], # atomic`
+        'actual_tip_income': userdata_balance['Income'], # atomic
+        'actual_deposit': actual_deposit, # atomic
+        'economy_balance': -economy_balance # atomic
         }
 
 

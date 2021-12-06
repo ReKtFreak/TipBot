@@ -384,29 +384,11 @@ class Guild(commands.Cog):
                         await self.botLogChan.send(f'A user call `{prefix}mbalance` failed with {COIN_NAME} in guild {ctx.guild.id} / {ctx.guild.name} / # {ctx.message.channel.name} ')
                         return
                     else:
-                        userdata_balance = await store.sql_user_balance(str(ctx.guild.id), COIN_NAME)
-                        xfer_in = 0
-                        if COIN_NAME not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                            xfer_in = await store.sql_user_balance_get_xfer_in(str(ctx.guild.id), COIN_NAME)
-                        if COIN_NAME in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                            actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
-                        elif COIN_NAME in ENABLE_COIN_NANO:
-                            actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-                            actual_balance = round(actual_balance / get_decimal(COIN_NAME), 6) * get_decimal(COIN_NAME)
-                        else:
-                            actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-                        # Negative check
-                        try:
-                            if actual_balance < 0:
-                                msg_negative = 'Negative balance detected:\nGuild: '+str(ctx.guild.id)+'\nCoin: '+COIN_NAME+'\nAtomic Balance: '+str(actual_balance)
-                                await logchanbot(msg_negative)
-                        except Exception as e:
-                            await logchanbot(traceback.format_exc())
-                        balance_actual = num_format_coin(actual_balance, COIN_NAME)
-                        coinName = COIN_NAME
+                        get_user_balance = await get_balance_coin_user(ctx.guild.id, COIN_NAME, discord_guild=True, server__bot=SERVER_BOT)
+                        actual_balance = get_user_balance['actual_balance']
                         if actual_balance > 0:
                             any_balance += 1
-                            embed.add_field(name=COIN_NAME, value=balance_actual+" "+COIN_NAME, inline=True)
+                            embed.add_field(name=COIN_NAME, value=num_format_coin(actual_balance, COIN_NAME)+" "+COIN_NAME, inline=True)
             if any_balance == 0:
                 embed.add_field(name="INFO", value='`This guild has no balance for any coin yet.`', inline=True)
             embed.add_field(name='Related commands', value=f'`{prefix}mbalance TICKER` or `{prefix}mdeposit TICKER`', inline=False)
@@ -420,66 +402,54 @@ class Guild(commands.Cog):
             return
         else:
             COIN_NAME = coin.upper()
-
-        if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
-            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!"}
-
-        try:
-            if COIN_NAME in ENABLE_COIN_ERC:
-                coin_family = "ERC-20"
-            elif COIN_NAME in ENABLE_COIN_TRC:
-                coin_family = "TRC-20"
+            if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
+                return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!"}
             else:
-                coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
-        except Exception as e:
-            await logchanbot(traceback.format_exc())
-            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!"}
+                try:
+                    if COIN_NAME in ENABLE_COIN_ERC:
+                        coin_family = "ERC-20"
+                    elif COIN_NAME in ENABLE_COIN_TRC:
+                        coin_family = "TRC-20"
+                    else:
+                        coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
+                except Exception as e:
+                    traceback.print_exc(file=sys.stdout)
+                    return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!"}
 
-        if is_maintenance_coin(COIN_NAME) and ctx.author.id not in MAINTENANCE_OWNER:
-            return {"error": f"{EMOJI_RED_NO} {COIN_NAME} in maintenance."}
+                if is_maintenance_coin(COIN_NAME) and ctx.author.id not in MAINTENANCE_OWNER:
+                    return {"error": f"{EMOJI_RED_NO} {COIN_NAME} in maintenance."}
 
-        if COIN_NAME in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
-            wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
-            if wallet is None:
-                if COIN_NAME in ENABLE_COIN_ERC:
-                    w = await create_address_eth()
-                    userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, w)
-                elif COIN_NAME in ENABLE_COIN_TRC:
-                    result = await store.create_address_trx()
-                    userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, result)
-                else:
-                    userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0)
-            userdata_balance = await store.sql_user_balance(str(ctx.guild.id), COIN_NAME)
-            xfer_in = 0
-            if COIN_NAME not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                xfer_in = await store.sql_user_balance_get_xfer_in(str(ctx.guild.id), COIN_NAME)
-            if COIN_NAME in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
-            elif COIN_NAME in ENABLE_COIN_NANO:
-                actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-                actual_balance = round(actual_balance / get_decimal(COIN_NAME), 6) * get_decimal(COIN_NAME)
-            else:
-                actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-
-            # Negative check
-            try:
-                if actual_balance < 0:
-                    msg_negative = 'Negative balance detected:\nGuild: '+str(ctx.guild.id)+'\nCoin: '+COIN_NAME+'\nAtomic Balance: '+str(actual_balance)
-                    await logchanbot(msg_negative)
-            except Exception as e:
-                await logchanbot(traceback.format_exc())
-
-            balance_actual = num_format_coin(actual_balance, COIN_NAME)
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
-                await ctx.message.add_reaction(EMOJI_OK_HAND)
-            msg = await ctx.reply(f'**[GUILD {ctx.guild.name} - {COIN_NAME} BALANCE ]**\n\n'
-                    f'{EMOJI_MONEYBAG} Available: {balance_actual} '
-                    f'{COIN_NAME}\n'
-                    f'{get_notice_txt(COIN_NAME)}')
-            await msg.add_reaction(EMOJI_OK_BOX)
-            return {"result": True}
-        else:
-            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} There is no such ticker {COIN_NAME}."}
+                wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
+                if wallet is None:
+                    if COIN_NAME in ENABLE_COIN_ERC:
+                        w = await create_address_eth()
+                        userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, w)
+                    elif COIN_NAME in ENABLE_COIN_TRC:
+                        result = await store.create_address_trx()
+                        userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0, result)
+                    else:
+                        userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0)
+                get_user_balance = await get_balance_coin_user(ctx.guild.id, COIN_NAME, discord_guild=True, server__bot=SERVER_BOT)
+                balance_actual = num_format_coin(get_user_balance['actual_balance'], COIN_NAME)
+                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                    await ctx.message.add_reaction(EMOJI_OK_HAND)
+                embed = discord.Embed(title=f'[ GUILD {ctx.guild.name} BALANCE ]', timestamp=datetime.utcnow())
+                embed.add_field(name="Available "+COIN_NAME, value=balance_actual+" "+COIN_NAME, inline=False)
+                embed.add_field(name="Balance In / Out", value="{} / {} {}".format(num_format_coin(get_user_balance['actual_tip_income'], COIN_NAME), num_format_coin(get_user_balance['actual_tip_expense'], COIN_NAME), COIN_NAME), inline=False)
+                embed.add_field(name="Deposited", value="{} {}".format(num_format_coin(get_user_balance['actual_deposit'], COIN_NAME), COIN_NAME), inline=False)
+                if get_user_balance['economy_balance'] != 0:
+                    embed.add_field(name="Economy", value="{} {}".format(num_format_coin(get_user_balance['economy_balance'], COIN_NAME), COIN_NAME), inline=False)
+                if get_notice_txt(COIN_NAME):
+                    embed.add_field(name='NOTICE', value=get_notice_txt(COIN_NAME), inline=False)
+                embed.add_field(name='Related commands', value=f'`{prefix}mbalance TICKER` or `{prefix}mdeposit TICKER`', inline=False)
+                embed.set_footer(text=f"Guild balance requested by {ctx.author.name}#{ctx.author.discriminator}")
+                try:
+                    msg = await ctx.reply(embed=embed)
+                    await msg.add_reaction(EMOJI_OK_BOX)
+                except Exception as e:
+                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                        await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
+                return {"result": True}
 
 
     async def guild_info(

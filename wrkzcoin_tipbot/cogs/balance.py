@@ -96,7 +96,7 @@ class Balance(commands.Cog):
             # If there is still page
         elif coin.upper() in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
             COIN_NAME = coin.upper()
-            balance_user = await get_balance_coin_user(user_id, COIN_NAME)
+            balance_user = await get_balance_coin_user(user_id, COIN_NAME, discord_guild=False, server__bot=SERVER_BOT)
             embed = discord.Embed(title=f'[ {ctx.author.name}#{ctx.author.discriminator}\'s {COIN_NAME} balance ]', timestamp=datetime.utcnow())
             try:
                 if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:

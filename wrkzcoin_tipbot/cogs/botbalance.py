@@ -39,7 +39,7 @@ class BotBalance(commands.Cog):
         else:
             user_id = botname.id
             COIN_NAME = coin.upper()
-            balance_user = await get_balance_coin_user(user_id, COIN_NAME)
+            balance_user = await get_balance_coin_user(user_id, COIN_NAME, discord_guild=False, server__bot=SERVER_BOT)
             embed = discord.Embed(title=f'Deposit for {botname.name}#{botname.discriminator}', description='`This is bot\'s tipjar address. Do not deposit here unless you want to deposit to this bot`', timestamp=datetime.utcnow(), colour=7047495)
             embed.set_author(name=botname.name, icon_url=botname.display_avatar)
             embed.add_field(name="{} Deposit Address".format(COIN_NAME), value="`{}`".format(balance_user['balance_wallet_address']), inline=False)
