@@ -473,7 +473,7 @@ class Guild(commands.Cog):
 
         # disable game for TRTL discord
         if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return {"error": "Not available in this guild."}
+            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} Not available in this guild."}
 
         COIN_NAME = coin.upper()
         if not is_coin_tipable(COIN_NAME):

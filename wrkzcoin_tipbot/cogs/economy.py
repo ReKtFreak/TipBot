@@ -1702,7 +1702,18 @@ class Economy(commands.Cog):
     @eco.sub_command(
         usage="eco plant <crop name>", 
         options=[
-            Option('plant_name', 'plant_name', OptionType.STRING, required=True)
+            Option('plant_name', 'plant_name', OptionType.STRING, required=True, choices=[
+                OptionChoice("🥦 broccoli", "broccoli"),
+                OptionChoice("🥕 carrot", "carrot"),
+                OptionChoice("🍒 cherry", "cherry"),
+                OptionChoice("🌽 corn", "corn"),
+                OptionChoice("🥒 cucumber", "cucumber"),
+                OptionChoice("🍆 eggplant", "eggplant"),
+                OptionChoice("🍇 grape", "grape"),
+                OptionChoice("🍋 lemon", "lemon"),
+                OptionChoice("🍄 mushroom", "mushroom"),
+                OptionChoice("🍅 tomato", "tomato")
+            ])
         ],
         description="Plant a crop."
     )
