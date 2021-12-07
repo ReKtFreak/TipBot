@@ -40,14 +40,14 @@ class About(commands.Cog):
 
     @commands.command(usage="disclaimer", description="Show disclaimer.")
     async def disclaimer(self, ctx):
-        await ctx.send(f'{EMOJI_INFORMATION} **THANK YOU FOR USING** {DISCLAIM_MSG_LONG}')
+        await ctx.reply(f'{EMOJI_INFORMATION} **THANK YOU FOR USING** {DISCLAIM_MSG_LONG}')
         return
 
 
     @commands.command(usage="about", description="Get information about TipBot.")
     async def about(self, ctx):
         try:
-            await ctx.send(embed=self.about_embed())
+            await ctx.reply(embed=self.about_embed())
         except Exception as e:
             await ctx.author.send(embed=self.about_embed())
             await logchanbot(traceback.format_exc())

@@ -90,17 +90,17 @@ class Userinfo(commands.Cog):
         member: discord.Member = None
     ):
         if isinstance(ctx.channel, discord.DMChannel) == True:
-            await ctx.send(f'{ctx.author.mention} This command can not be in Direct Message.')
+            await ctx.reply(f'{ctx.author.mention} This command can not be in Direct Message.')
             return
         if member is None:
             member = ctx.author
         try:
             get_stat = await self.get_userinfo(member)
-            await ctx.send(embed=get_stat)
+            await ctx.reply(embed=get_stat)
         except:
             traceback.print_exc(file=sys.stdout)
             error = discord.Embed(title=":exclamation: Error", description=" :warning: You need to mention the user you want this info for!", color=0xe51e1e)
-            await ctx.send(embed=error)
+            await ctx.reply(embed=error)
 
 
 def setup(bot):

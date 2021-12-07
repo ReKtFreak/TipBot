@@ -90,21 +90,21 @@ class Faucet(commands.Cog):
             return table.table
 
         if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.send(f'{EMOJI_RED_NO} This command can not be in private.')
+            await ctx.reply(f'{EMOJI_RED_NO} This command can not be in private.')
             return
 
         faucet_simu = False
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} (Bot) using **take** {ctx.guild.name} / {ctx.guild.id}')
             return
 
         # Check if tx in progress
         if ctx.author.id in TX_IN_PROCESS:
             await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-            msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
+            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
         remaining = ''
@@ -115,7 +115,7 @@ class Faucet(commands.Cog):
         total_claimed = '{:,.0f}'.format(await store.sql_faucet_count_all())
         if info and info.upper() not in FAUCET_COINS:
             await ctx.message.add_reaction(EMOJI_OK_HAND)
-            msg = await ctx.send(f'{ctx.author.mention} Faucet balance:\n```{remaining}```'
+            msg = await ctx.reply(f'{ctx.author.mention} Faucet balance:\n```{remaining}```'
                                  f'Total user claims: **{total_claimed}** times. '
                                  f'Tip me if you want to feed these faucets.')
             await msg.add_reaction(EMOJI_OK_BOX)
@@ -123,7 +123,7 @@ class Faucet(commands.Cog):
 
         # check if bot is going to restart
         if IS_RESTARTING:
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
             await ctx.message.add_reaction(EMOJI_REFRESH)
             return
 
@@ -134,7 +134,7 @@ class Faucet(commands.Cog):
 
         # offline can not take
         if ctx.author.status == discord.Status.offline:
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Offline status cannot claim faucet.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Offline status cannot claim faucet.')
             await ctx.message.add_reaction(EMOJI_QUESTEXCLAIM)
             return
 
@@ -142,7 +142,7 @@ class Faucet(commands.Cog):
         account_lock = await alert_if_userlock(ctx, 'take')
         if account_lock:
             await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
 
@@ -151,7 +151,7 @@ class Faucet(commands.Cog):
             num_online = len([member for member in ctx.guild.members if member.bot == False and member.status != discord.Status.offline])
             if num_online < 7:
                 await self.botLogChan.send(f'{ctx.author.name}#{ctx.author.discriminator} / {ctx.author.id} using **take** {ctx.guild.name} / {ctx.guild.id} while there are only {str(num_online)} online. Rejected!')
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} This guild has less than 7 online users. Faucet is disable.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} This guild has less than 7 online users. Faucet is disable.')
                 await ctx.message.add_reaction(EMOJI_INFORMATION)
                 return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
@@ -163,7 +163,7 @@ class Faucet(commands.Cog):
         try:
             account_created = ctx.author.created_at
             if (datetime.utcnow() - account_created).total_seconds() <= config.faucet.account_age_to_claim:
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using .take')
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using .take')
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
@@ -178,7 +178,7 @@ class Faucet(commands.Cog):
                 if ctx.channel.id != int(serverinfo['botchan']):
                     try:
                         botChan = self.bot.get_channel(int(serverinfo['botchan']))
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
                         await ctx.message.add_reaction(EMOJI_ERROR)
                     except Exception as e:
                         pass
@@ -191,7 +191,7 @@ class Faucet(commands.Cog):
                     return
             if serverinfo and serverinfo['enable_faucet'] == "NO":
                 await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **take** in {ctx.guild.name} / {ctx.guild.id} which is disable.')
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, **Faucet** in this guild is disable.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, **Faucet** in this guild is disable.')
                 return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
             pass
@@ -334,7 +334,7 @@ class Faucet(commands.Cog):
 
             if real_amount > actual_balance:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{ctx.author.mention} Please try again later. Bot runs out of **{COIN_NAME}**')
+                await ctx.reply(f'{ctx.author.mention} Please try again later. Bot runs out of **{COIN_NAME}**')
                 return
             
             tip = None
@@ -370,7 +370,7 @@ class Faucet(commands.Cog):
                     await logchanbot(traceback.format_exc())
                 TX_IN_PROCESS.remove(ctx.author.id)
             else:
-                msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
+                msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
                 await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
                 await msg.add_reaction(EMOJI_OK_BOX)
                 return
@@ -383,7 +383,7 @@ class Faucet(commands.Cog):
                     await logchanbot(traceback.format_exc())
                 try:
                     faucet_add = await store.sql_faucet_add(str(ctx.author.id), str(ctx.guild.id), COIN_NAME, real_amount, 10**decimal_pts, SERVER_BOT)
-                    msg = await ctx.send(f'{EMOJI_MONEYFACE} {ctx.author.mention} You got a random faucet {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}')
+                    msg = await ctx.reply(f'{EMOJI_MONEYFACE} {ctx.author.mention} You got a random faucet {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}')
                     await logchanbot(f'[Discord] User {ctx.author.name}#{ctx.author.discriminator} claimed faucet {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME} in guild {ctx.guild.name}/{ctx.guild.id}')
                     await ctx.message.add_reaction(get_emoji(COIN_NAME))
                     await msg.add_reaction(EMOJI_OK_BOX)
@@ -392,7 +392,7 @@ class Faucet(commands.Cog):
                 except Exception as e:
                     await logchanbot(traceback.format_exc())
             else:
-                await ctx.send(f'{ctx.author.mention} Please try again later. Failed during executing tx **{COIN_NAME}**.')
+                await ctx.reply(f'{ctx.author.mention} Please try again later. Failed during executing tx **{COIN_NAME}**.')
                 await ctx.message.add_reaction(EMOJI_ERROR)
 
 def setup(bot):

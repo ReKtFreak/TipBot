@@ -34,7 +34,7 @@ class TipSwap(commands.Cog):
         account_lock = await alert_if_userlock(ctx, 'swap')
         if account_lock:
             await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
 
@@ -46,31 +46,31 @@ class TipSwap(commands.Cog):
         # Check if tx in progress
         if ctx.author.id in TX_IN_PROCESS:
             await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-            msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
+            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
             return
 
         COIN_NAME_FROM = coin_from.upper()
         COIN_NAME_TO = coin_to.upper()
         if is_maintenance_coin(COIN_NAME_FROM):	
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)	
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME_FROM} in maintenance.')	
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME_FROM} in maintenance.')	
             return
 
         if is_maintenance_coin(COIN_NAME_TO):	
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)	
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME_TO} in maintenance.')	
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME_TO} in maintenance.')	
             return
         
         PAIR_NAME = COIN_NAME_FROM + "-" + COIN_NAME_TO
         if PAIR_NAME not in SWAP_PAIR:
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {PAIR_NAME} is not available.')	
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {PAIR_NAME} is not available.')	
             return
 
         amount = amount.replace(",", "")	
@@ -81,14 +81,14 @@ class TipSwap(commands.Cog):
                 amount = float("%.4f" % float(amount))
         except ValueError:	
             await ctx.message.add_reaction(EMOJI_ERROR)	
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')	
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')	
             return
 
         try:
             SwapCount = await store.sql_swap_count_user(str(ctx.author.id), config.swap_token_setting.allow_second)
             if SwapCount >= config.swap_token_setting.allow_for:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Reduce your swapping in the last **{seconds_str(config.swap_token_setting.allow_second)}**.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Reduce your swapping in the last **{seconds_str(config.swap_token_setting.allow_second)}**.')
                 await logchanbot(f'A user {ctx.author.name}#{ctx.author.discriminator} reached max. swap threshold.')
                 return
             # End of Check swap of tip
@@ -152,17 +152,17 @@ class TipSwap(commands.Cog):
 
             if real_from_amount > Max_Tip:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Swap cannot be bigger than '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Swap cannot be bigger than '
                                f'{Max_Tip_str} {COIN_NAME_FROM}.')
                 return
             elif real_from_amount < Min_Tip:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Swap cannot be smaller than '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Swap cannot be smaller than '
                                f'{Min_Tip_str} {COIN_NAME_FROM}.')
                 return
             elif real_from_amount > real_actual_balance:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to do a swap of '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to do a swap of '
                                f'{num_format_coin(real_from_amount if COIN_NAME_FROM in ENABLE_COIN_ERC+ENABLE_COIN_TRC else real_from_amount*10**from_decimal, COIN_NAME_FROM)} '
                                f'{COIN_NAME_FROM}. Having {num_format_coin(real_actual_balance if COIN_NAME_FROM in ENABLE_COIN_ERC+ENABLE_COIN_TRC else real_from_amount*10**from_decimal, COIN_NAME_FROM)}{COIN_NAME_FROM}.')
                 return
@@ -177,7 +177,7 @@ class TipSwap(commands.Cog):
                     TX_IN_PROCESS.remove(ctx.author.id)	
                 else:	
                     await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)	
-                    msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')	
+                    msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')	
                     await msg.add_reaction(EMOJI_OK_BOX)	
                     return	
             except Exception as e:	
@@ -195,7 +195,7 @@ class TipSwap(commands.Cog):
             else:	
                 await ctx.message.add_reaction(EMOJI_ERROR)	
                 await self.botLogChan.send(f'A user call failed to swap {COIN_NAME_FROM} to {COIN_NAME_TO}')	
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error during swap.')	
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error during swap.')	
                 return
         except Exception as e:
             traceback.print_exc(file=sys.stdout)

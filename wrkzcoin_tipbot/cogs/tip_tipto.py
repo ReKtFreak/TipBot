@@ -26,20 +26,20 @@ class TipTipTo(commands.Cog):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
             return
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'tipto')
         if account_lock:
             await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
 
         # Check if tx in progress
         if ctx.author.id in TX_IN_PROCESS:
             await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-            msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
+            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
@@ -49,7 +49,7 @@ class TipTipTo(commands.Cog):
             amount = Decimal(amount)
         except Exception as e:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
             return
 
         COIN_NAME = coin.upper()
@@ -69,20 +69,20 @@ class TipTipTo(commands.Cog):
         # offline can not tipto
         try:
             if ctx.author.status == discord.Status.offline:
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Offline status cannot use this.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Offline status cannot use this.')
                 return
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
 
         try:
             if not is_coin_tipable(COIN_NAME):
-                msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} TIPPING is currently disable for {COIN_NAME}.')
+                msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} TIPPING is currently disable for {COIN_NAME}.')
                 await msg.add_reaction(EMOJI_OK_BOX)
                 return
 
             if is_maintenance_coin(COIN_NAME):
                 await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
                 return
 
             if COIN_NAME in ENABLE_COIN_ERC:
@@ -127,32 +127,32 @@ class TipTipTo(commands.Cog):
                 decimal_pts = int(math.log10(get_decimal(COIN_NAME)))
             if real_amount > MaxTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
                                f'{num_format_coin(MaxTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
             elif real_amount > actual_balance:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to transfer tip of '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to transfer tip of '
                                f'{num_format_coin(real_amount, COIN_NAME)} '
                                f'{COIN_NAME} to {to_user}.')
                 return
             elif real_amount < MinTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
                                f'{num_format_coin(MinTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
 
             if '@' not in to_user:
-                msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} You need to have a correct format to send to. Example: username@telegram')
+                msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You need to have a correct format to send to. Example: username@telegram')
                 await msg.add_reaction(EMOJI_OK_BOX)
                 return
             else:
                 userid = to_user.split("@")[0]
                 serverto = to_user.split("@")[1].upper()
                 if serverto not in ["TELEGRAM", "REDDIT"]:
-                    msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} Unsupported or unknown **{serverto}**')
+                    msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} Unsupported or unknown **{serverto}**')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
                 else:
@@ -160,7 +160,7 @@ class TipTipTo(commands.Cog):
                     try:
                         to_teleuser = await store.sql_get_userwallet(userid, COIN_NAME, serverto)
                         if to_teleuser is None:
-                            msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} User **{userid}** is not in our DB for **{serverto}**')
+                            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} User **{userid}** is not in our DB for **{serverto}**')
                             await msg.add_reaction(EMOJI_OK_BOX)
                             return
                         else:
@@ -170,7 +170,7 @@ class TipTipTo(commands.Cog):
                                                                    SERVER_BOT, userid, userid, serverto, real_amount, decimal_pts)
                             if tipto:
                                 await logchanbot('[Discord] {}#{} tipto {}{} to **{}**'.format(ctx.author.name, ctx.author.discriminator, num_format_coin(real_amount, COIN_NAME), COIN_NAME, to_user))
-                                msg = await ctx.send(f'{EMOJI_CHECK} {ctx.author.mention} Successfully transfer {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME} to **{to_user}**.')
+                                msg = await ctx.reply(f'{EMOJI_CHECK} {ctx.author.mention} Successfully transfer {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME} to **{to_user}**.')
                                 await msg.add_reaction(EMOJI_OK_BOX)
                                 # Update tipstat
                                 try:
@@ -179,7 +179,7 @@ class TipTipTo(commands.Cog):
                                 except Exception as e:
                                     await logchanbot(traceback.format_exc())
                             else:
-                                msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} Internal error for tipto {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME} to **{to_user}**.')
+                                msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} Internal error for tipto {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME} to **{to_user}**.')
                                 await msg.add_reaction(EMOJI_OK_BOX)
                                 await logchanbot(f'{EMOJI_ERROR} {ctx.author.name}#{ctx.author.discriminator} Internal error for tipto {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME} to **{to_user}**.')
                             return

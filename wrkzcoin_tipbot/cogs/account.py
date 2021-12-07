@@ -208,7 +208,7 @@ class Account(commands.Cog):
     async def account(self, ctx):
         prefix = await get_guild_prefix(ctx)
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'{ctx.author.mention} Invalid {prefix}account command')
+            await ctx.reply(f'{ctx.author.mention} Invalid {prefix}account command')
             return
 
 
@@ -225,7 +225,7 @@ class Account(commands.Cog):
         # acc tradeapi | acc tradeapi regen
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be in public.')
+            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
             return
         re_create = False
         if regen and regen.upper() in ["REGEN", "RECREATE", "GEN"]:
@@ -237,19 +237,19 @@ class Account(commands.Cog):
             api_key = str(uuid.uuid4())
             trade_api = await store.create_api_trade(str(ctx.author.id), api_key, re_create, SERVER_BOT)
             if trade_api:
-                await ctx.send('Copy your api key and store in a safe place:```authorization-user: {}\nauthorization-key: {}```'.format(str(ctx.author.id), api_key))
+                await ctx.reply('Copy your api key and store in a safe place:```authorization-user: {}\nauthorization-key: {}```'.format(str(ctx.author.id), api_key))
             else:
-                await ctx.send('Internal error.')
+                await ctx.reply('Internal error.')
         else:
             if re_create == False:
-                await ctx.send('Copy your api key and store in a safe place:```authorization-user: {}\nauthorization-key: {}```'.format(str(ctx.author.id), get_trade_api['api_key']))
+                await ctx.reply('Copy your api key and store in a safe place:```authorization-user: {}\nauthorization-key: {}```'.format(str(ctx.author.id), get_trade_api['api_key']))
             else:
                 api_key = str(uuid.uuid4())
                 trade_api = await store.create_api_trade(str(ctx.author.id), api_key, re_create, SERVER_BOT)
                 if trade_api:
-                    await ctx.send('Copy your api key and store in a safe place:```authorization-user: {}\nauthorization-key: {}```'.format(str(ctx.author.id), api_key))
+                    await ctx.reply('Copy your api key and store in a safe place:```authorization-user: {}\nauthorization-key: {}```'.format(str(ctx.author.id), api_key))
                 else:
-                    await ctx.send('Internal error updating API keys.')
+                    await ctx.reply('Internal error updating API keys.')
 
 
     @account.command(
@@ -323,39 +323,39 @@ class Account(commands.Cog):
                 update = await store.sql_depositlink_user_update(str(ctx.author.id), "enable", "NO", SERVER_BOT)
                 if update:
                     await ctx.message.add_reaction(EMOJI_OK_HAND) 
-                    msg = await ctx.send(f'{ctx.author.mention} Your deposit link status successfully and **not be accessible by public**.')
+                    msg = await ctx.reply(f'{ctx.author.mention} Your deposit link status successfully and **not be accessible by public**.')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
                 else:
                     await ctx.message.add_reaction(EMOJI_ERROR) 
-                    await ctx.send(f'{ctx.author.mention} Internal error during update status from ENABLE to DISABLE. Try again later.')
+                    await ctx.reply(f'{ctx.author.mention} Internal error during update status from ENABLE to DISABLE. Try again later.')
                     return
             elif get_depositlink['enable'] == 'YES' and disable and disable.upper() in ["ENABLE", "ON", "1", "TRUE", "SHOW"]:
                 await ctx.message.add_reaction(EMOJI_ERROR) 
-                await ctx.send(f'{ctx.author.mention} Your deposit link is already public. Nothing to do.')
+                await ctx.reply(f'{ctx.author.mention} Your deposit link is already public. Nothing to do.')
                 return
             elif get_depositlink['enable'] == 'NO' and disable and disable.upper() in ["ENABLE", "ON", "1", "TRUE", "SHOW"]:
                 # Turn it on
                 update = await store.sql_depositlink_user_update(str(ctx.author.id), "enable", "YES", SERVER_BOT)
                 if update:
                     await ctx.message.add_reaction(EMOJI_OK_HAND)
-                    msg = await ctx.send(f'{ctx.author.mention} Your deposit link status successfully and **will be accessible by public**.')
+                    msg = await ctx.reply(f'{ctx.author.mention} Your deposit link status successfully and **will be accessible by public**.')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
                 else:
                     await ctx.message.add_reaction(EMOJI_ERROR) 
-                    await ctx.send(f'{ctx.author.mention} Internal error during update status from DISABLE to ENABLE. Try again later.')
+                    await ctx.reply(f'{ctx.author.mention} Internal error during update status from DISABLE to ENABLE. Try again later.')
                     return
             elif get_depositlink['enable'] == 'NO' and disable and disable.upper() in ["DISABLE", "OFF", "0", "FALSE", "HIDE"]:
                 await ctx.message.add_reaction(EMOJI_ERROR) 
-                await ctx.send(f'{ctx.author.mention} Your deposit link is already private. Nothing to do.')
+                await ctx.reply(f'{ctx.author.mention} Your deposit link is already private. Nothing to do.')
                 return
             elif disable and (disable.upper() == "PUB" or disable.upper() == "PUBLIC"):
                 # display link
                 status = "public" if get_depositlink['enable'] == 'YES' else "private"
                 link = config.deposit_qr.deposit_url + '/key/' + get_depositlink['link_key']
                 await ctx.message.add_reaction(EMOJI_OK_HAND)
-                msg = await ctx.send(f'{ctx.author.mention} Your deposit link can be accessed from (**{status}**):\n{link}')
+                msg = await ctx.reply(f'{ctx.author.mention} Your deposit link can be accessed from (**{status}**):\n{link}')
                 await msg.add_reaction(EMOJI_OK_BOX)
                 return
             else:
@@ -368,7 +368,7 @@ class Account(commands.Cog):
                     await msg.add_reaction(EMOJI_OK_BOX)
                 except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                     await msg.add_reaction(EMOJI_ERROR)
-                    msg = await ctx.send(f'{ctx.author.mention} I failed to DM you. You can also use **{prefix}account deposit pub**, if you want it to be in public.')
+                    msg = await ctx.reply(f'{ctx.author.mention} I failed to DM you. You can also use **{prefix}account deposit pub**, if you want it to be in public.')
                     await msg.add_reaction(EMOJI_OK_BOX)
                 return
         else:
@@ -386,12 +386,12 @@ class Account(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_OK_HAND)
                 except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    msg = await ctx.send(f'{ctx.author.mention} I failed to DM you. You can also use **{prefix}account deposit pub**, if you want it to be in public.')
+                    msg = await ctx.reply(f'{ctx.author.mention} I failed to DM you. You can also use **{prefix}account deposit pub**, if you want it to be in public.')
                     await msg.add_reaction(EMOJI_OK_BOX)
                 return
             else:
                 await ctx.message.add_reaction(EMOJI_ERROR) 
-                await ctx.send(f'{ctx.author.mention} Internal error during link generation. Try later.')
+                await ctx.reply(f'{ctx.author.mention} Internal error during link generation. Try later.')
                 return
 
 
@@ -406,14 +406,14 @@ class Account(commands.Cog):
     ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be in public.')
+            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
             return
 
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'account twofa')
         if account_lock:
             await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
 
@@ -446,7 +446,7 @@ class Account(commands.Cog):
                                               f'Or use **code** below to add manually:```{random_secret32}```')
                 return
             else:
-                await ctx.send(f'{ctx.author.mention} Internal error during create 2FA.')
+                await ctx.reply(f'{ctx.author.mention} Internal error during create 2FA.')
                 return
         else:
             # Check if 2FA secret has or not
@@ -459,7 +459,7 @@ class Account(commands.Cog):
             except Exception as e:
                 await logchanbot(traceback.format_exc())
             if verified and verified.upper() == "YES":
-                await ctx.send(f'{ctx.author.mention} You already verified 2FA.')
+                await ctx.reply(f'{ctx.author.mention} You already verified 2FA.')
                 return
 
             try:
@@ -483,10 +483,10 @@ class Account(commands.Cog):
                     img = img.resize((256, 256))
                     img.save(config.qrsettings.path + secret_code + ".png")
                 await ctx.author.send("**Please use Authenticator to scan**", 
-                                              file=discord.File(config.qrsettings.path + secret_code + ".png"))
+                                      file=discord.File(config.qrsettings.path + secret_code + ".png"))
                 await ctx.author.send('**[NEX STEP]**\n'
-                                              'From your Authenticator Program, please get code and verify by: ```.account verify XXXXXX```'
-                                              f'Or use **code** below to add manually:```{secret_code}```')
+                                      'From your Authenticator Program, please get code and verify by: ```.account verify XXXXXX```'
+                                      f'Or use **code** below to add manually:```{secret_code}```')
             else:
                 # Create userinfo
                 random_secret32 = pyotp.random_base32()
@@ -507,13 +507,13 @@ class Account(commands.Cog):
                     img = img.resize((256, 256))
                     img.save(config.qrsettings.path + random_secret32 + ".png")
                     await ctx.author.send("**Please use Authenticator to scan**", 
-                                                  file=discord.File(config.qrsettings.path + random_secret32 + ".png"))
+                                          file=discord.File(config.qrsettings.path + random_secret32 + ".png"))
                     await ctx.author.send('**[NEX STEP]**\n'
-                                                  'From your Authenticator Program, please get code and verify by: ```.account verify XXXXXX```'
-                                                  f'Or use **code** below to add manually:```{random_secret32}```')
+                                          'From your Authenticator Program, please get code and verify by: ```.account verify XXXXXX```'
+                                          f'Or use **code** below to add manually:```{random_secret32}```')
                     return
                 else:
-                    await ctx.send(f'{ctx.author.mention} Internal error during create 2FA.')
+                    await ctx.reply(f'{ctx.author.mention} Internal error during create 2FA.')
                     return
         return
 
@@ -528,25 +528,25 @@ class Account(commands.Cog):
     ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be in public.')
+            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
             return
 
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'account verify')
         if account_lock:
             await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
 
         if len(codes) != 6:
-            await ctx.send(f'{ctx.author.mention} Incorrect code length.')
+            await ctx.reply(f'{ctx.author.mention} Incorrect code length.')
             return
 
         userinfo = await store.sql_discord_userinfo_get(str(ctx.author.id))
         if userinfo is None:
-            await ctx.send(f'{ctx.author.mention} You have not created 2FA code to scan yet.\n'
-                           'Please execute **account twofa** to generate 2FA scan code.')
+            await ctx.reply(f'{ctx.author.mention} You have not created 2FA code to scan yet.\n'
+                            'Please execute **account twofa** to generate 2FA scan code.')
             return
         else:
             secret_code = None
@@ -556,7 +556,7 @@ class Account(commands.Cog):
             except Exception as e:
                 await logchanbot(traceback.format_exc())
             if verified and verified.upper() == "YES":
-                await ctx.send(f'{ctx.author.mention} You already verified 2FA. You do not need this.')
+                await ctx.reply(f'{ctx.author.mention} You already verified 2FA. You do not need this.')
                 return
             
             try:
@@ -569,17 +569,17 @@ class Account(commands.Cog):
                 if codes in [totp.now(), totp.at(for_time=int(time.time()-15)), totp.at(for_time=int(time.time()+15))]:
                     update_userinfo = await store.sql_userinfo_2fa_verify(str(ctx.author.id), 'YES')
                     if update_userinfo:
-                        await ctx.send(f'{ctx.author.mention} Thanks for verification with 2FA.')
+                        await ctx.reply(f'{ctx.author.mention} Thanks for verification with 2FA.')
                         return
                     else:
-                        await ctx.send(f'{ctx.author.mention} Error verification 2FA.')
+                        await ctx.reply(f'{ctx.author.mention} Error verification 2FA.')
                         return
                 else:
-                    await ctx.send(f'{ctx.author.mention} Incorrect 2FA code. Please re-check.\n')
+                    await ctx.reply(f'{ctx.author.mention} Incorrect 2FA code. Please re-check.\n')
                     return
             else:
-                await ctx.send(f'{ctx.author.mention} You have not created 2FA code to scan yet.\n'
-                               'Please execute **account twofa** to generate 2FA scan code.')
+                await ctx.reply(f'{ctx.author.mention} You have not created 2FA code to scan yet.\n'
+                                'Please execute **account twofa** to generate 2FA scan code.')
                 return
 
 
@@ -594,24 +594,24 @@ class Account(commands.Cog):
     ):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be in public.')
+            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
             return
 
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'account verify')
         if account_lock:
             await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
 
         if len(codes) != 6:
-            await ctx.send(f'{ctx.author.mention} Incorrect code length.')
+            await ctx.reply(f'{ctx.author.mention} Incorrect code length.')
             return
 
         userinfo = await store.sql_discord_userinfo_get(str(ctx.author.id))
         if userinfo is None:
-            await ctx.send(f'{ctx.author.mention} You have not created 2FA code to scan yet.\n'
+            await ctx.reply(f'{ctx.author.mention} You have not created 2FA code to scan yet.\n'
                            'Nothing to **unverify**.')
             return
         else:
@@ -622,7 +622,7 @@ class Account(commands.Cog):
             except Exception as e:
                 await logchanbot(traceback.format_exc())
             if verified and verified.upper() == "NO":
-                await ctx.send(f'{ctx.author.mention} You have not verified yet. **Unverify** stopped.')
+                await ctx.reply(f'{ctx.author.mention} You have not verified yet. **Unverify** stopped.')
                 return
             
             try:
@@ -635,16 +635,16 @@ class Account(commands.Cog):
                 if codes in [totp.now(), totp.at(for_time=int(time.time()-15)), totp.at(for_time=int(time.time()+15))]:
                     update_userinfo = await store.sql_userinfo_2fa_verify(str(ctx.author.id), 'NO')
                     if update_userinfo:
-                        await ctx.send(f'{ctx.author.mention} You clear verification 2FA. You will need to add to your authentication program again later.')
+                        await ctx.reply(f'{ctx.author.mention} You clear verification 2FA. You will need to add to your authentication program again later.')
                         return
                     else:
-                        await ctx.send(f'{ctx.author.mention} Error unverify 2FA.')
+                        await ctx.reply(f'{ctx.author.mention} Error unverify 2FA.')
                         return
                 else:
-                    await ctx.send(f'{ctx.author.mention} Incorrect 2FA code. Please re-check.\n')
+                    await ctx.reply(f'{ctx.author.mention} Incorrect 2FA code. Please re-check.\n')
                     return
             else:
-                await ctx.send(f'{ctx.author.mention} You have not created 2FA code to scan yet.\n'
+                await ctx.reply(f'{ctx.author.mention} You have not created 2FA code to scan yet.\n'
                                'Nothing to **unverify**.')
                 return
 

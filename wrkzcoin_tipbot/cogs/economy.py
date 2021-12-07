@@ -1335,7 +1335,7 @@ class Economy(commands.Cog):
                                                                                     get_food_id['cost_decimal'], add_energy)
                                 paid_money = '{} {}'.format(num_format_coin(get_food_id['cost_expense_amount'], get_food_id['cost_coin_name']), get_food_id['cost_coin_name'])
                                 if insert_eating:
-                                    await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} You paid `{paid_money}` and ate `{food_name}`. You gained `{add_energy}` energy. You have total `{total_energy}` energy.')
+                                    await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} You paid `{paid_money}` and ate `{food_name}`. You gained `{add_energy}` energy. You have total `{total_energy}` energy.')
                                     await msg.delete()
                                     await ctx.message.add_reaction(reaction.emoji)
                                 else:
@@ -1890,12 +1890,12 @@ class Economy(commands.Cog):
     async def economy(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
 
         prefix = await get_guild_prefix(ctx)
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'{ctx.author.mention} Invalid {prefix}economy command.\n Please use {prefix}help economy')
+            await ctx.reply(f'{ctx.author.mention} Invalid {prefix}economy command.\n Please use {prefix}help economy')
             return
 
 
@@ -2033,7 +2033,7 @@ class Economy(commands.Cog):
         what: str = None
     ):
         if what is None:
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} What do you need to collect? Tell me that also!')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} What do you need to collect? Tell me that also!')
             return
         else:
             what = what.upper()

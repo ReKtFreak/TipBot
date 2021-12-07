@@ -42,13 +42,13 @@ class Games(commands.Cog):
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} (Bot) using **game** {ctx.guild.name} / {ctx.guild.id}')
             return
 
         if isinstance(ctx.channel, discord.DMChannel) == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} No, not working with DM.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} No, not working with DM.')
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried using **game** in **DM**')
             return
 
@@ -57,7 +57,7 @@ class Games(commands.Cog):
             serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
             if serverinfo and serverinfo['enable_game'] == "NO":
                 await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **game** in {ctx.guild.name} / {ctx.guild.id} which is disable.')
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, **Game** in this guild is disable.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, **Game** in this guild is disable.')
                 return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
             pass
@@ -69,12 +69,12 @@ class Games(commands.Cog):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
             return
 
         prefix = await get_guild_prefix(ctx)
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'{ctx.author.mention} Invalid {prefix}game command.\n Please use {prefix}help game')
+            await ctx.reply(f'{ctx.author.mention} Invalid {prefix}game command.\n Please use {prefix}help game')
             return
 
 
@@ -100,7 +100,7 @@ class Games(commands.Cog):
                 stat.add_field(name='Paid in {}'.format(COIN_NAME), value='{}{}'.format(num_format_coin(get_game_stat[COIN_NAME], COIN_NAME), COIN_NAME), inline=True)
             stat.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
             try:
-                msg = await ctx.send(embed=stat)
+                msg = await ctx.reply(embed=stat)
                 await ctx.message.add_reaction(EMOJI_OK_HAND)
                 await msg.add_reaction(EMOJI_OK_BOX)
             except Exception as e:
@@ -126,7 +126,7 @@ class Games(commands.Cog):
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
@@ -138,7 +138,7 @@ class Games(commands.Cog):
             account_created = ctx.author.created_at
             if (datetime.utcnow() - account_created).total_seconds() <= config.game.account_age_to_play:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
                 return
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -152,7 +152,7 @@ class Games(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan:
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **blackjack** channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **blackjack** channel!!!')
                         return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
             pass
@@ -168,7 +168,7 @@ class Games(commands.Cog):
             await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
 
         if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
-            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game** play.')
+            await ctx.reply(f'{ctx.author.mention} You are ongoing with one **game** play.')
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
 
@@ -183,7 +183,7 @@ class Games(commands.Cog):
         The dealer stops hitting at 17.'''
 
         try:
-            await ctx.send(f'{ctx.author.mention} ```{game_text}```')
+            await ctx.reply(f'{ctx.author.mention} ```{game_text}```')
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
             await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
             return
@@ -203,18 +203,18 @@ class Games(commands.Cog):
             # check if bot is going to restart
             if IS_RESTARTING:
                 await ctx.message.add_reaction(EMOJI_REFRESH)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
                 return
             while not player_over:  # Keep looping until player stands or busts.
                 # check if bot is going to restart
                 if IS_RESTARTING:
                     await ctx.message.add_reaction(EMOJI_REFRESH)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
                     return
                 get_display = blackjack_displayHands(playerHand, dealerHand, False)
                 # Sometimes bot sending failure. If fails, we finish it.
                 try:
-                    msg = await ctx.send('{} **BLACKJACK**\n'
+                    msg = await ctx.reply('{} **BLACKJACK**\n'
                                          '```DEALER: {}\n'
                                          '{}\n'
                                          'PLAYER:  {}\n'
@@ -227,7 +227,7 @@ class Games(commands.Cog):
                     game_over = True
                     if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                         GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot failed to start BlackJack message. Please re-try.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot failed to start BlackJack message. Please re-try.')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     break
                     return
@@ -244,7 +244,7 @@ class Games(commands.Cog):
                 except asyncio.TimeoutError:
                     if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                         GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
-                    await ctx.send(f'{ctx.author.mention} **BLACKJACK GAME ** has waited you too long. Game exits.')
+                    await ctx.reply(f'{ctx.author.mention} **BLACKJACK GAME ** has waited you too long. Game exits.')
                     try:
                         await msg.delete()
                     except Exception as e:
@@ -255,7 +255,7 @@ class Games(commands.Cog):
                     newCard = deck.pop()
                     rank, suit = newCard
                     try:
-                        await ctx.send('{} **BLACKJACK** You drew a {} of {}'.format(ctx.author.mention, rank, suit))
+                        await ctx.reply('{} **BLACKJACK** You drew a {} of {}'.format(ctx.author.mention, rank, suit))
                     except Exception as e:
                         if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                             GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
@@ -278,7 +278,7 @@ class Games(commands.Cog):
                     while blackjack_getCardValue(dealerHand) < 17:
                         # The dealer hits:
                         try:
-                            dealer_msg = await ctx.send('{} **BLACKJACK**\n'
+                            dealer_msg = await ctx.reply('{} **BLACKJACK**\n'
                                                         '```Dealer hits...```'.format(ctx.author.mention))
                         except Exception as e:
                             if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
@@ -299,7 +299,7 @@ class Games(commands.Cog):
 
         dealer_get_display = blackjack_displayHands(playerHand, dealerHand, True)
         try:
-            await ctx.send('{} **BLACKJACK**\n'
+            await ctx.reply('{} **BLACKJACK**\n'
                            '```DEALER: {}\n'
                            '{}\n'
                            'PLAYER:  {}\n'
@@ -327,17 +327,17 @@ class Games(commands.Cog):
         try:
             if dealerValue > 21:
                 won = True
-                await ctx.send('{} **BLACKJACK**\n'
+                await ctx.reply('{} **BLACKJACK**\n'
                                '```Dealer busts! You win! {}```'.format(ctx.author.mention, result))
             elif playerValue > 21 or playerValue < dealerValue:
-                await ctx.send('{} **BLACKJACK**\n'
+                await ctx.reply('{} **BLACKJACK**\n'
                                '```You lost!```'.format(ctx.author.mention))
             elif playerValue > dealerValue:
                 won = True
-                await ctx.send('{} **BLACKJACK**\n'
+                await ctx.reply('{} **BLACKJACK**\n'
                                '```You won! {}```'.format(ctx.author.mention, result))
             elif playerValue == dealerValue:
-                await ctx.send('{} **BLACKJACK**\n'
+                await ctx.reply('{} **BLACKJACK**\n'
                                '```It\'s a tie!```'.format(ctx.author.mention))
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -374,7 +374,7 @@ class Games(commands.Cog):
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
@@ -386,7 +386,7 @@ class Games(commands.Cog):
             account_created = ctx.author.created_at
             if (datetime.utcnow() - account_created).total_seconds() <= config.game.account_age_to_play:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
                 return
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -400,7 +400,7 @@ class Games(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan:
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **slot** channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **slot** channel!!!')
                         return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
             pass
@@ -427,7 +427,7 @@ class Games(commands.Cog):
         if ctx.author.id not in GAME_SLOT_IN_PRGORESS:
             GAME_SLOT_IN_PRGORESS.append(ctx.author.id)
         else:
-            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game** play.')
+            await ctx.reply(f'{ctx.author.mention} You are ongoing with one **game** play.')
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
         won = False
@@ -483,7 +483,7 @@ class Games(commands.Cog):
             await asyncio.sleep(config.game.game_slot_sleeping) # sleep 5s
             if ctx.author.id in GAME_SLOT_IN_PRGORESS:
                 GAME_SLOT_IN_PRGORESS.remove(ctx.author.id)
-            msg = await ctx.send(embed=embed)
+            msg = await ctx.reply(embed=embed)
             await msg.add_reaction(EMOJI_OK_BOX)
             if won == False:
                 # Delete lose game after 10s
@@ -519,7 +519,7 @@ class Games(commands.Cog):
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
@@ -531,7 +531,7 @@ class Games(commands.Cog):
             account_created = ctx.author.created_at
             if (datetime.utcnow() - account_created).total_seconds() <= config.game.account_age_to_play:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
                 return
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -545,7 +545,7 @@ class Games(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan:
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **bagel** channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **bagel** channel!!!')
                         return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
             pass
@@ -557,7 +557,7 @@ class Games(commands.Cog):
         if ctx.author.id not in GAME_INTERACTIVE_PRGORESS:
             GAME_INTERACTIVE_PRGORESS.append(ctx.author.id)
         else:
-            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game** play.')
+            await ctx.reply(f'{ctx.author.mention} You are ongoing with one **game** play.')
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
 
@@ -584,18 +584,18 @@ class Games(commands.Cog):
 
         time_start = int(time.time())
 
-        await ctx.send(f'{ctx.author.mention} ```{game_text}```')
+        await ctx.reply(f'{ctx.author.mention} ```{game_text}```')
         secretNum = bagels_getSecretNum(NUM_DIGITS)
 
         try:
-            await ctx.send(f'{ctx.author.mention} I have thought up a number. You have {MAX_GUESSES} guesses to get it.')
+            await ctx.reply(f'{ctx.author.mention} I have thought up a number. You have {MAX_GUESSES} guesses to get it.')
             guess = None
             numGuesses = 0
             while guess is None:
                 # check if bot is going to restart
                 if IS_RESTARTING:
                     await ctx.message.add_reaction(EMOJI_REFRESH)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
                     return
                 waiting_numbmsg = None
                 def check(m):
@@ -604,7 +604,7 @@ class Games(commands.Cog):
                     waiting_numbmsg = await self.bot.wait_for('message', timeout=60, check=check)
                 except asyncio.TimeoutError:
                     await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
-                    await ctx.send(f'{ctx.author.mention} **Bagel Timeout**. The answer was **{secretNum}**.')
+                    await ctx.reply(f'{ctx.author.mention} **Bagel Timeout**. The answer was **{secretNum}**.')
                     if free_game == True:
                         try:
                             await store.sql_game_free_add(str(secretNum), str(ctx.author.id), 'WIN' if won else 'LOSE', str(ctx.guild.id), 'BAGEL', int(time.time()) - time_start, SERVER_BOT)
@@ -620,7 +620,7 @@ class Games(commands.Cog):
                     return
                 if waiting_numbmsg is None:
                     await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
-                    await ctx.send(f'{ctx.author.mention} **Bagel Timeout**. The answer was **{secretNum}**.')
+                    await ctx.reply(f'{ctx.author.mention} **Bagel Timeout**. The answer was **{secretNum}**.')
                     if free_game == True:
                         try:
                             await store.sql_game_free_add(str(secretNum), str(ctx.author.id), 'WIN' if won else 'LOSE', str(ctx.guild.id), 'BAGEL', int(time.time()) - time_start, SERVER_BOT)
@@ -640,10 +640,10 @@ class Games(commands.Cog):
                         guess_chars = [str(char) for char in str(guess)]
                         if len(guess) != NUM_DIGITS or not guess.isdecimal():
                             guess = None
-                            await ctx.send(f'{ctx.author.mention} **Bagel: ** Please use {NUM_DIGITS} numbers!')
+                            await ctx.reply(f'{ctx.author.mention} **Bagel: ** Please use {NUM_DIGITS} numbers!')
                         elif len([x for x in guess_chars if guess_chars.count(x) >= 2]) > 0:
                             guess = None
-                            await ctx.send(f'{ctx.author.mention} **Bagel: ** Please do not use repeated numbers!')
+                            await ctx.reply(f'{ctx.author.mention} **Bagel: ** Please do not use repeated numbers!')
                         else:
                             if guess == secretNum:
                                 result = 'But this is a free game without **reward**! Waiting to refresh your paid plays (24h max).'
@@ -670,17 +670,17 @@ class Games(commands.Cog):
                                         await logchanbot(traceback.format_exc())
                                 if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                                     GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
-                                await ctx.send(f'{ctx.author.mention} **Bagel: ** You won! The answer was **{secretNum}**. You had guessed **{numGuesses+1}** times only. {result}')
+                                await ctx.reply(f'{ctx.author.mention} **Bagel: ** You won! The answer was **{secretNum}**. You had guessed **{numGuesses+1}** times only. {result}')
                                 return
                             else:
                                 clues = bagels_getClues(guess, secretNum)
-                                await ctx.send(f'{ctx.author.mention} **Bagel: #{numGuesses+1} ** {clues}')
+                                await ctx.reply(f'{ctx.author.mention} **Bagel: #{numGuesses+1} ** {clues}')
                                 guess = None
                                 numGuesses += 1
                     except Exception as e:
                         await logchanbot(traceback.format_exc())
                 if numGuesses >= MAX_GUESSES:
-                    await ctx.send(f'{ctx.author.mention} **Bagel: ** You run out of guesses and you did it **{numGuesses}** times. Game over! The answer was **{secretNum}**')
+                    await ctx.reply(f'{ctx.author.mention} **Bagel: ** You run out of guesses and you did it **{numGuesses}** times. Game over! The answer was **{secretNum}**')
                     if free_game == True:
                         try:
                             await store.sql_game_free_add(str(secretNum), str(ctx.author.id), 'WIN' if won else 'LOSE', str(ctx.guild.id), 'BAGEL', int(time.time()) - time_start, SERVER_BOT)
@@ -718,7 +718,7 @@ class Games(commands.Cog):
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
@@ -730,7 +730,7 @@ class Games(commands.Cog):
             account_created = ctx.author.created_at
             if (datetime.utcnow() - account_created).total_seconds() <= config.game.account_age_to_play:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
                 return
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -744,7 +744,7 @@ class Games(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan:
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **bagel** channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **bagel** channel!!!')
                         return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
             pass
@@ -756,7 +756,7 @@ class Games(commands.Cog):
         if ctx.author.id not in GAME_INTERACTIVE_PRGORESS:
             GAME_INTERACTIVE_PRGORESS.append(ctx.author.id)
         else:
-            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game** play.')
+            await ctx.reply(f'{ctx.author.mention} You are ongoing with one **game** play.')
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
 
@@ -809,19 +809,19 @@ class Games(commands.Cog):
     Hints:
     {}
     '''.format(NUM_DIGITS, hint_string)
-        await ctx.send(f'{ctx.author.mention} ```{game_text}```')
+        await ctx.reply(f'{ctx.author.mention} ```{game_text}```')
 
         time_start = int(time.time())
 
         try:
-            await ctx.send(f'{ctx.author.mention} I have thought up a number. You have {MAX_GUESSES} guesses to get it.')
+            await ctx.reply(f'{ctx.author.mention} I have thought up a number. You have {MAX_GUESSES} guesses to get it.')
             guess = None
             numGuesses = 0
             while guess is None:
                 # check if bot is going to restart
                 if IS_RESTARTING:
                     await ctx.message.add_reaction(EMOJI_REFRESH)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
                     return
                 waiting_numbmsg = None
                 def check(m):
@@ -830,7 +830,7 @@ class Games(commands.Cog):
                     waiting_numbmsg = await self.bot.wait_for('message', timeout=60, check=check)
                 except asyncio.TimeoutError:
                     await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
-                    await ctx.send(f'{ctx.author.mention} **Bagel Timeout**. The answer was **{secretNum}**.')
+                    await ctx.reply(f'{ctx.author.mention} **Bagel Timeout**. The answer was **{secretNum}**.')
                     if free_game == True:
                         try:
                             await store.sql_game_free_add(str(secretNum), str(ctx.author.id), 'WIN' if won else 'LOSE', str(ctx.guild.id), 'BAGEL', int(time.time()) - time_start, SERVER_BOT)
@@ -846,7 +846,7 @@ class Games(commands.Cog):
                     return
                 if waiting_numbmsg is None:
                     await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
-                    await ctx.send(f'{ctx.author.mention} **Bagel Timeout**. The answer was **{secretNum}**.')
+                    await ctx.reply(f'{ctx.author.mention} **Bagel Timeout**. The answer was **{secretNum}**.')
                     if free_game == True:
                         try:
                             await store.sql_game_free_add(str(secretNum), str(ctx.author.id), 'WIN' if won else 'LOSE', str(ctx.guild.id), 'BAGEL', int(time.time()) - time_start, SERVER_BOT)
@@ -866,10 +866,10 @@ class Games(commands.Cog):
                         guess_chars = [str(char) for char in str(guess)]
                         if len(guess) != NUM_DIGITS or not guess.isdecimal():
                             guess = None
-                            await ctx.send(f'{ctx.author.mention} **Bagel: ** Please use {NUM_DIGITS} numbers!')
+                            await ctx.reply(f'{ctx.author.mention} **Bagel: ** Please use {NUM_DIGITS} numbers!')
                         elif len([x for x in guess_chars if guess_chars.count(x) >= 2]) > 0:
                             guess = None
-                            await ctx.send(f'{ctx.author.mention} **Bagel: ** Please do not use repeated numbers!')
+                            await ctx.reply(f'{ctx.author.mention} **Bagel: ** Please do not use repeated numbers!')
                         else:
                             if guess == secretNum:
                                 result = 'But this is a free game without **reward**! Waiting to refresh your paid plays (24h max).'
@@ -896,17 +896,17 @@ class Games(commands.Cog):
                                         await logchanbot(traceback.format_exc())
                                 if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                                     GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
-                                await ctx.send(f'{ctx.author.mention} **Bagel: ** You won! The answer was **{secretNum}**. You had guessed **{numGuesses+1}** times only. {result}')
+                                await ctx.reply(f'{ctx.author.mention} **Bagel: ** You won! The answer was **{secretNum}**. You had guessed **{numGuesses+1}** times only. {result}')
                                 return
                             else:
                                 clues = bagels_getClues(guess, secretNum)
-                                await ctx.send(f'{ctx.author.mention} **Bagel: #{numGuesses+1} ** {clues}')
+                                await ctx.reply(f'{ctx.author.mention} **Bagel: #{numGuesses+1} ** {clues}')
                                 guess = None
                                 numGuesses += 1
                     except Exception as e:
                         await logchanbot(traceback.format_exc())
                 if numGuesses >= MAX_GUESSES:
-                    await ctx.send(f'{ctx.author.mention} **Bagel: ** You run out of guesses and you did it **{numGuesses}** times. Game over! The answer was **{secretNum}**')
+                    await ctx.reply(f'{ctx.author.mention} **Bagel: ** You run out of guesses and you did it **{numGuesses}** times. Game over! The answer was **{secretNum}**')
                     if free_game == True:
                         try:
                             await store.sql_game_free_add(str(secretNum), str(ctx.author.id), 'WIN' if won else 'LOSE', str(ctx.guild.id), 'BAGEL', int(time.time()) - time_start, SERVER_BOT)
@@ -944,7 +944,7 @@ class Games(commands.Cog):
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
@@ -956,7 +956,7 @@ class Games(commands.Cog):
             account_created = ctx.author.created_at
             if (datetime.utcnow() - account_created).total_seconds() <= config.game.account_age_to_play:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
                 return
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -970,7 +970,7 @@ class Games(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan:
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **bagel** channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **bagel** channel!!!')
                         return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
             pass
@@ -982,7 +982,7 @@ class Games(commands.Cog):
         if ctx.author.id not in GAME_INTERACTIVE_PRGORESS:
             GAME_INTERACTIVE_PRGORESS.append(ctx.author.id)
         else:
-            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game** play.')
+            await ctx.reply(f'{ctx.author.mention} You are ongoing with one **game** play.')
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
 
@@ -1043,19 +1043,19 @@ class Games(commands.Cog):
     Hints:
     {}
     '''.format(NUM_DIGITS, hint_string)
-        await ctx.send(f'{ctx.author.mention} ```{game_text}```')
+        await ctx.reply(f'{ctx.author.mention} ```{game_text}```')
 
         time_start = int(time.time())
 
         try:
-            await ctx.send(f'{ctx.author.mention} I have thought up a number. You have {MAX_GUESSES} guesses to get it.')
+            await ctx.reply(f'{ctx.author.mention} I have thought up a number. You have {MAX_GUESSES} guesses to get it.')
             guess = None
             numGuesses = 0
             while guess is None:
                 # check if bot is going to restart
                 if IS_RESTARTING:
                     await ctx.message.add_reaction(EMOJI_REFRESH)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
                     return
                 waiting_numbmsg = None
                 def check(m):
@@ -1064,7 +1064,7 @@ class Games(commands.Cog):
                     waiting_numbmsg = await self.bot.wait_for('message', timeout=60, check=check)
                 except asyncio.TimeoutError:
                     await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
-                    await ctx.send(f'{ctx.author.mention} **Bagel Timeout**. The answer was **{secretNum}**.')
+                    await ctx.reply(f'{ctx.author.mention} **Bagel Timeout**. The answer was **{secretNum}**.')
                     if free_game == True:
                         try:
                             await store.sql_game_free_add(str(secretNum), str(ctx.author.id), 'WIN' if won else 'LOSE', str(ctx.guild.id), 'BAGEL', int(time.time()) - time_start, SERVER_BOT)
@@ -1080,7 +1080,7 @@ class Games(commands.Cog):
                     return
                 if waiting_numbmsg is None:
                     await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
-                    await ctx.send(f'{ctx.author.mention} **Bagel Timeout**. The answer was **{secretNum}**.')
+                    await ctx.reply(f'{ctx.author.mention} **Bagel Timeout**. The answer was **{secretNum}**.')
                     if free_game == True:
                         try:
                             await store.sql_game_free_add(str(secretNum), str(ctx.author.id), 'WIN' if won else 'LOSE', str(ctx.guild.id), 'BAGEL', int(time.time()) - time_start, SERVER_BOT)
@@ -1100,10 +1100,10 @@ class Games(commands.Cog):
                         guess_chars = [str(char) for char in str(guess)]
                         if len(guess) != NUM_DIGITS or not guess.isdecimal():
                             guess = None
-                            await ctx.send(f'{ctx.author.mention} **Bagel: ** Please use {NUM_DIGITS} numbers!')
+                            await ctx.reply(f'{ctx.author.mention} **Bagel: ** Please use {NUM_DIGITS} numbers!')
                         elif len([x for x in guess_chars if guess_chars.count(x) >= 2]) > 0:
                             guess = None
-                            await ctx.send(f'{ctx.author.mention} **Bagel: ** Please do not use repeated numbers!')
+                            await ctx.reply(f'{ctx.author.mention} **Bagel: ** Please do not use repeated numbers!')
                         else:
                             if guess == secretNum:
                                 result = 'But this is a free game without **reward**! Waiting to refresh your paid plays (24h max).'
@@ -1130,17 +1130,17 @@ class Games(commands.Cog):
                                         await logchanbot(traceback.format_exc())
                                 if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                                     GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
-                                await ctx.send(f'{ctx.author.mention} **Bagel: ** You won! The answer was **{secretNum}**. You had guessed **{numGuesses+1}** times only. {result}')
+                                await ctx.reply(f'{ctx.author.mention} **Bagel: ** You won! The answer was **{secretNum}**. You had guessed **{numGuesses+1}** times only. {result}')
                                 return
                             else:
                                 clues = bagels_getClues(guess, secretNum)
-                                await ctx.send(f'{ctx.author.mention} **Bagel: #{numGuesses+1} ** {clues}')
+                                await ctx.reply(f'{ctx.author.mention} **Bagel: #{numGuesses+1} ** {clues}')
                                 guess = None
                                 numGuesses += 1
                     except Exception as e:
                         await logchanbot(traceback.format_exc())
                 if numGuesses >= MAX_GUESSES:
-                    await ctx.send(f'{ctx.author.mention} **Bagel: ** You run out of guesses and you did it **{numGuesses}** times. Game over! The answer was **{secretNum}**')
+                    await ctx.reply(f'{ctx.author.mention} **Bagel: ** You run out of guesses and you did it **{numGuesses}** times. Game over! The answer was **{secretNum}**')
                     if free_game == True:
                         try:
                             await store.sql_game_free_add(str(secretNum), str(ctx.author.id), 'WIN' if won else 'LOSE', str(ctx.guild.id), 'BAGEL', int(time.time()) - time_start, SERVER_BOT)
@@ -1178,7 +1178,7 @@ class Games(commands.Cog):
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
@@ -1195,7 +1195,7 @@ class Games(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan:
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **maze** channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **maze** channel!!!')
                         return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
             pass
@@ -1205,7 +1205,7 @@ class Games(commands.Cog):
         # end of bot channel check
 
         if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
-            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game** play.')
+            await ctx.reply(f'{ctx.author.mention} You are ongoing with one **game** play.')
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
 
@@ -1219,7 +1219,7 @@ class Games(commands.Cog):
             if ctx.guild.id not in GAME_MAZE_IN_PROCESS:
                 GAME_MAZE_IN_PROCESS.append(ctx.guild.id)
             else:
-                await ctx.send(f'{ctx.author.mention} There is one **MAZE** started by a user in this guild already.')
+                await ctx.reply(f'{ctx.author.mention} There is one **MAZE** started by a user in this guild already.')
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 return
             WALL = '#'
@@ -1231,7 +1231,7 @@ class Games(commands.Cog):
             playerx, playery = 1, 1
             exitx, exity = WIDTH - 2, HEIGHT - 2
             maze_created = maze_displayMaze(maze_data, WIDTH, HEIGHT, playerx, playery, exitx, exity)
-            msg = await ctx.send(f'{ctx.author.mention} New Maze:\n```{maze_created}```')
+            msg = await ctx.reply(f'{ctx.author.mention} New Maze:\n```{maze_created}```')
             await msg.add_reaction(EMOJI_UP)
             await msg.add_reaction(EMOJI_DOWN)
             await msg.add_reaction(EMOJI_LEFT)
@@ -1244,7 +1244,7 @@ class Games(commands.Cog):
                 # check if bot is going to restart
                 if IS_RESTARTING:
                     await ctx.message.add_reaction(EMOJI_REFRESH)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
                     return
                 def check(reaction, user):
                     return user == ctx.author and reaction.message.author == self.bot.user and reaction.message.id == msg.id and str(reaction.emoji) \
@@ -1271,7 +1271,7 @@ class Games(commands.Cog):
                             reward = await store.sql_game_add(json.dumps(remap_keys(maze_data)), str(ctx.author.id), 'None', 'WIN' if won else 'LOSE', 0, 0, str(ctx.guild.id), 'MAZE', int(time.time()) - time_start, SERVER_BOT)
                         except Exception as e:
                             await logchanbot(traceback.format_exc())
-                    await ctx.send(f'{ctx.author.mention} **MAZE GAME** has waited you too long. Game exits.')
+                    await ctx.reply(f'{ctx.author.mention} **MAZE GAME** has waited you too long. Game exits.')
                     try:
                         await msg.delete()
                     except Exception as e:
@@ -1281,7 +1281,7 @@ class Games(commands.Cog):
                     future.cancel()  # we don't need these anymore
                     
                 if str(reaction.emoji) == EMOJI_OK_BOX:
-                    await ctx.send(f'{ctx.author.mention} You gave up the current game.')
+                    await ctx.reply(f'{ctx.author.mention} You gave up the current game.')
                     if ctx.guild.id in GAME_MAZE_IN_PROCESS:
                         GAME_MAZE_IN_PROCESS.remove(ctx.guild.id)
 
@@ -1379,7 +1379,7 @@ class Games(commands.Cog):
                 duration = seconds_str(int(time.time()) - time_start)
                 if ctx.guild.id in GAME_MAZE_IN_PROCESS:
                     GAME_MAZE_IN_PROCESS.remove(ctx.guild.id)
-                await ctx.send(f'{ctx.author.mention} **MAZE** Grats! You completed! You completed in: **{duration}\n{result}**')
+                await ctx.reply(f'{ctx.author.mention} **MAZE** Grats! You completed! You completed in: **{duration}\n{result}**')
                 return
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -1404,7 +1404,7 @@ class Games(commands.Cog):
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
@@ -1416,7 +1416,7 @@ class Games(commands.Cog):
             account_created = ctx.author.created_at
             if (datetime.utcnow() - account_created).total_seconds() <= config.game.account_age_to_play:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
                 return
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -1430,7 +1430,7 @@ class Games(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan:
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **hangman** channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **hangman** channel!!!')
                         return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
             pass
@@ -1442,7 +1442,7 @@ class Games(commands.Cog):
         if ctx.author.id not in GAME_INTERACTIVE_PRGORESS:
             GAME_INTERACTIVE_PRGORESS.append(ctx.author.id)
         else:
-            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game** play.')
+            await ctx.reply(f'{ctx.author.mention} You are ongoing with one **game** play.')
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
 
@@ -1463,15 +1463,15 @@ class Games(commands.Cog):
         hm_draw = hm_drawHangman(missedLetters, correctLetters, secretWord)
         hm_picture = hm_draw['picture']
         hm_word_line = hm_draw['word_line']
-        await ctx.send(f'{ctx.author.mention} ```{game_text}\n{hm_picture}\n\n{hm_word_line}```')
+        await ctx.reply(f'{ctx.author.mention} ```{game_text}\n{hm_picture}\n\n{hm_word_line}```')
         try:
-            await ctx.send(f'{ctx.author.mention} **HANGMAN** Please enter a single letter:')
+            await ctx.reply(f'{ctx.author.mention} **HANGMAN** Please enter a single letter:')
             guess = None
             while guess is None:
                 # check if bot is going to restart
                 if IS_RESTARTING:
                     await ctx.message.add_reaction(EMOJI_REFRESH)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
                     return
                 waiting_numbmsg = None
                 def check(m):
@@ -1480,7 +1480,7 @@ class Games(commands.Cog):
                     waiting_numbmsg = await self.bot.wait_for('message', timeout=60, check=check)
                 except asyncio.TimeoutError:
                     await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
-                    await ctx.send(f'{ctx.author.mention} **HANGMAN Timeout**. The answer was **{secretWord}**.')
+                    await ctx.reply(f'{ctx.author.mention} **HANGMAN Timeout**. The answer was **{secretWord}**.')
                     if free_game == True:
                         try:
                             await store.sql_game_free_add(secretWord, str(ctx.author.id), 'WIN' if won else 'LOSE', str(ctx.guild.id), 'HANGMAN', int(time.time()) - time_start, SERVER_BOT)
@@ -1496,7 +1496,7 @@ class Games(commands.Cog):
                     return
                 if waiting_numbmsg is None:
                     await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
-                    await ctx.send(f'{ctx.author.mention} **HANGMAN Timeout**. The answer was **{secretWord}**.')
+                    await ctx.reply(f'{ctx.author.mention} **HANGMAN Timeout**. The answer was **{secretWord}**.')
                     if free_game == True:
                         try:
                             await store.sql_game_free_add(secretWord, str(ctx.author.id), 'WIN' if won else 'LOSE', str(ctx.guild.id), 'HANGMAN', int(time.time()) - time_start, SERVER_BOT)
@@ -1513,14 +1513,14 @@ class Games(commands.Cog):
                 else:
                     guess = waiting_numbmsg.content.strip().upper()
                     if guess in missedLetters + correctLetters:
-                        await ctx.send(f'{ctx.author.mention} **HANGMAN**. You already guessed **{guess}**.')
+                        await ctx.reply(f'{ctx.author.mention} **HANGMAN**. You already guessed **{guess}**.')
                         guess = None
                     elif not guess.isalpha() and guess != '-':
                         guess = None
-                        await ctx.send(f'{ctx.author.mention} **HANGMAN**. Please use letter.')
+                        await ctx.reply(f'{ctx.author.mention} **HANGMAN**. Please use letter.')
                     elif len(guess) > 1:
                         guess = None
-                        await ctx.send(f'{ctx.author.mention} **HANGMAN**. Please use only one alphabet.')
+                        await ctx.reply(f'{ctx.author.mention} **HANGMAN**. Please use only one alphabet.')
                     elif guess in secretWord:
                         # Add the correct guess to correctLetters:
                         correctLetters.append(guess)
@@ -1549,14 +1549,14 @@ class Games(commands.Cog):
                         if foundAllLetters:
                             if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                                 GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
-                            await ctx.send(f'{ctx.author.mention} **HANGMAN**: You won! The answer was **{secretWord}**. {result}')
+                            await ctx.reply(f'{ctx.author.mention} **HANGMAN**: You won! The answer was **{secretWord}**. {result}')
                             return
                         else:
                             hm_draw = hm_drawHangman(missedLetters, correctLetters, secretWord)
                             hm_picture = hm_draw['picture']
                             hm_missed = hm_draw['missed_letter']
                             hm_word_line = hm_draw['word_line']
-                            await ctx.send(f'{ctx.author.mention} **HANGMAN: **```{hm_picture}\n\n{hm_word_line}\n{hm_missed}```')
+                            await ctx.reply(f'{ctx.author.mention} **HANGMAN: **```{hm_picture}\n\n{hm_word_line}\n{hm_missed}```')
                         guess = None
                     else:
                         # The player has guessed incorrectly:
@@ -1573,7 +1573,7 @@ class Games(commands.Cog):
                                 await store.sql_game_free_add(secretWord, str(ctx.author.id), 'LOSE', str(ctx.guild.id), 'HANGMAN', int(time.time()) - time_start, SERVER_BOT)
                             else:
                                 await store.sql_game_add(secretWord, str(ctx.author.id), 'None', 'LOSE', 0, 0, str(ctx.guild.id), 'HANGMAN', int(time.time()) - time_start, SERVER_BOT)
-                            await ctx.send(f'{ctx.author.mention} **HANGMAN: ** You run out of guesses. Game over! The answer was **{secretWord}**```{hm_picture}```')
+                            await ctx.reply(f'{ctx.author.mention} **HANGMAN: ** You run out of guesses. Game over! The answer was **{secretWord}**```{hm_picture}```')
                             if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                                 GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
                             return
@@ -1581,7 +1581,7 @@ class Games(commands.Cog):
                             hm_picture = hm_draw['picture']
                             hm_missed = hm_draw['missed_letter']
                             hm_word_line = hm_draw['word_line']
-                            await ctx.send(f'{ctx.author.mention} ```{hm_picture}\n\n{hm_word_line}\n{hm_missed}```')
+                            await ctx.reply(f'{ctx.author.mention} ```{hm_picture}\n\n{hm_word_line}\n{hm_missed}```')
         except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
@@ -1606,7 +1606,7 @@ class Games(commands.Cog):
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
@@ -1618,7 +1618,7 @@ class Games(commands.Cog):
             account_created = ctx.author.created_at
             if (datetime.utcnow() - account_created).total_seconds() <= config.game.account_age_to_play:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
                 return
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -1632,7 +1632,7 @@ class Games(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan:
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **dice** channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **dice** channel!!!')
                         return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
             pass
@@ -1644,7 +1644,7 @@ class Games(commands.Cog):
         if ctx.author.id not in GAME_INTERACTIVE_PRGORESS:
             GAME_INTERACTIVE_PRGORESS.append(ctx.author.id)
         else:
-            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game** play.')
+            await ctx.reply(f'{ctx.author.mention} You are ongoing with one **game** play.')
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
 
@@ -1666,13 +1666,13 @@ class Games(commands.Cog):
 
     * The player loses if they got 7 or 11 for their points.'''
         time_start = int(time.time())
-        msg = await ctx.send(f'{ctx.author.mention} ```{game_text}```')
+        msg = await ctx.reply(f'{ctx.author.mention} ```{game_text}```')
         await msg.add_reaction(EMOJI_OK_BOX)
 
         if ctx.author.id not in GAME_DICE_IN_PRGORESS:
             GAME_DICE_IN_PRGORESS.append(ctx.author.id)
         else:
-            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game dice** play.')
+            await ctx.reply(f'{ctx.author.mention} You are ongoing with one **game dice** play.')
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
         # sleep 3s
@@ -1686,7 +1686,7 @@ class Games(commands.Cog):
                 dice1 = random.randint(1, 6)
                 dice2 = random.randint(1, 6)
                 dice_time += 1
-                msg = await ctx.send(f'#{dice_time} {ctx.author.mention} your dices: **{dice1}** and **{dice2}**')
+                msg = await ctx.reply(f'#{dice_time} {ctx.author.mention} your dices: **{dice1}** and **{dice2}**')
                 if sum_dice == 0:
                     # first dice
                     sum_dice = dice1 + dice2
@@ -1703,7 +1703,7 @@ class Games(commands.Cog):
                         game_over = True
                         break
                 if game_over == False:
-                    msg = await ctx.send(f'{ctx.author.mention} re-throwing dices...')
+                    msg = await ctx.reply(f'{ctx.author.mention} re-throwing dices...')
                     await msg.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
                     await asyncio.sleep(2)
             # game end, check win or lose
@@ -1735,7 +1735,7 @@ class Games(commands.Cog):
                         await store.sql_game_free_add('{}:{}:{}:{}'.format(dice_time, sum_dice, dice1, dice2), str(ctx.author.id), 'WIN' if won else 'LOSE', str(ctx.guild.id), 'DICE', int(time.time()) - time_start, SERVER_BOT)
                     except Exception as e:
                         await logchanbot(traceback.format_exc())
-                await ctx.send(f'{ctx.author.mention} **Dice: ** You threw dices **{dice_time}** times. {result}')
+                await ctx.reply(f'{ctx.author.mention} **Dice: ** You threw dices **{dice_time}** times. {result}')
                 if ctx.author.id in GAME_DICE_IN_PRGORESS:
                     GAME_DICE_IN_PRGORESS.remove(ctx.author.id)
                 if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
@@ -1773,7 +1773,7 @@ class Games(commands.Cog):
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
@@ -1785,7 +1785,7 @@ class Games(commands.Cog):
             account_created = ctx.author.created_at
             if (datetime.utcnow() - account_created).total_seconds() <= config.game.account_age_to_play:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
                 return
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -1799,7 +1799,7 @@ class Games(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan:
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **snail** channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **snail** channel!!!')
                         return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
             pass
@@ -1809,7 +1809,7 @@ class Games(commands.Cog):
         # end of bot channel check
 
         if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
-            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game** play.')
+            await ctx.reply(f'{ctx.author.mention} You are ongoing with one **game** play.')
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
 
@@ -1824,11 +1824,11 @@ class Games(commands.Cog):
         game_text = '''Snail Race, Fast-paced snail racing action!'''
         # We do not always show credit
         if random.randint(1,100) < 30:
-            msg = await ctx.send(f'{ctx.author.mention} ```{game_text}```')
+            msg = await ctx.reply(f'{ctx.author.mention} ```{game_text}```')
             await msg.add_reaction(EMOJI_OK_BOX)
 
         if bet_numb is None:
-            await ctx.send(f'{ctx.author.mention} There are 8 snail racers. Please put your snail number **(1 to 8)**')
+            await ctx.reply(f'{ctx.author.mention} There are 8 snail racers. Please put your snail number **(1 to 8)**')
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
         else:
@@ -1837,7 +1837,7 @@ class Games(commands.Cog):
                 your_snail = int(bet_numb)
             except ValueError:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Please put a valid snail number **(1 to 8)**')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Please put a valid snail number **(1 to 8)**')
                 return
             if ctx.author.id not in GAME_INTERACTIVE_PRGORESS:
                 GAME_INTERACTIVE_PRGORESS.append(ctx.author.id)
@@ -1861,7 +1861,7 @@ class Games(commands.Cog):
                     start_line = 'START' + (' ' * (FINISH_LINE - len('START')) + 'FINISH') + '\n'
                     start_line += '|' + (' ' * (FINISH_LINE - len('|')) + '|')
                     try:
-                        msg_racing = await ctx.send(f'{start_line_mention}```{start_line}```')
+                        msg_racing = await ctx.reply(f'{start_line_mention}```{start_line}```')
                     except Exception as e:
                         if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                             GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
@@ -1881,7 +1881,7 @@ class Games(commands.Cog):
                     except Exception as e:
                         if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                             GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
-                        await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} Failed to start snail game, please try again.')
+                        await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} Failed to start snail game, please try again.')
                         return
 
                     while not game_over:
@@ -1925,7 +1925,7 @@ class Games(commands.Cog):
                                             await store.sql_game_free_add('BET:#{}/WINNER:{}'.format(your_snail, randomSnailName), str(ctx.author.id), 'WIN' if won else 'LOSE', str(ctx.guild.id), 'SNAIL', int(time.time()) - time_start, SERVER_BOT)
                                         except Exception as e:
                                             await logchanbot(traceback.format_exc())
-                                    await ctx.send(f'{ctx.author.mention} **Snail Racing** {result}')
+                                    await ctx.reply(f'{ctx.author.mention} **Snail Racing** {result}')
                                     if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                                         GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
                                     return
@@ -1961,7 +1961,7 @@ class Games(commands.Cog):
                 if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                     GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Please put a valid snail number **(1 to 8)**')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Please put a valid snail number **(1 to 8)**')
                 return
 
 
@@ -1982,7 +1982,7 @@ class Games(commands.Cog):
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
@@ -1994,7 +1994,7 @@ class Games(commands.Cog):
             account_created = ctx.author.created_at
             if (datetime.utcnow() - account_created).total_seconds() <= config.game.account_age_to_play:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
                 return
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -2008,7 +2008,7 @@ class Games(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan:
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **2048** channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **2048** channel!!!')
                         return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
             pass
@@ -2020,7 +2020,7 @@ class Games(commands.Cog):
         if ctx.author.id not in GAME_INTERACTIVE_PRGORESS:
             GAME_INTERACTIVE_PRGORESS.append(ctx.author.id)
         else:
-            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game** play.')
+            await ctx.reply(f'{ctx.author.mention} You are ongoing with one **game** play.')
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
 
@@ -2039,7 +2039,7 @@ class Games(commands.Cog):
     You lose if the board fills up the tiles before then.'''
         # We do not always show credit
         if random.randint(1,100) < 30:
-            msg = await ctx.send(f'{ctx.author.mention} ```{game_text}```')
+            msg = await ctx.reply(f'{ctx.author.mention} ```{game_text}```')
             await msg.add_reaction(EMOJI_OK_BOX)
 
         game_over = False
@@ -2047,7 +2047,7 @@ class Games(commands.Cog):
         try:
             board = g2048_drawBoard(gameBoard) # string
             try:
-                msg = await ctx.send(f'**GAME 2048 starts**...')
+                msg = await ctx.reply(f'**GAME 2048 starts**...')
             except Exception as e:
                 if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                     GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
@@ -2068,12 +2068,12 @@ class Games(commands.Cog):
                 except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                     if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                         GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} **GAME 2048** was deleted or I can not find it. Game stop!')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} **GAME 2048** was deleted or I can not find it. Game stop!')
                     return
                 score = g2048_getScore(gameBoard)
                 if IS_RESTARTING:
                     await ctx.message.add_reaction(EMOJI_REFRESH)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
                     return
                 def check(reaction, user):
                     return user == ctx.author and reaction.message.author == self.bot.user and reaction.message.id == msg.id and str(reaction.emoji) \
@@ -2099,14 +2099,14 @@ class Games(commands.Cog):
                             reward = await store.sql_game_add(board, str(ctx.author.id), 'None', 'WIN' if won else 'LOSE', 0, 0, str(ctx.guild.id), '2048', int(time.time()) - time_start, SERVER_BOT)
                         except Exception as e:
                             await logchanbot(traceback.format_exc())
-                    await ctx.send(f'{ctx.author.mention} **2048 GAME** has waited you too long. Game exits. Your score **{score}**.')
+                    await ctx.reply(f'{ctx.author.mention} **2048 GAME** has waited you too long. Game exits. Your score **{score}**.')
                     game_over = True
                     return
                 for future in pending:
                     future.cancel()  # we don't need these anymore
 
                 if str(reaction.emoji) == EMOJI_OK_BOX:
-                    await ctx.send(f'{ctx.author.mention} You gave up the current game. Your score **{score}**.')
+                    await ctx.reply(f'{ctx.author.mention} You gave up the current game. Your score **{score}**.')
                     game_over = True
                     if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                         GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
@@ -2226,13 +2226,13 @@ class Games(commands.Cog):
     respectively. You can also reload game level.'''
         # We do not always show credit
         if random.randint(1,100) < 30:
-            msg = await ctx.send(f'{ctx.author.mention} ```{game_text}```')
+            msg = await ctx.reply(f'{ctx.author.mention} ```{game_text}```')
             await msg.add_reaction(EMOJI_OK_BOX)
 
         get_level = await store.sql_game_get_level_tpl(level, 'SOKOBAN')
         
         if get_level is None:
-            await ctx.send(f'{ctx.author.mention} Check back later.')
+            await ctx.reply(f'{ctx.author.mention} Check back later.')
             await ctx.message.add_reaction(EMOJI_INFORMATION)
             return
 
@@ -2283,7 +2283,7 @@ class Games(commands.Cog):
         embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", 
                         "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
         try:
-            msg = await ctx.send(embed=embed)
+            msg = await ctx.reply(embed=embed)
         except Exception as e:
             await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} **GAME SOKOBAN** failed to send embed in {ctx.guild.name} / {ctx.guild.id}')
@@ -2307,7 +2307,7 @@ class Games(commands.Cog):
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             prefix = serverinfo['prefix']
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Game is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING GAME`')
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
             return
 
@@ -2318,7 +2318,7 @@ class Games(commands.Cog):
             account_created = ctx.author.created_at
             if (datetime.utcnow() - account_created).total_seconds() <= config.game.account_age_to_play:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using this.')
                 return
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -2332,7 +2332,7 @@ class Games(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan:
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **sokoban** channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **sokoban** channel!!!')
                         return
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
             pass
@@ -2344,7 +2344,7 @@ class Games(commands.Cog):
         if ctx.author.id not in GAME_INTERACTIVE_PRGORESS:
             GAME_INTERACTIVE_PRGORESS.append(ctx.author.id)
         else:
-            await ctx.send(f'{ctx.author.mention} You are ongoing with one **game** play.')
+            await ctx.reply(f'{ctx.author.mention} You are ongoing with one **game** play.')
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
 
@@ -2393,7 +2393,7 @@ class Games(commands.Cog):
     respectively. You can also reload game level.'''
         # We do not always show credit
         if random.randint(1,100) < 30:
-            msg = await ctx.send(f'{ctx.author.mention} ```{game_text}```')
+            msg = await ctx.reply(f'{ctx.author.mention} ```{game_text}```')
             await msg.add_reaction(EMOJI_OK_BOX)
 
         # get max level user already played.
@@ -2410,7 +2410,7 @@ class Games(commands.Cog):
         if get_level is None:
             if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                 GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
-            await ctx.send(f'{ctx.author.mention} Check back later.')
+            await ctx.reply(f'{ctx.author.mention} Check back later.')
             await ctx.message.add_reaction(EMOJI_INFORMATION)
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} **GAME SOKOBAN** failed get level **{str(level)}** in {ctx.guild.name} / {ctx.guild.id}')
             return
@@ -2466,13 +2466,13 @@ class Games(commands.Cog):
             embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", 
                             "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
             try:
-                msg = await ctx.send(embed=embed)
+                msg = await ctx.reply(embed=embed)
             except Exception as e:
                 if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                     GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
                 await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                 await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} **GAME SOKOBAN** failed to send embed in {ctx.guild.name} / {ctx.guild.id}')
-                await ctx.send(f'{ctx.author.mention} I can not send any embed message here. Seemed no permission.')
+                await ctx.reply(f'{ctx.author.mention} I can not send any embed message here. Seemed no permission.')
                 return
             await msg.add_reaction(EMOJI_UP)
             await msg.add_reaction(EMOJI_DOWN)
@@ -2485,7 +2485,7 @@ class Games(commands.Cog):
             while not game_over:
                 if IS_RESTARTING:
                     await ctx.message.add_reaction(EMOJI_REFRESH)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
                     return
 
                 display_level = displayLevel(currentLevel)
@@ -2498,7 +2498,7 @@ class Games(commands.Cog):
                 except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                     if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                         GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} **GAME SOKOBAN** was deleted or I can not find it. Game stop!')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} **GAME SOKOBAN** was deleted or I can not find it. Game stop!')
                     return
                 # Find the player position:
                 for position, character in currentLevel.items():
@@ -2519,7 +2519,7 @@ class Games(commands.Cog):
                 except (asyncio.TimeoutError, asyncio.exceptions.TimeoutError) as e:
                     if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                         GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
-                    await ctx.send(f'{ctx.author.mention} **SOKOBAN GAME** has waited you too long. Game exits.')
+                    await ctx.reply(f'{ctx.author.mention} **SOKOBAN GAME** has waited you too long. Game exits.')
                     game_over = True
 
                     if free_game == True:
@@ -2537,7 +2537,7 @@ class Games(commands.Cog):
                     future.cancel()  # we don't need these anymore
 
                 if str(reaction.emoji) == EMOJI_OK_BOX:
-                    await ctx.send(f'{ctx.author.mention} **SOKOBAN GAME** You gave up the current game.')
+                    await ctx.reply(f'{ctx.author.mention} **SOKOBAN GAME** You gave up the current game.')
                     game_over = True
                     if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                         GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
@@ -2665,7 +2665,7 @@ class Games(commands.Cog):
                                 await store.sql_game_free_add(str(level), str(ctx.author.id), 'WIN' if won else 'LOSE', str(ctx.guild.id), 'SOKOBAN', int(time.time()) - time_start, SERVER_BOT)
                             except Exception as e:
                                 await logchanbot(traceback.format_exc())
-                        await ctx.send(f'{ctx.author.mention} **SOKOBAN GAME** {result}')
+                        await ctx.reply(f'{ctx.author.mention} **SOKOBAN GAME** {result}')
                         if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                             GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
 

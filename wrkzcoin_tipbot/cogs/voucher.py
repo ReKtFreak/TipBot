@@ -22,7 +22,7 @@ class Voucher(commands.Cog):
         prefix = await get_guild_prefix(ctx)
         if ctx.invoked_subcommand is None:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} Required some command. Please use {prefix}help voucher')
+            await ctx.reply(f'{ctx.author.mention} Required some command. Please use {prefix}help voucher')
             return
 
 
@@ -43,20 +43,20 @@ class Voucher(commands.Cog):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
             return
 
         # Check if maintenance
         if IS_MAINTENANCE == 1 and int(ctx.author.id) not in MAINTENANCE_OWNER:
             await ctx.message.add_reaction(EMOJI_WARNING)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
             return
         # End Check if maintenance
 
         # Check if tx in progress
         if ctx.author.id in TX_IN_PROCESS:
             await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-            msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
+            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
@@ -72,11 +72,11 @@ class Voucher(commands.Cog):
                 voucher_each = float(voucher_each)
                 if voucher_numb > config.voucher.max_batch:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Too many. Maximum allowed: **{config.voucher.max_batch}**')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Too many. Maximum allowed: **{config.voucher.max_batch}**')
                     return
             except ValueError:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid number or amount to create vouchers.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid number or amount to create vouchers.')
                 return
         elif '*' in amount.lower():
             # This is a batch
@@ -87,11 +87,11 @@ class Voucher(commands.Cog):
                 voucher_each = Decimal(voucher_each)
                 if voucher_numb > config.voucher.max_batch:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Too many. Maximum allowed: **{config.voucher.max_batch}**')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Too many. Maximum allowed: **{config.voucher.max_batch}**')
                     return
             except ValueError:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid number or amount to create vouchers.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid number or amount to create vouchers.')
                 return
         else:
             try:
@@ -99,7 +99,7 @@ class Voucher(commands.Cog):
                 voucher_each = amount
             except ValueError:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount to create a voucher.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount to create a voucher.')
                 return
 
         total_amount = voucher_numb * voucher_each
@@ -107,11 +107,11 @@ class Voucher(commands.Cog):
         COIN_NAME = coin.upper()
         if is_maintenance_coin(COIN_NAME):
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
             return
         if COIN_NAME not in ENABLE_COIN_VOUCHER:
             await ctx.message.add_reaction(EMOJI_INFORMATION)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} we do not have voucher feature for **{COIN_NAME}** yet. Try with **{config.Enable_Coin_Voucher}**.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} we do not have voucher feature for **{COIN_NAME}** yet. Try with **{config.Enable_Coin_Voucher}**.')
             return
 
         if isinstance(ctx.channel, discord.DMChannel) == False:
@@ -168,13 +168,13 @@ class Voucher(commands.Cog):
             min_amount = num_format_coin(min_voucher_amount, COIN_NAME) + COIN_NAME
             max_amount = num_format_coin(max_voucher_amount, COIN_NAME) + COIN_NAME
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Voucher amount must between {min_amount} and {max_amount}.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Voucher amount must between {min_amount} and {max_amount}.')
             return
 
         if actual_balance < real_amount + fee_voucher_amount:
             having_amount = num_format_coin(actual_balance, COIN_NAME)
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to create voucher.\n'
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to create voucher.\n'
                            f'A voucher needed amount + fee: {num_format_coin(real_amount + fee_voucher_amount, COIN_NAME)} {COIN_NAME}\n'
                            f'Having: {having_amount} {COIN_NAME}.')
             return
@@ -182,11 +182,11 @@ class Voucher(commands.Cog):
         comment = comment.strip().replace('\n', ' ').replace('\r', '')
         if len(comment) > config.voucher.max_comment:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Please limit your comment to max. **{config.voucher.max_comment}** chars.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Please limit your comment to max. **{config.voucher.max_comment}** chars.')
             return
         if not is_ascii(comment):
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Unsupported char(s) detected in comment.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Unsupported char(s) detected in comment.')
             return
 
         # If it is a batch oir not
@@ -195,7 +195,7 @@ class Voucher(commands.Cog):
             if actual_balance < (real_amount + fee_voucher_amount) * voucher_numb:
                 having_amount = num_format_coin(actual_balance, COIN_NAME)
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to create **{voucher_numb}** vouchers.\n'
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to create **{voucher_numb}** vouchers.\n'
                                f'**{voucher_numb}** vouchers needed amount + fee: {num_format_coin((real_amount + fee_voucher_amount*voucher_numb), COIN_NAME)} {COIN_NAME}\n'
                                f'Having: {having_amount} {COIN_NAME}.')
                 return
@@ -205,12 +205,12 @@ class Voucher(commands.Cog):
                 await ctx.author.send(f'{ctx.author.mention} I am creating a voucher for you and will direct message to you the pack of vouchers.')
             except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                 # If failed to DM, message we stop
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Voucher batch will not work if you disable DM or I failed to DM you.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Voucher batch will not work if you disable DM or I failed to DM you.')
                 return
             await ctx.message.add_reaction(EMOJI_OK_HAND)
             if isinstance(ctx.channel, discord.DMChannel) == False:
                 try:
-                    await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
+                    await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     pass   
             for i in range(voucher_numb):
@@ -282,7 +282,7 @@ class Voucher(commands.Cog):
                     TX_IN_PROCESS.remove(ctx.author.id)
                 else:
                     # reject and tell to wait
-                    msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You have another tx in process. Please wait it to finish. ')
+                    msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have another tx in process. Please wait it to finish. ')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
                     
@@ -297,7 +297,7 @@ class Voucher(commands.Cog):
                     except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                         await logchanbot(traceback.format_exc())
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        await ctx.send(f'{ctx.author.mention} Sorry, I failed to DM you.')
+                        await ctx.reply(f'{ctx.author.mention} Sorry, I failed to DM you.')
                 else:
                     await ctx.message.add_reaction(EMOJI_ERROR)
             return
@@ -368,7 +368,7 @@ class Voucher(commands.Cog):
                 TX_IN_PROCESS.remove(ctx.author.id)
             else:
                 # reject and tell to wait
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You have another tx in process. Please wait it to finish. ')
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have another tx in process. Please wait it to finish. ')
                 await msg.add_reaction(EMOJI_OK_BOX)
                 return
 
@@ -376,11 +376,11 @@ class Voucher(commands.Cog):
                 await ctx.message.add_reaction(EMOJI_OK_HAND)
                 if isinstance(ctx.channel, discord.DMChannel) == False:
                     try:
-                        await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
+                        await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
                     except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                         pass                
                 try:
-                    msg = await ctx.send(f'New Voucher Link: {qrstring}\n'
+                    msg = await ctx.reply(f'New Voucher Link: {qrstring}\n'
                                         '```'
                                         f'Amount: {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}\n'
                                         f'Voucher Fee (Incl. network fee): {num_format_coin(fee_voucher_amount, COIN_NAME)} {COIN_NAME}\n'
@@ -389,7 +389,7 @@ class Voucher(commands.Cog):
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     await logchanbot(traceback.format_exc())
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{ctx.author.mention} Sorry, I failed to DM you.')
+                    await ctx.reply(f'{ctx.author.mention} Sorry, I failed to DM you.')
             else:
                 await ctx.message.add_reaction(EMOJI_ERROR)
             return
@@ -414,17 +414,17 @@ class Voucher(commands.Cog):
             table.padding_right = 1
             if isinstance(ctx.channel, discord.DMChannel) == False:
                 try:
-                    await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
+                    await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     pass
             await ctx.message.add_reaction(EMOJI_OK_HAND)
-            msg = await ctx.send(f'**[ YOUR VOUCHER LIST ]**\n'
+            msg = await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n'
                                  f'```{table.table}```\n')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} You did not create any voucher yet.')
+            await ctx.reply(f'{ctx.author.mention} You did not create any voucher yet.')
         return
 
 
@@ -435,14 +435,14 @@ class Voucher(commands.Cog):
     async def unclaim(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be in public.')
+            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
             return
         get_vouchers = await store.sql_voucher_get_user(str(ctx.author.id), SERVER_BOT, 50, 'NO')
         if get_vouchers and len(get_vouchers) >= 25:
             # list them in text
             unclaim = ', '.join([each['secret_string'] for each in get_vouchers])
             await ctx.message.add_reaction(EMOJI_OK_HAND)
-            await ctx.send(f'{ctx.author.mention} You have many unclaimed vouchers: {unclaim}')
+            await ctx.reply(f'{ctx.author.mention} You have many unclaimed vouchers: {unclaim}')
             return
         elif get_vouchers and len(get_vouchers) > 0:
             table_data = [
@@ -457,17 +457,17 @@ class Voucher(commands.Cog):
             table.padding_right = 1
             if isinstance(ctx.channel, discord.DMChannel) == False:
                 try:
-                    await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
+                    await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     pass
             await ctx.message.add_reaction(EMOJI_OK_HAND)
-            msg = await ctx.send(f'**[ YOUR VOUCHER LIST ]**\n'
+            msg = await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n'
                                  f'```{table.table}```\n')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} You did not create any voucher yet.')
+            await ctx.reply(f'{ctx.author.mention} You did not create any voucher yet.')
         return
 
 
@@ -479,14 +479,14 @@ class Voucher(commands.Cog):
     async def claim(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be in public.')
+            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
             return
         get_vouchers = await store.sql_voucher_get_user(str(ctx.author.id), SERVER_BOT, 50, 'YES')
         if get_vouchers and len(get_vouchers) >= 25:
             # list them in text
             unclaim = ', '.join([each['secret_string'] for each in get_vouchers])
             await ctx.message.add_reaction(EMOJI_OK_HAND)
-            await ctx.send(f'{ctx.author.mention} You have many claimed vouchers: {unclaim}')
+            await ctx.reply(f'{ctx.author.mention} You have many claimed vouchers: {unclaim}')
             return
         elif get_vouchers and len(get_vouchers) > 0:
             table_data = [
@@ -501,17 +501,17 @@ class Voucher(commands.Cog):
             table.padding_right = 1
             if isinstance(ctx.channel, discord.DMChannel) == False:
                 try:
-                    await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
+                    await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     pass
             await ctx.message.add_reaction(EMOJI_OK_HAND)
-            msg = await ctx.send(f'**[ YOUR VOUCHER LIST ]**\n'
+            msg = await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n'
                                  f'```{table.table}```\n')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} You did not create any voucher yet.')
+            await ctx.reply(f'{ctx.author.mention} You did not create any voucher yet.')
         return
 
 
@@ -522,7 +522,7 @@ class Voucher(commands.Cog):
     async def getunclaim(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be in public.')
+            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
             return
         get_vouchers = await store.sql_voucher_get_user(str(ctx.author.id), SERVER_BOT, 10000, 'NO')
         if get_vouchers and len(get_vouchers) > 0:
@@ -538,14 +538,14 @@ class Voucher(commands.Cog):
                                                       file=discord.File(filename))
                     except Exception as e:
                         await ctx.message.add_reaction(EMOJI_ERROR) 
-                        await ctx.send(f'{ctx.author.mention} I failed to send CSV file to you.')
+                        await ctx.reply(f'{ctx.author.mention} I failed to send CSV file to you.')
                         await logchanbot(traceback.format_exc())
                     os.remove(filename)
             except Exception as e:
                 await logchanbot(traceback.format_exc())
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} You did not create any voucher yet.')
+            await ctx.reply(f'{ctx.author.mention} You did not create any voucher yet.')
         return
 
 
@@ -556,7 +556,7 @@ class Voucher(commands.Cog):
     async def getclaim(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be in public.')
+            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
             return
         get_vouchers = await store.sql_voucher_get_user(str(ctx.author.id), SERVER_BOT, 10000, 'YES')
         if get_vouchers and len(get_vouchers) > 0:
@@ -572,14 +572,14 @@ class Voucher(commands.Cog):
                                                       file=discord.File(filename))
                     except Exception as e:
                         await ctx.message.add_reaction(EMOJI_ERROR) 
-                        await ctx.send(f'{ctx.author.mention} I failed to send CSV file to you.')
+                        await ctx.reply(f'{ctx.author.mention} I failed to send CSV file to you.')
                         await logchanbot(traceback.format_exc())
                     os.remove(filename)
             except Exception as e:
                 await logchanbot(traceback.format_exc())
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} You did not create any voucher yet.')
+            await ctx.reply(f'{ctx.author.mention} You did not create any voucher yet.')
         return
 
 

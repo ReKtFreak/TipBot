@@ -71,7 +71,7 @@ class TipTipAll(commands.Cog):
 
         if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!')
             return
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -97,7 +97,7 @@ class TipTipAll(commands.Cog):
             return
         if is_maintenance_coin(COIN_NAME):
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            await ctx.send(f'{EMOJI_RED_NO} {COIN_NAME} in maintenance.')
+            await ctx.reply(f'{EMOJI_RED_NO} {COIN_NAME} in maintenance.')
             return
 
         # Check allowed coins
@@ -125,7 +125,7 @@ class TipTipAll(commands.Cog):
                 pass
             else:
                 await ctx.message.add_reaction(EMOJI_WARNING)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
                 return
         else:
             pass
@@ -240,14 +240,14 @@ class TipTipAll(commands.Cog):
             amountDiv = round(real_amount / len(list_receivers), 4)
             if (real_amount / len(list_receivers)) < MinTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
                                f'{num_format_coin(MinTx, COIN_NAME)} '
                                f'{COIN_NAME} for each member. You need at least {num_format_coin(len(list_receivers) * MinTx, COIN_NAME)} {COIN_NAME}.')
                 return
 
         if len(list_receivers) < 1:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is no one to tip to.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} There is no one to tip to.')
             return
 
         # add queue also tipall
@@ -255,7 +255,7 @@ class TipTipAll(commands.Cog):
             TX_IN_PROCESS.append(ctx.author.id)
         else:
             await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-            msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
+            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
@@ -342,7 +342,7 @@ class TipTipAll(commands.Cog):
                                 list_user_not_mention_str = ", ".join(list_user_not_mention)
                             try:
                                 if len(list_user_mention_str) > 5 or len(list_user_not_mention_str) > 5:
-                                    await ctx.send(
+                                    await ctx.reply(
                                         f'{EMOJI_MONEYFACE} {list_user_mention_str} {list_user_not_mention_str}, You got a tip of {amountDiv_str} {COIN_NAME} '
                                         f'from {ctx.author.name}#{ctx.author.discriminator}'
                                         f'{NOTIFICATION_OFF_CMD}')

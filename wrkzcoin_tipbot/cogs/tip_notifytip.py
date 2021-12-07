@@ -24,13 +24,13 @@ class TipNotifyTip(commands.Cog):
         account_lock = await alert_if_userlock(ctx, 'notifytip')
         if account_lock:
             await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
 
         if onoff.upper() not in ["ON", "OFF"]:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} You need to use only `ON` or `OFF`.')
+            await ctx.reply(f'{ctx.author.mention} You need to use only `ON` or `OFF`.')
             return
 
         onoff = onoff.upper()
@@ -38,18 +38,18 @@ class TipNotifyTip(commands.Cog):
         if onoff == "ON":
             if str(ctx.author.id) in notifyList:
                 await store.sql_toggle_tipnotify(str(ctx.author.id), "ON")
-                await ctx.send(f'{ctx.author.mention} OK, you will get all notification when tip.')
+                await ctx.reply(f'{ctx.author.mention} OK, you will get all notification when tip.')
                 return
             else:
-                await ctx.send(f'{ctx.author.mention} You already have notification ON by default.')
+                await ctx.reply(f'{ctx.author.mention} You already have notification ON by default.')
                 return
         elif onoff == "OFF":
             if str(ctx.author.id) in notifyList:
-                await ctx.send(f'{ctx.author.mention} You already have notification OFF.')
+                await ctx.reply(f'{ctx.author.mention} You already have notification OFF.')
                 return
             else:
                 await store.sql_toggle_tipnotify(str(ctx.author.id), "OFF")
-                await ctx.send(f'{ctx.author.mention} OK, you will not get any notification when anyone tips.')
+                await ctx.reply(f'{ctx.author.mention} OK, you will not get any notification when anyone tips.')
                 return
 
 

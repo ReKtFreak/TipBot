@@ -40,7 +40,7 @@ class TipMtip(commands.Cog):
         account_lock = await alert_if_userlock(ctx, 'tip')
         if account_lock:
             await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
 
@@ -107,13 +107,13 @@ class TipMtip(commands.Cog):
             pass
         elif COIN_NAME not in tiponly_coins:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} not in allowed coins set by server manager.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} not in allowed coins set by server manager.')
             return
         # End of checking allowed coins
 
         if is_maintenance_coin(COIN_NAME):
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
             return
 
         if len(ctx.message.mentions) == 0 and len(ctx.message.role_mentions) == 0:
@@ -137,7 +137,7 @@ class TipMtip(commands.Cog):
                             num_user = int(num_user)
                             if len(ctx.guild.members) <= 10:
                                 await ctx.message.add_reaction(EMOJI_ERROR)
-                                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Please use normal tip command. There are only few users.')
+                                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Please use normal tip command. There are only few users.')
                                 return
                             # Check if we really have that many user in the guild 20%
                             elif num_user >= len(ctx.guild.members):
@@ -154,7 +154,7 @@ class TipMtip(commands.Cog):
                                     message_talker.remove(ctx.author.id)
                                 if len(message_talker) == 0:
                                     await ctx.message.add_reaction(EMOJI_ERROR)
-                                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} There is not sufficient user to count.')
+                                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} There is not sufficient user to count.')
                                 elif len(message_talker) < len(ctx.guild.members) - 1: # minus bot
                                     await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} I could not find sufficient talkers up to **{num_user}**. I found only **{len(message_talker)}**'
                                                             f' and tip to those **{len(message_talker)}** users if they are still here.')
@@ -216,7 +216,7 @@ class TipMtip(commands.Cog):
                                 return
                         except ValueError:
                             await ctx.message.add_reaction(EMOJI_ERROR)
-                            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid param after **LAST**.')
+                            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid param after **LAST**.')
                         return
                     time_string = ctx.message.content.lower().split("last", 1)[1].strip()
                     time_second = None
@@ -344,7 +344,7 @@ class TipMtip(commands.Cog):
                 pass
             else:
                 await ctx.message.add_reaction(EMOJI_WARNING)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
                 return
         # End Check if maintenance
 

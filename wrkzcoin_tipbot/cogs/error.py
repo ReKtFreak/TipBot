@@ -21,33 +21,33 @@ class Error(commands.Cog):
         error = getattr(error, "original", error)  # get original error
 
         if isinstance(error, commands.NoPrivateMessage):
-            await ctx.send(f'{ctx.author.mention} This command cannot be used in private messages.')
+            await ctx.reply(f'{ctx.author.mention} This command cannot be used in private messages.')
 
         elif isinstance(error, commands.DisabledCommand):
-            await ctx.send(f'{ctx.author.mention} Sorry. This command is disabled and cannot be used.')
+            await ctx.reply(f'{ctx.author.mention} Sorry. This command is disabled and cannot be used.')
 
         if isinstance(error, commands.MissingPermissions):
-            return await ctx.send(f'{ctx.author.mention} Does not have the perms to use this: `{ctx.command.name}` command.')
+            return await ctx.reply(f'{ctx.author.mention} Does not have the perms to use this: `{ctx.command.name}` command.')
 
         if isinstance(error, commands.MissingRole):
-            return await ctx.send(f'{ctx.author.mention}: ' + str(error))
+            return await ctx.reply(f'{ctx.author.mention}: ' + str(error))
 
         if isinstance(error, commands.NoPrivateMessage):
-            return await ctx.send(f"{ctx.author.mention} This command cannot be used in a DM.")
+            return await ctx.reply(f"{ctx.author.mention} This command cannot be used in a DM.")
 
         if isinstance(error, commands.CheckFailure) or isinstance(error, commands.CheckAnyFailure):
             if not self.bot.maintenance_mode:
-                await ctx.send(f"{ctx.author.mention} You do not have permission to use this command (`{ctx.prefix}{ctx.command.name}`).")  # \nCheck(s) failed: {failed}")
+                await ctx.reply(f"{ctx.author.mention} You do not have permission to use this command (`{ctx.prefix}{ctx.command.name}`).")  # \nCheck(s) failed: {failed}")
             return
 
         if isinstance(error, commands.CommandOnCooldown):
-            await ctx.send(
+            await ctx.reply(
                 f"To prevent overload, this command is on cooldown for: ***{round(error.retry_after)}*** more seconds. Retry the command then.",
                 delete_after=5)
             return
 
         if isinstance(error, commands.MaxConcurrencyReached):
-            return await ctx.send(f"The maximum number of concurrent usages of this command has been reached ({error.number}/{error.number})! Please wait until the previous "
+            return await ctx.reply(f"The maximum number of concurrent usages of this command has been reached ({error.number}/{error.number})! Please wait until the previous "
                                   f"execution "
                                   f"of the command `{ctx.prefix}{ctx.command.name}` is completed!")
 
@@ -58,7 +58,7 @@ class Error(commands.Cog):
             if ctx.command.aliases:
                 aliases = "`" + "".join("!" + c + ", " for c in ctx.command.aliases) + "`"
                 embed.add_field(name="Command Aliases", value=f"{aliases}", inline=False)
-            return await ctx.send(embed=embed)
+            return await ctx.reply(embed=embed)
 
         if isinstance(error, commands.BadArgument):
             embed = discord.Embed(title="Error!", description="An argument you entered is invalid!", color=discord.Color.red())
@@ -67,23 +67,23 @@ class Error(commands.Cog):
             if ctx.command.aliases:
                 aliases = "`" + "".join("!" + c for c in ctx.command.aliases) + "`"
                 embed.add_field(name="Command Aliases", value=f"{aliases}", inline=False)
-            return await ctx.send(embed=embed)
+            return await ctx.reply(embed=embed)
 
         if isinstance(error, discord.ext.commands.errors.ExtensionNotLoaded):
             embed = discord.Embed(title="Error!", description="Cog not found!", color=discord.Color.red())
             embed.add_field(name="Bad Argument", value=f'`{error.args[0]}`', inline=False)
             embed.add_field(name="Command Usage", value=f'`{ctx.command.usage}`', inline=False)
             embed.add_field(name='Loaded Cogs:', value="".join("`" + c + "`\n" for c in sorted(self.bot.cogs)), inline=False)
-            return await ctx.send(embed=embed)
+            return await ctx.reply(embed=embed)
 
         if isinstance(error, discord.ext.commands.errors.CommandNotFound):
-            #if ctx.command: return await ctx.send(f"Command not found `{ctx.command.name}`: {str(error)}")
+            #if ctx.command: return await ctx.reply(f"Command not found `{ctx.command.name}`: {str(error)}")
             return # ignore
 
         if isinstance(error, commands.CommandError):
-            if ctx.command: return await ctx.send(f"Unhandled error while executing command `{ctx.command.name}`: {str(error)}")
+            if ctx.command: return await ctx.reply(f"Unhandled error while executing command `{ctx.command.name}`: {str(error)}")
 
-        await ctx.send("An unexpected error occurred while running that command.")
+        await ctx.reply("An unexpected error occurred while running that command.")
         await logchanbot("Ignoring exception in command {}:".format(ctx.command))
         await logchanbot("\n" + "".join(traceback.format_exception(type(error), error, error.__traceback__)))
         logging.error("Ignoring exception in command {}:".format(ctx.command))

@@ -144,7 +144,7 @@ class Help(commands.Cog):
             try:
                 embed = await help_main_embed(ctx, prefix, section)
                 if isinstance(ctx.message.channel, discord.DMChannel) == False:
-                    msg = await ctx.send(embed=embed)
+                    msg = await ctx.reply(embed=embed)
                 else:
                     msg = await ctx.author.send(embed=embed)
                 help_item = await store.sql_help_doc_get('help', section.upper())

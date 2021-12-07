@@ -137,13 +137,13 @@ class TipWithdraw(commands.Cog):
                 return {"error": f"Insufficient balance to {action.lower()} {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}. {extra_fee_txt}"}
             elif real_amount > MaxTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
                                f'{num_format_coin(MaxTx, COIN_NAME)} '
                                f'{COIN_NAME}')
                 return {"error": f"Transactions cannot be bigger than {num_format_coin(MaxTx, COIN_NAME)} {COIN_NAME}."}
             elif real_amount < MinTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be lower than '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be lower than '
                                f'{num_format_coin(MinTx, COIN_NAME)} '
                                f'{COIN_NAME}')
                 return {"error": f"Transactions cannot be lower than {num_format_coin(MinTx, COIN_NAME)} {COIN_NAME}."}
@@ -270,14 +270,14 @@ class TipWithdraw(commands.Cog):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
             return
 
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'withdraw')
         if account_lock:
             await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
 
@@ -293,7 +293,7 @@ class TipWithdraw(commands.Cog):
                     if ctx.channel.id != int(serverinfo['botchan']):
                         await ctx.message.add_reaction(EMOJI_ERROR)
                         botChan = self.bot.get_channel(int(serverinfo['botchan']))
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
                         return
                 except ValueError:
                     pass
@@ -301,14 +301,14 @@ class TipWithdraw(commands.Cog):
 
         if coin is None:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Please have **ticker** (coin name) after amount for `withdraw`.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Please have **ticker** (coin name) after amount for `withdraw`.')
             return
 
         COIN_NAME = coin.upper()
         withdrawTx = await self.withdraw_action(ctx, amount, COIN_NAME, "WITHDRAW", server_prefix, None)
         if withdrawTx and 'error' in withdrawTx:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send('{} {}, {}'.format(EMOJI_RED_NO, ctx.author.mention, withdrawTx['error']))
+            await ctx.reply('{} {}, {}'.format(EMOJI_RED_NO, ctx.author.mention, withdrawTx['error']))
             return
         elif withdrawTx and 'result' in withdrawTx:
             withdrawAddress = withdrawTx['to_address']
@@ -325,7 +325,7 @@ class TipWithdraw(commands.Cog):
                                     f'{withdraw_txt}')
             except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                 try:
-                    await ctx.send(f'{EMOJI_ARROW_RIGHTHOOK} You have withdrawn {num_format_coin(real_amount, COIN_NAME)} '
+                    await ctx.reply(f'{EMOJI_ARROW_RIGHTHOOK} You have withdrawn {num_format_coin(real_amount, COIN_NAME)} '
                                    f'{COIN_NAME} to `{withdrawAddress}`.\n'
                                    f'{withdraw_txt}')
                 except Exception as e:
@@ -333,7 +333,7 @@ class TipWithdraw(commands.Cog):
             await self.botLogChan.send(f'A user successfully executed `.withdraw {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`')
             return
         else:
-            msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error during your withdraw, please report or try again later.')
+            msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error during your withdraw, please report or try again later.')
             await self.botLogChan.send(f'A user failed to executed `.withdraw {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`')
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
@@ -354,13 +354,13 @@ class TipWithdraw(commands.Cog):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
             return
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'send')
         if account_lock:
             await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
 
@@ -369,7 +369,7 @@ class TipWithdraw(commands.Cog):
         # Check if tx in progress
         if ctx.author.id in TX_IN_PROCESS:
             await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-            msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
+            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
@@ -383,7 +383,7 @@ class TipWithdraw(commands.Cog):
                     if ctx.channel.id != int(serverinfo['botchan']):
                         await ctx.message.add_reaction(EMOJI_ERROR)
                         botChan = self.bot.get_channel(int(serverinfo['botchan']))
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
                         return
                 except ValueError:
                     pass
@@ -393,7 +393,7 @@ class TipWithdraw(commands.Cog):
         floodTip = await store.sql_get_countLastTip(str(ctx.author.id), config.floodTipDuration)
         if floodTip >= config.floodTip:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO}{ctx.author.mention} Cool down your tip or TX. or increase your amount next time.')
+            await ctx.reply(f'{EMOJI_RED_NO}{ctx.author.mention} Cool down your tip or TX. or increase your amount next time.')
             await self.botLogChan.send('A user reached max. TX threshold. Currently halted: `.send`')
             return
         # End of Check flood of tip
@@ -404,7 +404,7 @@ class TipWithdraw(commands.Cog):
                 pass
             else:
                 await ctx.message.add_reaction(EMOJI_WARNING)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
                 return
         else:
             pass
@@ -414,7 +414,7 @@ class TipWithdraw(commands.Cog):
             amount = Decimal(amount)
         except ValueError:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
             return
 
         # Check which coinname is it.
@@ -422,17 +422,17 @@ class TipWithdraw(commands.Cog):
         if COIN_NAME is None and CoinAddress.startswith("0x"):
             if coin is None:
                 await ctx.message.add_reaction(EMOJI_WARNING)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} you need to add **TOKEN NAME** after address.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} you need to add **TOKEN NAME** after address.')
                 return
             else:
                 COIN_NAME = coin.upper()
                 if COIN_NAME not in ENABLE_COIN_ERC:
                     await ctx.message.add_reaction(EMOJI_WARNING)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Unsupported Token.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Unsupported Token.')
                     return
             if CoinAddress.upper().startswith("0X00000000000000000000000000000"):
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid token address:\n'
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid token address:\n'
                                      f'`{CoinAddress}`')
                 await msg.add_reaction(EMOJI_OK_BOX)
                 return
@@ -443,7 +443,7 @@ class TipWithdraw(commands.Cog):
                         valid = True
                     else:
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid token address:\n'
+                        msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid token address:\n'
                                              f'`{CoinAddress}`')
                         await msg.add_reaction(EMOJI_OK_BOX)
                         return
@@ -451,36 +451,36 @@ class TipWithdraw(commands.Cog):
                     print(traceback.format_exc())
                     await logchanbot(traceback.format_exc())
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} internal error checking address:\n'
+                    msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} internal error checking address:\n'
                                          f'`{CoinAddress}`')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
         elif COIN_NAME is None:
             if coin is None:
                 await ctx.message.add_reaction(EMOJI_WARNING)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} you need to add **COIN NAME** after address.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} you need to add **COIN NAME** after address.')
                 return
             else:
                 COIN_NAME = coin.upper()
                 if COIN_NAME not in ENABLE_COIN_DOGE:
                     await ctx.message.add_reaction(EMOJI_WARNING)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Unsupported coin **{COIN_NAME}**.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Unsupported coin **{COIN_NAME}**.')
                     return
         elif COIN_NAME == "TRON_TOKEN":
             if coin is None:
                 await ctx.message.add_reaction(EMOJI_WARNING)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} you need to add **COIN NAME** after address.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} you need to add **COIN NAME** after address.')
                 return
             else:
                 COIN_NAME = coin.upper()
                 if COIN_NAME not in ENABLE_COIN_TRC:
                     await ctx.message.add_reaction(EMOJI_WARNING)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Unsupported token **{COIN_NAME}**.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Unsupported token **{COIN_NAME}**.')
                     return
 
         coin_family = None
         if not is_coin_txable(COIN_NAME):
-            msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} TX is currently disable for {COIN_NAME}.')
+            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} TX is currently disable for {COIN_NAME}.')
             await msg.add_reaction(EMOJI_OK_BOX)
             await logchanbot(f'User {ctx.author.id} tried to send {amount} {COIN_NAME} while it tx not enable.')
             return
@@ -494,7 +494,7 @@ class TipWithdraw(commands.Cog):
         else:
             await ctx.message.add_reaction(EMOJI_QUESTEXCLAIM)
             try:
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} could not find what address it is.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} could not find what address it is.')
             except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                 try:
                     await ctx.author.send(f'{EMOJI_RED_NO} {ctx.author.mention} could not find what address it is.')
@@ -516,7 +516,7 @@ class TipWithdraw(commands.Cog):
             if is_maintenance_coin(COIN_NAME):
                 await ctx.message.add_reaction(EMOJI_MAINTENANCE)
                 try:
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     try:
                         await ctx.author.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
@@ -534,7 +534,7 @@ class TipWithdraw(commands.Cog):
                 if valid_address is None:
                     await ctx.message.add_reaction(EMOJI_QUESTEXCLAIM)
                     try:
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid address:\n'
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid address:\n'
                                        f'`{CoinAddress}`')
                     except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                         try:
@@ -549,7 +549,7 @@ class TipWithdraw(commands.Cog):
                 if valid_address == 'invalid':
                     await ctx.message.add_reaction(EMOJI_QUESTEXCLAIM)
                     try:
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid integrated address:\n'
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid integrated address:\n'
                                        f'`{CoinAddress}`')
                     except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                         try:
@@ -568,7 +568,7 @@ class TipWithdraw(commands.Cog):
                 if len(check_address) != 2:
                     await ctx.message.add_reaction(EMOJI_QUESTEXCLAIM)
                     try:
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid {COIN_NAME} address + paymentid')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid {COIN_NAME} address + paymentid')
                     except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                         try:
                             await ctx.author.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid {COIN_NAME} address + paymentid')
@@ -581,7 +581,7 @@ class TipWithdraw(commands.Cog):
                     if valid_address_str is None:
                         await ctx.message.add_reaction(EMOJI_QUESTEXCLAIM)
                         try:
-                            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid address:\n'
+                            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid address:\n'
                                            f'`{check_address[0]}`')
                         except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                             try:
@@ -597,7 +597,7 @@ class TipWithdraw(commands.Cog):
                         if not re.match(r'[a-zA-Z0-9]{64,}', paymentid.strip()):
                             await ctx.message.add_reaction(EMOJI_QUESTEXCLAIM)
                             try:
-                                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} PaymentID: `{paymentid}`\n'
+                                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} PaymentID: `{paymentid}`\n'
                                                 'Should be in 64 correct format.')
                             except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                                 try:
@@ -614,7 +614,7 @@ class TipWithdraw(commands.Cog):
                     else:
                         await ctx.message.add_reaction(EMOJI_QUESTEXCLAIM)
                         try:
-                            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} PaymentID: `{paymentid}`\n'
+                            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} PaymentID: `{paymentid}`\n'
                                             'Incorrect length')
                         except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                             try:
@@ -626,7 +626,7 @@ class TipWithdraw(commands.Cog):
             else:
                 await ctx.message.add_reaction(EMOJI_QUESTEXCLAIM)
                 try:
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid address:\n'
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid address:\n'
                                    f'`{CoinAddress}`')
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     try:
@@ -641,7 +641,7 @@ class TipWithdraw(commands.Cog):
                 user_from = await store.sql_register_user(str(ctx.author.id), COIN_NAME, SERVER_BOT, 0)
             if user_from['balance_wallet_address'] == CoinAddress:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You can not send to your own deposit address.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You can not send to your own deposit address.')
                 return
 
             userdata_balance = await store.sql_user_balance(str(ctx.author.id), COIN_NAME)
@@ -669,7 +669,7 @@ class TipWithdraw(commands.Cog):
                 if NetFee > 0:
                     extra_fee_txt = f'You need to leave a node/tx fee: {num_format_coin(NetFee, COIN_NAME)} {COIN_NAME}'
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to send tx of '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to send tx of '
                                f'{num_format_coin(real_amount, COIN_NAME)} '
                                f'{COIN_NAME} to {CoinAddress}. {extra_fee_txt}')
 
@@ -677,13 +677,13 @@ class TipWithdraw(commands.Cog):
 
             if real_amount > MaxTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
                                f'{num_format_coin(MaxTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
             elif real_amount < MinTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
                                f'{num_format_coin(MinTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
 
@@ -692,7 +692,7 @@ class TipWithdraw(commands.Cog):
             # Get wallet status
             walletStatus = await daemonrpc_client.getWalletStatus(COIN_NAME)
             if walletStatus is None:
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} I can not connect to wallet service or daemon.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} I can not connect to wallet service or daemon.')
                 return
             else:
                 localDaemonBlockCount = int(walletStatus['blockCount'])
@@ -703,7 +703,7 @@ class TipWithdraw(commands.Cog):
                     t_localDaemonBlockCount = '{:,}'.format(localDaemonBlockCount)
                     t_networkBlockCount = '{:,}'.format(networkBlockCount)
                     await ctx.message.add_reaction(EMOJI_WARNING)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} Wallet service hasn\'t sync fully with network or being re-sync. More info:\n```'
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} Wallet service hasn\'t sync fully with network or being re-sync. More info:\n```'
                                    f'networkBlockCount:     {t_networkBlockCount}\n'
                                    f'localDaemonBlockCount: {t_localDaemonBlockCount}\n'
                                    f'Progress %:            {t_percent}\n```'
@@ -716,7 +716,7 @@ class TipWithdraw(commands.Cog):
             main_address = getattr(getattr(config,"daemon"+COIN_NAME),"MainAddress")
             if CoinAddress == main_address:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, Can not send to this address:\n```{CoinAddress}``` ')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, Can not send to this address:\n```{CoinAddress}``` ')
                 return
             
             if len(valid_address) == 2:
@@ -725,7 +725,7 @@ class TipWithdraw(commands.Cog):
                     check_in = await store.coin_check_balance_address_in_users(CoinAddress, COIN_NAME)
                     if check_in:
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, Can not send to this address:\n```{CoinAddress}``` ')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, Can not send to this address:\n```{CoinAddress}``` ')
                         return
                     if ctx.author.id not in TX_IN_PROCESS:
                         TX_IN_PROCESS.append(ctx.author.id)
@@ -739,7 +739,7 @@ class TipWithdraw(commands.Cog):
                         TX_IN_PROCESS.remove(ctx.author.id)
                     else:
                         await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-                        msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
+                        msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
                         await msg.add_reaction(EMOJI_OK_BOX)
                         return                    
                 except Exception as e:
@@ -758,7 +758,7 @@ class TipWithdraw(commands.Cog):
                 else:
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     await self.botLogChan.send(f'A user failed to execute send `{num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}` with paymentid.')
-                    msg = await ctx.send(f'{ctx.author.mention} Please try again or report.')
+                    msg = await ctx.reply(f'{ctx.author.mention} Please try again or report.')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
             else:
@@ -780,7 +780,7 @@ class TipWithdraw(commands.Cog):
                         await add_tx_action_redis(json.dumps([random_string, "SEND", str(ctx.author.id), ctx.author.name, float("%.3f" % time.time()), ctx.message.content, SERVER_BOT, "COMPLETE"]), False)
                     else:
                         await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-                        msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
+                        msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
                         await msg.add_reaction(EMOJI_OK_BOX)
                         return
                 except Exception as e:
@@ -796,7 +796,7 @@ class TipWithdraw(commands.Cog):
                 else:
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     await self.botLogChan.send(f'A user failed to execute `.send {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
-                    await ctx.send(f'{ctx.author.mention} Can not deliver TX for {COIN_NAME} right now. Try again soon.')
+                    await ctx.reply(f'{ctx.author.mention} Can not deliver TX for {COIN_NAME} right now. Try again soon.')
                     # add to failed tx table
                     await store.sql_add_failed_tx(COIN_NAME, str(ctx.author.id), ctx.author.name, real_amount, "SEND")
                     return
@@ -810,14 +810,14 @@ class TipWithdraw(commands.Cog):
                 valid_address = await validate_address_xmr(str(CoinAddress), COIN_NAME)
                 if valid_address['valid'] == False or valid_address['nettype'] != 'mainnet':
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Address: `{CoinAddress}` '
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Address: `{CoinAddress}` '
                                        'is invalid.')
                         return
             elif coin_family == "XCH":
                 valid_address = addressvalidation_xch.validate_address(CoinAddress, COIN_NAME)
                 if valid_address == False:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Address: `{CoinAddress}` '
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Address: `{CoinAddress}` '
                                    'is invalid.')
                     return
             # OK valid address
@@ -847,26 +847,26 @@ class TipWithdraw(commands.Cog):
             # If balance 0, no need to check anything
             if actual_balance <= 0:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Please check your **{COIN_NAME}** balance.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Please check your **{COIN_NAME}** balance.')
                 return
             NetFee = get_tx_node_fee(coin = COIN_NAME)
             # XMR
             # NetFee = await get_tx_fee_xmr(coin = COIN_NAME, amount = real_amount, to_address = CoinAddress)
             if real_amount + NetFee > actual_balance:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to send out '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to send out '
                                f'{num_format_coin(real_amount, COIN_NAME)} '
                                f'{COIN_NAME}. You need to leave a node/tx fee: {num_format_coin(NetFee, COIN_NAME)} {COIN_NAME}')
                 return
             if real_amount < MinTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transaction cannot be smaller than '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transaction cannot be smaller than '
                                f'{num_format_coin(MinTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
             if real_amount > MaxTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transaction cannot be bigger than '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transaction cannot be bigger than '
                                f'{num_format_coin(MaxTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
@@ -875,7 +875,7 @@ class TipWithdraw(commands.Cog):
             check_in = await store.coin_check_balance_address_in_users(CoinAddress, COIN_NAME)
             if check_in:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, Can not send to this address:\n```{CoinAddress}``` ')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, Can not send to this address:\n```{CoinAddress}``` ')
                 return
             if ctx.author.id not in TX_IN_PROCESS:
                 TX_IN_PROCESS.append(ctx.author.id)
@@ -895,7 +895,7 @@ class TipWithdraw(commands.Cog):
                 TX_IN_PROCESS.remove(ctx.author.id)
             else:
                 # reject and tell to wait
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You have another tx in process. Please wait it to finish. ')
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have another tx in process. Please wait it to finish. ')
                 await msg.add_reaction(EMOJI_OK_BOX)
                 return
             if SendTx:
@@ -923,7 +923,7 @@ class TipWithdraw(commands.Cog):
             valid_address = await nano_validate_address(COIN_NAME, str(CoinAddress))
             if not valid_address == True:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}` is invalid.')
+                await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}` is invalid.')
                 return
 
             # OK valid address
@@ -952,23 +952,23 @@ class TipWithdraw(commands.Cog):
             # If balance 0, no need to check anything
             if actual_balance <= 0:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Please check your **{COIN_NAME}** balance.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Please check your **{COIN_NAME}** balance.')
                 return
 
             if real_amount > actual_balance:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to send out '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to send out '
                                f'{num_format_coin(real_amount, COIN_NAME)}')
                 return
             if real_amount < MinTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transaction cannot be smaller than '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transaction cannot be smaller than '
                                f'{num_format_coin(MinTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
             if real_amount > MaxTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transaction cannot be bigger than '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transaction cannot be bigger than '
                                f'{num_format_coin(MaxTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
@@ -977,7 +977,7 @@ class TipWithdraw(commands.Cog):
             check_in = await store.coin_check_balance_address_in_users(CoinAddress, COIN_NAME)
             if check_in:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, Can not send to this address:\n```{CoinAddress}``` ')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, Can not send to this address:\n```{CoinAddress}``` ')
                 return
             if ctx.author.id not in TX_IN_PROCESS:
                 TX_IN_PROCESS.append(ctx.author.id)
@@ -992,7 +992,7 @@ class TipWithdraw(commands.Cog):
                 TX_IN_PROCESS.remove(ctx.author.id)
             else:
                 # reject and tell to wait
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You have another tx in process. Please wait it to finish. ')
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have another tx in process. Please wait it to finish. ')
                 await msg.add_reaction(EMOJI_OK_BOX)
                 return
             if SendTx:
@@ -1024,7 +1024,7 @@ class TipWithdraw(commands.Cog):
                         pass
                     else:
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Address: `{CoinAddress}` '
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Address: `{CoinAddress}` '
                                         'is invalid.')
                         return
             extra_fee_txt = f'You need to leave a node/tx fee: {num_format_coin(NetFee, COIN_NAME)} {COIN_NAME}'
@@ -1060,19 +1060,19 @@ class TipWithdraw(commands.Cog):
 
             if real_amount + NetFee > actual_balance:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to send out '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to send out '
                                f'{num_format_coin(real_amount, COIN_NAME)} '
                                f'{COIN_NAME}. {extra_fee_txt}')
                 return
             if real_amount < MinTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transaction cannot be smaller than '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transaction cannot be smaller than '
                                f'{num_format_coin(MinTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
             if real_amount > MaxTx:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Transaction cannot be bigger than '
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transaction cannot be bigger than '
                                f'{num_format_coin(MaxTx, COIN_NAME)} '
                                f'{COIN_NAME}.')
                 return
@@ -1080,7 +1080,7 @@ class TipWithdraw(commands.Cog):
             check_in = await store.coin_check_balance_address_in_users(CoinAddress, COIN_NAME)
             if check_in:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, Can not send to this address:\n```{CoinAddress}``` ')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, Can not send to this address:\n```{CoinAddress}``` ')
                 return
             if ctx.author.id not in TX_IN_PROCESS:
                 TX_IN_PROCESS.append(ctx.author.id)
@@ -1100,7 +1100,7 @@ class TipWithdraw(commands.Cog):
                 TX_IN_PROCESS.remove(ctx.author.id)
             else:
                 await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-                msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
+                msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
                 await msg.add_reaction(EMOJI_OK_BOX)
                 return
             if SendTx:
@@ -1123,7 +1123,7 @@ class TipWithdraw(commands.Cog):
             return
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid address:\n'
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid address:\n'
                            f'`{CoinAddress}`')
             return
 

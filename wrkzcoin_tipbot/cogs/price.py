@@ -121,7 +121,7 @@ class CoinGecko(commands.Cog):
             and 'enable_market' in serverinfo and serverinfo['enable_market'] == "NO":
                 prefix = serverinfo['prefix']
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Market Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Market Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
                 await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}cg** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                 return
         except Exception as e:
@@ -169,7 +169,7 @@ class CoinGecko(commands.Cog):
             except Exception as e:
                 await logchanbot(traceback.format_exc())
             try:
-                msg = await ctx.send(embed=embed)
+                msg = await ctx.reply(embed=embed)
                 await ctx.message.add_reaction(EMOJI_OK_HAND)
                 await msg.add_reaction(EMOJI_OK_BOX)
             except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
@@ -189,7 +189,7 @@ class CoinGecko(commands.Cog):
                 except Exception as e:
                     await logchanbot(traceback.format_exc())
                 try:
-                    msg = await ctx.send(f'{ctx.author.mention}```{message_price}```')
+                    msg = await ctx.reply(f'{ctx.author.mention}```{message_price}```')
                     await ctx.message.add_reaction(EMOJI_OK_HAND)
                     await msg.add_reaction(EMOJI_OK_BOX)
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
@@ -198,7 +198,7 @@ class CoinGecko(commands.Cog):
             return
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} I can not find the ticker **{ticker}** in CoinGecko.')
+            await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} I can not find the ticker **{ticker}** in CoinGecko.')
         return
 
 
@@ -226,7 +226,7 @@ class CoinGecko(commands.Cog):
             if isinstance(ctx.message.channel, discord.DMChannel) == False and serverinfo \
             and 'enable_market' in serverinfo and serverinfo['enable_market'] == "NO":
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
                 await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}price** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                 return
         except Exception as e:
@@ -281,7 +281,7 @@ class CoinGecko(commands.Cog):
                 embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
                 embed.set_footer(text=f"Market command requested by {ctx.author.name}#{ctx.author.discriminator}. To disable Market Command, {prefix}setting market")
                 try:
-                    msg = await ctx.send(embed=embed)
+                    msg = await ctx.reply(embed=embed)
                     await ctx.message.add_reaction(EMOJI_OK_HAND)
                     await msg.add_reaction(EMOJI_OK_BOX)
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
@@ -292,7 +292,7 @@ class CoinGecko(commands.Cog):
             return
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} Too many tickers.')
+            await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} Too many tickers.')
             return
 
     @commands.command(
@@ -314,7 +314,7 @@ class CoinGecko(commands.Cog):
             if isinstance(ctx.message.channel, discord.DMChannel) == False and serverinfo \
             and 'enable_market' in serverinfo and serverinfo['enable_market'] == "NO":
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
                 await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}gecko** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                 return
         except Exception as e:
@@ -442,7 +442,7 @@ class CoinGecko(commands.Cog):
             if isinstance(ctx.message.channel, discord.DMChannel) == False and serverinfo \
             and 'enable_market' in serverinfo and serverinfo['enable_market'] == "NO":
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
                 await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}price** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                 return
         except Exception as e:
@@ -465,14 +465,14 @@ class CoinGecko(commands.Cog):
         if len(PriceQ) == 1:
             # Only ticker accepted
             if not re.match('^[a-zA-Z0-9]+$', PriceQ[0]):
-                await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} Invalid **{ticker}**.')
+                await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} Invalid **{ticker}**.')
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 return
             
             ticker = PriceQ[0].upper()
             market_price = await store.market_value_in_usd(1, ticker)
             if market_price is None:
-                await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} I can not find price information for **{ticker}** in CoinGecko and CMC.')
+                await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} I can not find price information for **{ticker}** in CoinGecko and CMC.')
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 return
             else:
@@ -499,7 +499,7 @@ class CoinGecko(commands.Cog):
                     embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
                     embed.set_footer(text=f"Market command requested by {ctx.author.name}#{ctx.author.discriminator}. To disable Market Command, {prefix}setting market")
                     try:
-                        msg = await ctx.send(embed=embed)
+                        msg = await ctx.reply(embed=embed)
                         await ctx.message.add_reaction(EMOJI_OK_HAND)
                         await msg.add_reaction(EMOJI_OK_BOX)
                     except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
@@ -513,7 +513,7 @@ class CoinGecko(commands.Cog):
             # price 10.0 btc
             ticker = PriceQ[1].upper()
             if not re.match('^[a-zA-Z0-9]+$', ticker):
-                await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} Invalid **{ticker}**.')
+                await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} Invalid **{ticker}**.')
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 return
             # check if valid number
@@ -529,13 +529,13 @@ class CoinGecko(commands.Cog):
                 pass
 
             if amount is None:
-                await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} Invalid amount **{PriceQ[0]}**.')
+                await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} Invalid amount **{PriceQ[0]}**.')
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 return
 
             market_price = await store.market_value_in_usd(amount, ticker)
             if market_price is None:
-                await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} I can not find price information for **{ticker}** in CoinGecko and CMC.')
+                await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} I can not find price information for **{ticker}** in CoinGecko and CMC.')
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 return
             else:
@@ -562,7 +562,7 @@ class CoinGecko(commands.Cog):
                     embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
                     embed.set_footer(text=f"Market command requested by {ctx.author.name}#{ctx.author.discriminator}. To disable Market Command, {prefix}setting market")
                     try:
-                        msg = await ctx.send(embed=embed)
+                        msg = await ctx.reply(embed=embed)
                         await ctx.message.add_reaction(EMOJI_OK_HAND)
                         await msg.add_reaction(EMOJI_OK_BOX)
                     except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
@@ -574,7 +574,7 @@ class CoinGecko(commands.Cog):
         elif len(PriceQ) == 3:
             # .price xmr in btc
             if not re.match('^[a-zA-Z0-9]+$', PriceQ[0]) or not re.match('^[a-zA-Z0-9]+$', PriceQ[2]):
-                await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} Invalid pairs **{PriceQ[0]}** and **{PriceQ[2]}**.')
+                await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} Invalid pairs **{PriceQ[0]}** and **{PriceQ[2]}**.')
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 return
 
@@ -609,7 +609,7 @@ class CoinGecko(commands.Cog):
                     embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
                     embed.set_footer(text=f"Market command requested by {ctx.author.name}#{ctx.author.discriminator}. To disable Market Command, {prefix}setting market")
                     try:
-                        msg = await ctx.send(embed=embed)
+                        msg = await ctx.reply(embed=embed)
                         await ctx.message.add_reaction(EMOJI_OK_HAND)
                         await msg.add_reaction(EMOJI_OK_BOX)
                     except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
@@ -620,12 +620,12 @@ class CoinGecko(commands.Cog):
         elif len(PriceQ) >= 4:
             # .price 10 xmr in btc
             if not re.match('^[a-zA-Z0-9]+$', PriceQ[1]) or not re.match('^[a-zA-Z0-9]+$', PriceQ[3]):
-                await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} Invalid pairs **{PriceQ[1]}** and **{PriceQ[3]}**.')
+                await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} Invalid pairs **{PriceQ[1]}** and **{PriceQ[3]}**.')
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 return
 
             if PriceQ[2].lower() != "in":
-                await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} Invalid syntax.')
+                await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} Invalid syntax.')
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 return
             else:
@@ -644,7 +644,7 @@ class CoinGecko(commands.Cog):
                         message = 'Invalid given number.'
 
                 if amount is None:
-                    await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} Invalid amount **{PriceQ[0]}**.')
+                    await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} Invalid amount **{PriceQ[0]}**.')
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
 
@@ -684,7 +684,7 @@ class CoinGecko(commands.Cog):
                     embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
                     embed.set_footer(text=f"Market command requested by {ctx.author.name}#{ctx.author.discriminator}. To disable Market Command, {prefix}setting market")
                     try:
-                        msg = await ctx.send(embed=embed)
+                        msg = await ctx.reply(embed=embed)
                         await ctx.message.add_reaction(EMOJI_OK_HAND)
                         await msg.add_reaction(EMOJI_OK_BOX)
                     except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
@@ -737,7 +737,7 @@ class CoinGecko(commands.Cog):
             if isinstance(ctx.message.channel, discord.DMChannel) == False and serverinfo \
             and 'enable_market' in serverinfo and serverinfo['enable_market'] == "NO":
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
                 await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}pap** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                 return
         except Exception as e:

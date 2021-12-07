@@ -113,7 +113,7 @@ class Tool(commands.Cog):
         if isinstance(ctx.channel, discord.DMChannel) == True or ctx.guild.id != 460755304863498250:
             return
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'{ctx.author.mention} Invalid {prefix}tool command.\n Please use {prefix}help tool')
+            await ctx.reply(f'{ctx.author.mention} Invalid {prefix}tool command.\n Please use {prefix}help tool')
             return
 
 
@@ -129,7 +129,7 @@ class Tool(commands.Cog):
         if member is None:
             member = ctx.author
         try:
-            msg = await ctx.send(f'Avatar image for {member.mention}:\n{str(member.display_avatar)}')
+            msg = await ctx.reply(f'Avatar image for {member.mention}:\n{str(member.display_avatar)}')
             await msg.add_reaction(EMOJI_OK_BOX)
         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
             await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
@@ -161,7 +161,7 @@ class Tool(commands.Cog):
         number_test = number_test.replace(",", "")
         if len(number_test) >= 1900:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} **{number_test}** too long.')
+            await ctx.reply(f'{ctx.author.mention} **{number_test}** too long.')
             return
         try:
             value = is_prime(int(number_test))
@@ -183,7 +183,7 @@ class Tool(commands.Cog):
             embed = discord.Embed(title='EMOJI INFO', description=f'{ctx.author.mention}, Re-act and getinfo', colour=7047495)
             embed.add_field(name="EMOJI", value='None', inline=True)
             embed.set_footer(text="Timeout: 60s")
-            msg = await ctx.send(embed=embed)
+            msg = await ctx.reply(embed=embed)
 
             def check(reaction, user):
                 return user == ctx.author and reaction.message.author == self.bot.user and reaction.message.id == msg.id
@@ -227,16 +227,16 @@ class Tool(commands.Cog):
         decimal = decimal.replace(",", "")
         if len(decimal) >= 32:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} **{decimal}** too long.')
+            await ctx.reply(f'{ctx.author.mention} **{decimal}** too long.')
             return
         try:
             value = hex(int(decimal))
             await ctx.message.add_reaction(EMOJI_OK_HAND)
-            msg = await ctx.send(f'{ctx.author.mention} decimal of **{decimal}** is equal to hex:```{value}```')
+            msg = await ctx.reply(f'{ctx.author.mention} decimal of **{decimal}** is equal to hex:```{value}```')
             await msg.add_reaction(EMOJI_OK_BOX)
         except ValueError:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} **{decimal}** is an invalid decimal / integer.')
+            await ctx.reply(f'{ctx.author.mention} **{decimal}** is an invalid decimal / integer.')
         return
 
 
@@ -251,16 +251,16 @@ class Tool(commands.Cog):
     ):
         if len(hex_string) >= 100:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} **{hex_string}** too long.')
+            await ctx.reply(f'{ctx.author.mention} **{hex_string}** too long.')
             return
         try:
             value = int(hex_string, 16)
             await ctx.message.add_reaction(EMOJI_OK_HAND)
-            msg = await ctx.send(f'{ctx.author.mention} hex of **{hex_string}** is equal to decimal:```{str(value)}```')
+            msg = await ctx.reply(f'{ctx.author.mention} hex of **{hex_string}** is equal to decimal:```{str(value)}```')
             await msg.add_reaction(EMOJI_OK_BOX)
         except ValueError:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} **{hex_string}** is an invalid hex.')
+            await ctx.reply(f'{ctx.author.mention} **{hex_string}** is an invalid hex.')
         return
 
 
@@ -276,23 +276,23 @@ class Tool(commands.Cog):
     ):
         if len(hex_string) >= 1000:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} **{hex_string}** too long.')
+            await ctx.reply(f'{ctx.author.mention} **{hex_string}** too long.')
             return
         try:
             value = int(hex_string, 16)
         except ValueError:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} **{hex_string}** is an invalid hex.')
+            await ctx.reply(f'{ctx.author.mention} **{hex_string}** is an invalid hex.')
             return
         try:
             str_value = str(bytes.fromhex(hex_string).decode())
             print(str_value)
             await ctx.message.add_reaction(EMOJI_OK_HAND)
-            msg = await ctx.send(f'{ctx.author.mention} hex of **{hex_string}** in ascii is:```{str_value}```')
+            msg = await ctx.reply(f'{ctx.author.mention} hex of **{hex_string}** in ascii is:```{str_value}```')
             await msg.add_reaction(EMOJI_OK_BOX)
         except Exception as e:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} **{hex_string}** I can not decode.')
+            await ctx.reply(f'{ctx.author.mention} **{hex_string}** I can not decode.')
             await logchanbot(traceback.format_exc())
         return
 
@@ -305,16 +305,16 @@ class Tool(commands.Cog):
     async def str2hex(self, ctx, str2hex: str):
         if len(str2hex) >= 1000:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} **{str2hex}** too long.')
+            await ctx.reply(f'{ctx.author.mention} **{str2hex}** too long.')
             return
         if not is_ascii(str2hex):
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} **{str2hex}** is not valid ascii.')
+            await ctx.reply(f'{ctx.author.mention} **{str2hex}** is not valid ascii.')
             return
         try:
             hex_value = str(binascii.hexlify(str2hex.encode('utf_8')).decode('utf_8'))
             await ctx.message.add_reaction(EMOJI_OK_HAND)
-            msg = await ctx.send(f'{ctx.author.mention} ascii of **{str2hex}** in hex is:```{hex_value}```')
+            msg = await ctx.reply(f'{ctx.author.mention} ascii of **{str2hex}** in hex is:```{hex_value}```')
             await msg.add_reaction(EMOJI_OK_BOX)
         except Exception as e:
             await logchanbot(traceback.format_exc())

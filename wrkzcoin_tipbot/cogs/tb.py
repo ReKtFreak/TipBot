@@ -228,7 +228,7 @@ class Tb(commands.Cog):
                         e.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar)
                         e.set_image(url=draw_link)
                         e.set_footer(text=f"Sketchme requested by {ctx.author.name}#{ctx.author.discriminator}")
-                        msg = await ctx.send(embed=e)
+                        msg = await ctx.reply(embed=e)
                         await msg.add_reaction(EMOJI_OK_BOX)
                         await store.sql_add_tbfun(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
                                     str(ctx.channel.id), str(ctx.guild.id), ctx.guild.name, 'SKETCHME', ctx.message.content, SERVER_BOT)
@@ -516,7 +516,7 @@ class Tb(commands.Cog):
                 return
             else:
                 try:
-                    msg = await ctx.send(f'{ctx.author.mention} {emoji_url}')
+                    msg = await ctx.reply(f'{ctx.author.mention} {emoji_url}')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
                         await ctx.message.add_reaction(EMOJI_OK_HAND)
@@ -819,7 +819,7 @@ class Tb(commands.Cog):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             return
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'{ctx.author.mention} Invalid {prefix}tb command.\n Please use {prefix}help tb')
+            await ctx.reply(f'{ctx.author.mention} Invalid {prefix}tb command.\n Please use {prefix}help tb')
             return
 
 

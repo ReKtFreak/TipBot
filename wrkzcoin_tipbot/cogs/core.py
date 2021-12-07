@@ -23,7 +23,7 @@ class Core(commands.Cog):
     )
     async def uptime(self, ctx):
         uptime_seconds = int(time.time()) - int(bot_start_time)
-        await ctx.send(f"Current Uptime: {'{:0>8}'.format(str(timedelta(seconds=uptime_seconds)))}")
+        await ctx.reply(f"Current Uptime: {'{:0>8}'.format(str(timedelta(seconds=uptime_seconds)))}")
 
 
     @commands.command(
@@ -43,7 +43,7 @@ class Core(commands.Cog):
                 continue
             cmds = "```yml\n" + ", ".join([ctx.prefix + cmd.name for cmd in cog_commands]) + "```"
             embed.add_field(name=cog.qualified_name + " Commands", value=cmds, inline=False)
-        await ctx.send(embed=embed)
+        await ctx.reply(embed=embed)
 
 
 def setup(bot):

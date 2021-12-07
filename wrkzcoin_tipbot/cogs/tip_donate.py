@@ -32,20 +32,20 @@ class TipDonate(commands.Cog):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
             return
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'donate')
         if account_lock:
             await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
 
         # Check if tx in progress
         if ctx.author.id in TX_IN_PROCESS:
             await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-            msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
+            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
@@ -63,11 +63,11 @@ class TipDonate(commands.Cog):
             embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
             if len(item_list) > 0:
                 try:
-                    await ctx.send(embed=embed)
+                    await ctx.reply(embed=embed)
                 except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                     msg_coins = ', '.join(item_list)
                     try:
-                        await ctx.send(f'Thank you for checking. So far, we got donations:\n```{msg_coins}```')
+                        await ctx.reply(f'Thank you for checking. So far, we got donations:\n```{msg_coins}```')
                     except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                         return
             return
@@ -78,7 +78,7 @@ class TipDonate(commands.Cog):
         floodTip = await store.sql_get_countLastTip(str(ctx.author.id), config.floodTipDuration)
         if floodTip >= config.floodTip:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Cool down your tip or TX. or increase your amount next time.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Cool down your tip or TX. or increase your amount next time.')
             await self.botLogChan.send('A user reached max. TX threshold. Currently halted: `.donate`')
             return
         # End of Check flood of tip
@@ -89,7 +89,7 @@ class TipDonate(commands.Cog):
                 pass
             else:
                 await ctx.message.add_reaction(EMOJI_WARNING)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
                 return
         else:
             pass
@@ -99,7 +99,7 @@ class TipDonate(commands.Cog):
             amount = Decimal(amount)
         except ValueError:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
             return
 
         COIN_NAME = coin.upper()
@@ -114,7 +114,7 @@ class TipDonate(commands.Cog):
             real_amount = int(amount * get_decimal(COIN_NAME)) if coin_family in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else Decimal(amount)
         if is_maintenance_coin(COIN_NAME):
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            await ctx.send(f'{EMOJI_RED_NO} {COIN_NAME} in maintenance.')
+            await ctx.reply(f'{EMOJI_RED_NO} {COIN_NAME} in maintenance.')
             return
      
         user_from = await store.sql_get_userwallet(str(ctx.author.id), COIN_NAME)
@@ -150,7 +150,7 @@ class TipDonate(commands.Cog):
 
         if real_amount > actual_balance:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to donate '
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to donate '
                            f'{num_format_coin(real_amount, COIN_NAME)} '
                            f'{COIN_NAME}.')
             return
@@ -199,7 +199,7 @@ class TipDonate(commands.Cog):
             return
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            msg = await ctx.send(f'{ctx.author.mention} Donating failed, try again. Thank you.')
+            msg = await ctx.reply(f'{ctx.author.mention} Donating failed, try again. Thank you.')
             await self.botLogChan.send(f'A user failed to donate `{num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
             await msg.add_reaction(EMOJI_OK_BOX)
             # add to failed tx table

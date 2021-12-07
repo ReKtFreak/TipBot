@@ -231,7 +231,7 @@ class Deposit(commands.Cog):
             account_lock = await alert_if_userlock(ctx, 'deposit')
             if account_lock:
                 await ctx.message.add_reaction(EMOJI_LOCKED) 
-                await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+                await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
                 return
             # end of check if account locked
 
@@ -242,7 +242,7 @@ class Deposit(commands.Cog):
                     pass
                 else:
                     await ctx.message.add_reaction(EMOJI_WARNING)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
                     return
             else:
                 pass
@@ -251,14 +251,14 @@ class Deposit(commands.Cog):
             wallet = await self.get_deposit_coin_user(ctx.author.id, coin_name)
             if 'error' in wallet:
                 error_msg = wallet['error']
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {error_msg}')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {error_msg}')
                 return
 
             deposit_address = wallet['balance_wallet_address']
             # generate QR if not exists
             gen_qr_address = await self.generate_qr_address(deposit_address)
             if gen_qr_address is None:
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Failed to generate QR.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Failed to generate QR.')
                 return
 
             if option and option.upper() in ["PLAIN", "TEXT", "NOEMBED"]:
@@ -306,7 +306,7 @@ class Deposit(commands.Cog):
                     return
                 except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                     try:
-                        msg = await ctx.send(embed=embed)
+                        msg = await ctx.reply(embed=embed)
                         await msg.add_reaction(EMOJI_OK_BOX)
                         await ctx.message.add_reaction(EMOJI_OK_HAND)
                         return

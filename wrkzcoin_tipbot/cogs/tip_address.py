@@ -34,7 +34,7 @@ class TipAddress(commands.Cog):
                     if ctx.channel.id != int(serverinfo['botchan']):
                         await ctx.message.add_reaction(EMOJI_ERROR)
                         botChan = self.bot.get_channel(int(serverinfo['botchan']))
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
                         return
                 except ValueError:
                     pass
@@ -61,7 +61,7 @@ class TipAddress(commands.Cog):
             # TODO: change this.
             if COIN_NAME:
                 main_address = getattr(getattr(config,"daemon"+COIN_NAME),"MainAddress")
-                await ctx.send('**[ ADDRESS CHECKING EXAMPLES ]**\n\n'
+                await ctx.reply('**[ ADDRESS CHECKING EXAMPLES ]**\n\n'
                                f'```.address {main_address}\n'
                                'That will check if the address is valid. Integrated address is also supported. '
                                'If integrated address is input, bot will tell you the result of :address + paymentid\n\n'
@@ -69,7 +69,7 @@ class TipAddress(commands.Cog):
                                'This will generate an integrate address.\n\n'
                                f'If you would like to get your address, please use {prefix}deposit {COIN_NAME} instead.```')
             else:
-                await ctx.send('**[ ADDRESS CHECKING EXAMPLES ]**\n\n'
+                await ctx.reply('**[ ADDRESS CHECKING EXAMPLES ]**\n\n'
                                f'```.address coin_address\n'
                                'That will check if the address is valid. '
                                f'If you would like to get your address, please use {prefix}deposit {COIN_NAME} instead.```')
@@ -89,11 +89,11 @@ class TipAddress(commands.Cog):
                 pass
 
             if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**!')
                 return
 
             if not is_coin_depositable(COIN_NAME):
-                msg = await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} DEPOSITING is currently disable for {COIN_NAME}.')
+                msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} DEPOSITING is currently disable for {COIN_NAME}.')
                 await msg.add_reaction(EMOJI_OK_BOX)
                 return
 
@@ -102,7 +102,7 @@ class TipAddress(commands.Cog):
                 if member.id == ctx.author.id:
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     return
-                msg = await ctx.send(f'**ADDRESS REQ {COIN_NAME} **: {member.mention}, {str(ctx.author)} would like to get your address.')
+                msg = await ctx.reply(f'**ADDRESS REQ {COIN_NAME} **: {member.mention}, {str(ctx.author)} would like to get your address.')
                 await msg.add_reaction(EMOJI_CHECKMARK)
                 await msg.add_reaction(EMOJI_ZIPPED_MOUTH)
                 def check(reaction, user):
@@ -111,7 +111,7 @@ class TipAddress(commands.Cog):
                 try:
                     reaction, user = await self.bot.wait_for('reaction_add', timeout=120, check=check)
                 except asyncio.TimeoutError:
-                    await ctx.send(f'{ctx.author.mention} address requested timeout (120s) from {str(member.mention)}.')
+                    await ctx.reply(f'{ctx.author.mention} address requested timeout (120s) from {str(member.mention)}.')
                     try:
                         await msg.delete()
                     except Exception as e:
@@ -132,19 +132,19 @@ class TipAddress(commands.Cog):
                             userregister = await store.sql_register_user(str(member.id), COIN_NAME, SERVER_BOT, 0)
                         wallet = await store.sql_get_userwallet(str(member.id), COIN_NAME)
                     user_address = wallet['balance_wallet_address']
-                    msg = await ctx.send(f'{ctx.author.mention} Here is the deposit **{COIN_NAME}** of {member.mention}:```{user_address}```')
+                    msg = await ctx.reply(f'{ctx.author.mention} Here is the deposit **{COIN_NAME}** of {member.mention}:```{user_address}```')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
                 elif str(reaction.emoji) == EMOJI_ZIPPED_MOUTH:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{ctx.author.mention} your address request is rejected.')
+                    await ctx.reply(f'{ctx.author.mention} your address request is rejected.')
                     return
 
         CoinAddress = args[0]
         COIN_NAME = None
 
         if not re.match(r'^[A-Za-z0-9_]+$', CoinAddress):
-            msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid address:\n'
+            msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid address:\n'
                                  f'`{CoinAddress}`')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
@@ -156,12 +156,12 @@ class TipAddress(commands.Cog):
                 validate_address = await store.trx_validate_address(CoinAddress)
                 if validate_address:
                     await ctx.message.add_reaction(EMOJI_CHECK)
-                    msg = await ctx.send(f'Token address: `{CoinAddress}`\n'
+                    msg = await ctx.reply(f'Token address: `{CoinAddress}`\n'
                                          'Checked: Valid.')
                     await msg.add_reaction(EMOJI_OK_BOX)
                 else:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid token address:\n'
+                    msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid token address:\n'
                                          f'`{CoinAddress}`')
                     await msg.add_reaction(EMOJI_OK_BOX)
                 return
@@ -171,7 +171,7 @@ class TipAddress(commands.Cog):
             if CoinAddress.startswith("0x"):
                 if CoinAddress.upper().startswith("0X00000000000000000000000000000"):
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid token:\n'
+                    msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid token:\n'
                                          f'`{CoinAddress}`')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
@@ -179,19 +179,19 @@ class TipAddress(commands.Cog):
                     valid_address = await store.erc_validate_address(CoinAddress, "XMOON") # placeholder
                     if valid_address and valid_address.upper() == CoinAddress.upper():
                         await ctx.message.add_reaction(EMOJI_CHECK)
-                        msg = await ctx.send(f'Token address: `{CoinAddress}`\n'
+                        msg = await ctx.reply(f'Token address: `{CoinAddress}`\n'
                                              'Checked: Valid.')
                         await msg.add_reaction(EMOJI_OK_BOX)
                         return
                     else:
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid token address:\n'
+                        msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid token address:\n'
                                              f'`{CoinAddress}`')
                         await msg.add_reaction(EMOJI_OK_BOX)
                         return
             else:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid address:\n'
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid address:\n'
                                     f'`{CoinAddress}`')
                 await msg.add_reaction(EMOJI_OK_BOX)
                 return
@@ -206,19 +206,19 @@ class TipAddress(commands.Cog):
                 if 'isvalid' in valid_address:
                     if str(valid_address['isvalid']) == "True":
                         await ctx.message.add_reaction(EMOJI_CHECK)
-                        msg = await ctx.send(f'Address: `{CoinAddress}`\n'
+                        msg = await ctx.reply(f'Address: `{CoinAddress}`\n'
                                              f'Checked: Valid {COIN_NAME}.')
                         await msg.add_reaction(EMOJI_OK_BOX)
                         return
                     else:
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        msg = await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
+                        msg = await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
                                              'Checked: Invalid.')
                         await msg.add_reaction(EMOJI_OK_BOX)
                         return
                 else:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    msg = await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
+                    msg = await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
                                         'Checked: Invalid.')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
@@ -226,13 +226,13 @@ class TipAddress(commands.Cog):
                 valid_address = await nano_validate_address(COIN_NAME, str(CoinAddress))
                 if valid_address == True:
                     await ctx.message.add_reaction(EMOJI_CHECK)
-                    msg = await ctx.send(f'Address: `{CoinAddress}`\n'
+                    msg = await ctx.reply(f'Address: `{CoinAddress}`\n'
                                          f'Checked: Valid {COIN_NAME}.')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
                 else:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    msg = await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
+                    msg = await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
                                          'Checked: Invalid.')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
@@ -241,19 +241,19 @@ class TipAddress(commands.Cog):
                 if 'isvalid' in valid_address:
                     if str(valid_address['isvalid']) == "True":
                         await ctx.message.add_reaction(EMOJI_CHECK)
-                        msg = await ctx.send(f'Address: `{CoinAddress}`\n'
+                        msg = await ctx.reply(f'Address: `{CoinAddress}`\n'
                                              f'Checked: Valid {COIN_NAME}.')
                         await msg.add_reaction(EMOJI_OK_BOX)
                         return
                     else:
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        msg = await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
+                        msg = await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
                                              'Checked: Invalid.')
                         await msg.add_reaction(EMOJI_OK_BOX)
                         return
                 else:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
+                    await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
                                     'Checked: Invalid.')
                     return
             elif COIN_NAME == "KVA":
@@ -261,19 +261,19 @@ class TipAddress(commands.Cog):
                 if 'isvalid' in valid_address:
                     if str(valid_address['isvalid']) == "True":
                         await ctx.message.add_reaction(EMOJI_CHECK)
-                        msg = await ctx.send(f'Address: `{CoinAddress}`\n'
+                        msg = await ctx.reply(f'Address: `{CoinAddress}`\n'
                                              f'Checked: Valid {COIN_NAME}.')
                         await msg.add_reaction(EMOJI_OK_BOX)
                         return
                     else:
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        msg = await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
+                        msg = await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
                                              'Checked: Invalid.')
                         await msg.add_reaction(EMOJI_OK_BOX)
                         return
                 else:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
+                    await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
                                     'Checked: Invalid.')
                     return
             elif COIN_NAME == "PGO":
@@ -281,19 +281,19 @@ class TipAddress(commands.Cog):
                 if 'isvalid' in valid_address:
                     if str(valid_address['isvalid']) == "True":
                         await ctx.message.add_reaction(EMOJI_CHECK)
-                        msg = await ctx.send(f'Address: `{CoinAddress}`\n'
+                        msg = await ctx.reply(f'Address: `{CoinAddress}`\n'
                                              f'Checked: Valid {COIN_NAME}.')
                         await msg.add_reaction(EMOJI_OK_BOX)
                         return
                     else:
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        msg = await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
+                        msg = await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
                                              'Checked: Invalid.')
                         await msg.add_reaction(EMOJI_OK_BOX)
                         return
                 else:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    msg = await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
+                    msg = await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
                                         'Checked: Invalid.')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
@@ -328,11 +328,11 @@ class TipAddress(commands.Cog):
                         else:
                             address_result += 'Subaddress: `{}`\n'.format('False')
                         await ctx.message.add_reaction(EMOJI_CHECK)
-                        await ctx.send(f'{EMOJI_CHECK} Address: `{CoinAddress}`\n{address_result}')
+                        await ctx.reply(f'{EMOJI_CHECK} Address: `{CoinAddress}`\n{address_result}')
                         return
                     else:
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
+                        await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
                                         'Checked: Invalid.')
                         return
                 elif COIN_NAME == "UPX":	
@@ -365,11 +365,11 @@ class TipAddress(commands.Cog):
                         else:	
                             address_result += 'Subaddress: `{}`\n'.format('False')	
                         await ctx.message.add_reaction(EMOJI_CHECK)	
-                        await ctx.send(f'{EMOJI_CHECK} Address: `{CoinAddress}`\n{address_result}')	
+                        await ctx.reply(f'{EMOJI_CHECK} Address: `{CoinAddress}`\n{address_result}')	
                         return	
                     else:	
                         await ctx.message.add_reaction(EMOJI_ERROR)	
-                        await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'	
+                        await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'	
                                         'Checked: Invalid.')	
                         return
                 else:
@@ -379,7 +379,7 @@ class TipAddress(commands.Cog):
                     except Exception as e:
                         traceback.print_exc(file=sys.stdout)
                     if valid_address is None or valid_address['valid'] == False:
-                        await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
+                        await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
                                         'Checked: Invalid.')
                         return
                     elif valid_address['valid'] == True:
@@ -388,7 +388,7 @@ class TipAddress(commands.Cog):
                                        'Net Type: `{}`\n'.format(str(valid_address['nettype'])) + \
                                        'Subaddress: `{}`\n'.format(str(valid_address['subaddress']))
                         await ctx.message.add_reaction(EMOJI_CHECK)
-                        await ctx.send(f'{EMOJI_CHECK} Address: `{CoinAddress}`\n{address_result}')
+                        await ctx.reply(f'{EMOJI_CHECK} Address: `{CoinAddress}`\n{address_result}')
                         return
 
             if len(CoinAddress) == int(addressLength):
@@ -396,13 +396,13 @@ class TipAddress(commands.Cog):
                 print(valid_address)
                 if valid_address is None:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
+                    await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
                                     'Checked: Invalid.')
                     return
                 else:
                     await ctx.message.add_reaction(EMOJI_CHECK)
                     if (valid_address == CoinAddress):
-                        await ctx.send(f'Address: `{CoinAddress}`\n'
+                        await ctx.reply(f'Address: `{CoinAddress}`\n'
                                         'Checked: Valid.')
                     return
                 return
@@ -411,7 +411,7 @@ class TipAddress(commands.Cog):
                 valid_address = addressvalidation.validate_integrated_cn(CoinAddress, COIN_NAME)
                 if valid_address == 'invalid':
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} Integrated Address: `{CoinAddress}`\n'
+                    await ctx.reply(f'{EMOJI_RED_NO} Integrated Address: `{CoinAddress}`\n'
                                     'Checked: Invalid.')
                     return
                 if len(valid_address) == 2:
@@ -419,14 +419,14 @@ class TipAddress(commands.Cog):
                     iCoinAddress = CoinAddress
                     CoinAddress = valid_address['address']
                     paymentid = valid_address['integrated_id']
-                    await ctx.send(f'\nIntegrated Address: `{iCoinAddress}`\n\n'
+                    await ctx.reply(f'\nIntegrated Address: `{iCoinAddress}`\n\n'
                                     f'Address: `{CoinAddress}`\n'
                                     f'PaymentID: `{paymentid}`')
                     return
             else:
                 # incorrect length
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
+                await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
                                 'Checked: Incorrect length')
                 return
         if len(args) == 2:
@@ -437,28 +437,28 @@ class TipAddress(commands.Cog):
                 valid_address = addressvalidation.validate_address_cn(CoinAddress, COIN_NAME)
                 if (valid_address is None):
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
+                    await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
                                     'Checked: Incorrect given address.')
                     return
                 else:
                     pass
             else:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
+                await ctx.reply(f'{EMOJI_RED_NO} Address: `{CoinAddress}`\n'
                                 'Checked: Incorrect length')
                 return
             # Check payment ID
             if len(paymentid) == 64:
                 if not re.match(r'[a-zA-Z0-9]{64,}', paymentid.strip()):
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} PaymentID: `{paymentid}`\n'
+                    await ctx.reply(f'{EMOJI_RED_NO} PaymentID: `{paymentid}`\n'
                                     'Checked: Invalid. Should be in 64 correct format.')
                     return
                 else:
                     pass
             else:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} PaymentID: `{paymentid}`\n'
+                await ctx.reply(f'{EMOJI_RED_NO} PaymentID: `{paymentid}`\n'
                                 'Checked: Incorrect length')
                 return
             # Make integrated address:
@@ -466,17 +466,17 @@ class TipAddress(commands.Cog):
             if 'integrated_address' in integrated_address:
                 iCoinAddress = integrated_address['integrated_address']
                 await ctx.message.add_reaction(EMOJI_OK_HAND)
-                await ctx.send(f'\nNew integrated address: `{iCoinAddress}`\n\n'
+                await ctx.reply(f'\nNew integrated address: `{iCoinAddress}`\n\n'
                                 f'Main address: `{CoinAddress}`\n'
                                 f'Payment ID: `{paymentid}`\n')
                 return
             else:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} ERROR Can not make integrated address.\n')
+                await ctx.reply(f'{EMOJI_RED_NO} ERROR Can not make integrated address.\n')
                 return
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send('**[ ADDRESS CHECKING EXAMPLES ]**\n\n'
+            await ctx.reply('**[ ADDRESS CHECKING EXAMPLES ]**\n\n'
                            '`.address WrkzRNDQDwFCBynKPc459v3LDa1gEGzG3j962tMUBko1fw9xgdaS9mNiGMgA9s1q7hS1Z8SGRVWzcGc8Sh8xsvfZ6u2wJEtoZB`\n'
                            'That will check if the address is valid. Integrated address is also supported. '
                            'If integrated address is input, bot will tell you the result of :address + paymentid\n\n'
@@ -500,7 +500,7 @@ class TipAddress(commands.Cog):
         else:
             paymentid = addressvalidation.paymentid()
         await ctx.message.add_reaction(EMOJI_OK_HAND)
-        await ctx.send('**[ RANDOM PAYMENT ID ]**\n'
+        await ctx.reply('**[ RANDOM PAYMENT ID ]**\n'
                        f'`{paymentid}`\n')
         return
 

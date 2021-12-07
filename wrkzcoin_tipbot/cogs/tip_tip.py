@@ -8,6 +8,7 @@ import dislash
 from config import config
 from Bot import *
 
+
 class TipTip(commands.Cog):
 
     def __init__(self, bot):
@@ -62,12 +63,12 @@ class TipTip(commands.Cog):
         else:
             coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
 
-        if option.upper().startswith("LAST "):
+        if option.lower().startswith("last "):
             # last xxxu
             # last yyyhrs
 
             # try if the param is 1111u
-            num_user = option.upper().replace("LAST ", "") # remove last
+            num_user = option.lower().replace("last ", "") # remove last
             if 'u' in num_user or 'user' in num_user or 'users' in num_user or 'person' in num_user or 'people' in num_user:
                 num_user = num_user.replace("people", "")
                 num_user = num_user.replace("person", "")
@@ -198,6 +199,8 @@ class TipTip(commands.Cog):
                         return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Please try time interval between 5minutes to 24hours."}
                     else:
                         message_talker = await store.sql_get_messages(str(ctx.guild.id), str(ctx.channel.id), time_given, None)
+                        if ctx.author.id in message_talker:
+                            message_talker.remove(ctx.author.id)
                         if len(message_talker) == 0:
                             if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
                             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} There is no active talker in such period."}
@@ -207,6 +210,7 @@ class TipTip(commands.Cog):
                             except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                                 if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                             except Exception as e:
+                                traceback.print_exc(file=sys.stdout)
                                 await logchanbot(traceback.format_exc())
                             return {"result": True}
         else:

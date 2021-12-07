@@ -19,7 +19,7 @@ class Invite(commands.Cog):
 
     @commands.command(usage="invite", description="Get TipBpt's invite link.")
     async def invite(self, ctx):
-        await ctx.send(f"**[INVITE LINK]**: {BOT_INVITELINK_PLAIN}")
+        await ctx.reply(f"**[INVITE LINK]**: {BOT_INVITELINK_PLAIN}")
 
 
 def setup(bot):

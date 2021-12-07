@@ -67,7 +67,7 @@ class BotBalance(commands.Cog):
         coin: str
     ):
         if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} This command can not be in DM.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} This command can not be in DM.')
             return
             
         # if public and there is a bot channel
@@ -80,7 +80,7 @@ class BotBalance(commands.Cog):
                     if ctx.channel.id != int(serverinfo['botchan']):
                         await ctx.message.add_reaction(EMOJI_ERROR)
                         botChan = self.bot.get_channel(int(serverinfo['botchan']))
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
                         return
                 except ValueError:
                     pass
@@ -88,12 +88,12 @@ class BotBalance(commands.Cog):
 
         if member.bot == False:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Only for bot!!')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Only for bot!!')
             return
 
         COIN_NAME = coin.upper()
         if COIN_NAME not in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER {COIN_NAME}**!')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER {COIN_NAME}**!')
             return
 
         # TRTL discord
@@ -102,7 +102,7 @@ class BotBalance(commands.Cog):
 
         if is_maintenance_coin(COIN_NAME):
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
             return
 
 
@@ -112,7 +112,7 @@ class BotBalance(commands.Cog):
                 pass
             else:
                 await ctx.message.add_reaction(EMOJI_WARNING)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
                 return
         else:
             pass
@@ -177,11 +177,11 @@ class BotBalance(commands.Cog):
                     embed.add_field(name="{} Deposit Note".format(COIN_NAME), value="`{}`".format(token_info['deposit_note']), inline=False)
             embed.add_field(name=f"Balance {COIN_NAME}", value="`{} {}`".format(balance_actual, COIN_NAME), inline=False)
             try:
-                msg = await ctx.send(embed=embed)
+                msg = await ctx.reply(embed=embed)
                 await msg.add_reaction(EMOJI_OK_BOX)
                 await ctx.message.add_reaction(EMOJI_OK_HAND)
             except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                msg = await ctx.send(
+                msg = await ctx.reply(
                         f'**[ <@{member.id}> BALANCE]**\n'
                         f' Deposit Address: `{depositAddress}`\n'
                         f'{EMOJI_MONEYBAG} Available: {balance_actual} '

@@ -64,7 +64,7 @@ class Calculator(commands.Cog):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             return
         if eval_string is None:
-            await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention}, Example: `cal 2+3+4/2`')
+            await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention}, Example: `cal 2+3+4/2`')
             return
         else:
             eval_string_original = eval_string
@@ -77,14 +77,14 @@ class Calculator(commands.Cog):
             if all([c.isdigit() or c in supported_function for c in test_string]):
                 try:
                     result = numexpr.evaluate(eval_string).item()
-                    msg = await ctx.send(f'{EMOJI_INFORMATION} {ctx.author.mention} result of `{eval_string_original}`:```{result}```')
+                    msg = await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} result of `{eval_string_original}`:```{result}```')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     return
                 except Exception as e:
-                    await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} I can not find the result for `{eval_string_original}`.')
+                    await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} I can not find the result for `{eval_string_original}`.')
                     return
             else:
-                await ctx.send(f'{EMOJI_ERROR} {ctx.author.mention} Unsupported usage for `{eval_string_original}`.')
+                await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} Unsupported usage for `{eval_string_original}`.')
                 return
 
 

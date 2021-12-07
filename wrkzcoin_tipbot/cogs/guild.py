@@ -1105,7 +1105,7 @@ class Guild(commands.Cog):
                 # coin_list is single coin set_coin
                 changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'tiponly', coin_list)
                 await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed tiponly in {ctx.guild.name} / {ctx.guild.id} to `{coin_list}`')
-                await ctx.send(f'{ctx.author.mention} {coin_list} will be the only tip here.')
+                await ctx.reply(f'{ctx.author.mention} {coin_list} will be the only tip here.')
                 return {"result": True}
 
 
@@ -1854,7 +1854,7 @@ class Guild(commands.Cog):
     async def guild(self, ctx):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
 
         if self.botLogChan is None:
@@ -1862,7 +1862,7 @@ class Guild(commands.Cog):
 
         prefix = await get_guild_prefix(ctx)
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'{ctx.author.mention} Invalid {prefix}guild command.\n Please use {prefix}help guild')
+            await ctx.reply(f'{ctx.author.mention} Invalid {prefix}guild command.\n Please use {prefix}help guild')
             return
 
 
@@ -1878,7 +1878,7 @@ class Guild(commands.Cog):
     ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
 
         amount = amount.replace(",", "")
@@ -1886,7 +1886,7 @@ class Guild(commands.Cog):
             amount = Decimal(amount)
         except ValueError:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
             return
         await self.guild_deposit(ctx, amount, coin)
 
@@ -1903,7 +1903,7 @@ class Guild(commands.Cog):
     ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
         guild_mdeposit = await self.guild_mdeposit(ctx, coin_name, option)
         if guild_mdeposit and "error" in guild_mdeposit:
@@ -1924,17 +1924,17 @@ class Guild(commands.Cog):
     ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
 
         if 1000 <= len(tipmessage) <= 5:
-            await ctx.send(f'{ctx.author.mention} Tip message is too short or too long.')
+            await ctx.reply(f'{ctx.author.mention} Tip message is too short or too long.')
             return
         else:
             changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'tip_message', tipmessage)
             changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'tip_message_by', "{}#{}".format(ctx.author.name, ctx.author.discriminator))
             try:
-                await ctx.send(f'{ctx.author.mention} Tip message for this guild is updated.')
+                await ctx.reply(f'{ctx.author.mention} Tip message for this guild is updated.')
             except Exception as e:
                 await logchanbot(traceback.format_exc())
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed tipmessage in {str(ctx.guild.id)}/{ctx.guild.name}.')
@@ -2027,9 +2027,9 @@ class Guild(commands.Cog):
     ):
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.send(f'{ctx.author.mention} This command can not be DM.')
+            await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
-        await ctx.send(f'{ctx.author.mention} Please use slash commands.')
+        await ctx.reply(f'{ctx.author.mention} Please use slash commands.')
         return
 
 
@@ -2068,7 +2068,7 @@ class Guild(commands.Cog):
         account_lock = await alert_if_userlock(ctx, 'mdeposit')
         if account_lock:
             await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.send(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
+            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
         guild_mdeposit = await self.guild_mdeposit(ctx, coin_name, option)

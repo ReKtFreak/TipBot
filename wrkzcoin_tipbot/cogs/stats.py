@@ -37,7 +37,7 @@ class Stats(commands.Cog):
 
         if COIN_NAME not in (ENABLE_COIN+ENABLE_XMR+ENABLE_COIN_ERC+ENABLE_COIN_TRC) and COIN_NAME != "BOT":
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{ctx.author.mention} Unsupported or Unknown Ticker: **{COIN_NAME}**')
+            await ctx.reply(f'{ctx.author.mention} Unsupported or Unknown Ticker: **{COIN_NAME}**')
             return
 
         # TRTL discord
@@ -46,7 +46,7 @@ class Stats(commands.Cog):
 
         if is_maintenance_coin(COIN_NAME) and (ctx.author.id not in MAINTENANCE_OWNER):
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            await ctx.send(f'{EMOJI_RED_NO} {COIN_NAME} in maintenance.')
+            await ctx.reply(f'{EMOJI_RED_NO} {COIN_NAME} in maintenance.')
             return
         elif is_maintenance_coin(COIN_NAME) and (ctx.author.id in MAINTENANCE_OWNER):
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)
@@ -77,7 +77,7 @@ class Stats(commands.Cog):
                 await logchanbot(traceback.format_exc())
             embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
             try:
-                msg = await ctx.send(embed=embed)
+                msg = await ctx.reply(embed=embed)
                 await msg.add_reaction(EMOJI_OK_BOX)
             except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                 await logchanbot(traceback.format_exc())
@@ -94,7 +94,7 @@ class Stats(commands.Cog):
             else:
                 gettopblock = await daemonrpc_client.gettopblock(COIN_NAME, time_out=timeout)
         except asyncio.TimeoutError:
-            msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} connection to daemon timeout after {str(timeout)} seconds. I am checking info from wallet now.')
+            msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} connection to daemon timeout after {str(timeout)} seconds. I am checking info from wallet now.')
             await msg.add_reaction(EMOJI_OK_BOX)
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -161,11 +161,11 @@ class Stats(commands.Cog):
                 embed.add_field(name='Related commands', value=f'`{prefix}coininfo {COIN_NAME}`, `{prefix}deposit {COIN_NAME}`, `{prefix}balance {COIN_NAME}`', inline=False)
                 embed.set_footer(text=notice_txt)
                 try:
-                    msg = await ctx.send(embed=embed)
+                    msg = await ctx.reply(embed=embed)
                     await msg.add_reaction(EMOJI_OK_BOX)
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     # if embedded denied
-                    msg = await ctx.send(f'**[ {COIN_NAME} ]**\n'
+                    msg = await ctx.reply(f'**[ {COIN_NAME} ]**\n'
                                    f'```[NETWORK HEIGHT] {height}\n'
                                    f'[TIME]           {ago}\n'
                                    f'[DIFFICULTY]     {difficulty}\n'
@@ -209,7 +209,7 @@ class Stats(commands.Cog):
                 embed.add_field(name='Related commands', value=f'`{prefix}coininfo {COIN_NAME}`, `{prefix}deposit {COIN_NAME}`, `{prefix}balance {COIN_NAME}`', inline=False)
                 embed.set_footer(text=notice_txt)
                 try:
-                    msg = await ctx.send(embed=embed)
+                    msg = await ctx.reply(embed=embed)
                     await msg.add_reaction(EMOJI_OK_BOX)
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     # if embedded denied
@@ -219,7 +219,7 @@ class Stats(commands.Cog):
                         balance_locked = num_format_coin(walletBalance['locked'], COIN_NAME)
                         balance_str = f'[TOTAL UNLOCKED] {balance_actual} {COIN_NAME}\n'
                         balance_str = balance_str + f'[TOTAL LOCKED]   {balance_locked} {COIN_NAME}'
-                        msg = await ctx.send(f'**[ {COIN_NAME} ]**\n'
+                        msg = await ctx.reply(f'**[ {COIN_NAME} ]**\n'
                                        f'```[NETWORK HEIGHT] {height}\n'
                                        f'[TIME]           {ago}\n'
                                        f'[DIFFICULTY]     {difficulty}\n'
@@ -231,7 +231,7 @@ class Stats(commands.Cog):
                                        f'{balance_str}'
                                        '```')
                     else:
-                        msg = await ctx.send(f'**[ {COIN_NAME} ]**\n'
+                        msg = await ctx.reply(f'**[ {COIN_NAME} ]**\n'
                                        f'```[NETWORK HEIGHT] {height}\n'
                                        f'[TIME]           {ago}\n'
                                        f'[DIFFICULTY]     {difficulty}\n'
@@ -271,7 +271,7 @@ class Stats(commands.Cog):
                     notice_txt = NOTICE_COIN['default'] + " | Daemon RPC not available"
                 embed.set_footer(text=notice_txt)
                 try:
-                    msg = await ctx.send(embed=embed)
+                    msg = await ctx.reply(embed=embed)
                     await msg.add_reaction(EMOJI_OK_BOX)
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     # if embedded denied
@@ -281,7 +281,7 @@ class Stats(commands.Cog):
                         balance_locked = num_format_coin(walletBalance['locked'], COIN_NAME)
                         balance_str = f'[TOTAL UNLOCKED] {balance_actual} {COIN_NAME}\n'
                         balance_str = balance_str + f'[TOTAL LOCKED]   {balance_locked} {COIN_NAME}'
-                        msg = await ctx.send(f'**[ {COIN_NAME} ]**\n'
+                        msg = await ctx.reply(f'**[ {COIN_NAME} ]**\n'
                                        f'```[LOCAL DAEMON]   {t_localDaemonBlockCount}\n'
                                        f'[NETWORK]        {t_networkBlockCount}\n'
                                        f'[WALLET SYNC %]: {t_percent}' + '% (' + '{:,.0f}'.format(localDaemonBlockCount - 1) + ')\n'
@@ -293,7 +293,7 @@ class Stats(commands.Cog):
                     await msg.add_reaction(EMOJI_OK_BOX)
                 return
             else:
-                msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME}\'s status unavailable.')
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME}\'s status unavailable.')
                 await msg.add_reaction(EMOJI_OK_BOX)
                 return
         elif COIN_NAME in ENABLE_COIN_ERC:
@@ -321,7 +321,7 @@ class Stats(commands.Cog):
                     pass
                 embed.set_footer(text=f"{token_info['deposit_note']}")
                 try:
-                    msg = await ctx.send(embed=embed)
+                    msg = await ctx.reply(embed=embed)
                     await msg.add_reaction(EMOJI_OK_BOX)
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     pass
@@ -353,7 +353,7 @@ class Stats(commands.Cog):
                     pass
                 embed.set_footer(text=f"{token_info['deposit_note']}")
                 try:
-                    msg = await ctx.send(embed=embed)
+                    msg = await ctx.reply(embed=embed)
                     await msg.add_reaction(EMOJI_OK_BOX)
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     pass

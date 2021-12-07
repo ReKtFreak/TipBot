@@ -170,8 +170,7 @@ class Coininfo(commands.Cog):
             table = AsciiTable(table_data)
             table.padding_left = 0
             table.padding_right = 0
-            msg = await ctx.send('**[ TIPBOT COIN LIST ]**\n'
-                                 f'```{table.table}```')
+            msg = await ctx.reply(f"**[ TIPBOT COIN LIST ]**\n```{table.table}```")
         else:
             COIN_NAME = coin.upper()
             is_private = False

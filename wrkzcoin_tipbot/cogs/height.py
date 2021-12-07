@@ -26,7 +26,7 @@ class Height(commands.Cog):
         if coin is None:
             if isinstance(ctx.message.channel, discord.DMChannel):
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send('Please add ticker: '+ ', '.join(ENABLE_COIN).lower() + ' with this command if in DM.')
+                await ctx.reply('Please add ticker: '+ ', '.join(ENABLE_COIN).lower() + ' with this command if in DM.')
                 return
             else:
                 serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -52,7 +52,7 @@ class Height(commands.Cog):
                 if ctx.channel.id != int(serverinfo['botchan']):
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     botChan = bot.get_channel(int(serverinfo['botchan']))
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
                     return
             except ValueError:
                 pass
@@ -65,11 +65,11 @@ class Height(commands.Cog):
         coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
         if COIN_NAME not in (ENABLE_COIN + ENABLE_XMR + ENABLE_XCH):
             await ctx.message.add_reaction(EMOJI_ERROR)
-            msg = await ctx.send(f'{ctx.author.mention} Unsupported or Unknown Ticker: **{COIN_NAME}**')
+            msg = await ctx.reply(f'{ctx.author.mention} Unsupported or Unknown Ticker: **{COIN_NAME}**')
             return
         elif is_maintenance_coin(COIN_NAME):
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} is under maintenance.')
+            msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} is under maintenance.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 
@@ -78,7 +78,7 @@ class Height(commands.Cog):
         try:
             gettopblock = await daemonrpc_client.gettopblock(COIN_NAME, time_out=timeout)
         except asyncio.TimeoutError:
-            msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} connection to daemon timeout after {str(timeout)} seconds.')
+            msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} connection to daemon timeout after {str(timeout)} seconds.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
         except Exception as e:
@@ -90,11 +90,11 @@ class Height(commands.Cog):
                 height = "{:,}".format(gettopblock['block_header']['height'])
             else:
                 height = "{:,}".format(gettopblock['height'])
-            msg = await ctx.send(f'**[ {COIN_NAME} HEIGHT]**: {height}\n')
+            msg = await ctx.reply(f'**[ {COIN_NAME} HEIGHT]**: {height}\n')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
         else:
-            msg = await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME}\'s status unavailable.')
+            msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME}\'s status unavailable.')
             await msg.add_reaction(EMOJI_OK_BOX)
             return
 

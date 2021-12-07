@@ -215,7 +215,7 @@ class Trade(commands.Cog):
 
             if actual_balance < real_amount_sell:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} ')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} ')
                 return {"error": f"You do not have enough **{sell_ticker}**. You have currently: {num_format_coin(actual_balance, sell_ticker)}{sell_ticker}."}
             if (sell_amount / buy_amount) < MIN_TRADE_RATIO or (buy_amount / sell_amount) < MIN_TRADE_RATIO:
                 return {"error": f"Ratio buy/sell rate is so low."}
@@ -387,7 +387,7 @@ class Trade(commands.Cog):
                 and 'enable_trade' in serverinfo and serverinfo['enable_trade'] == "NO":
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
                     await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}sell command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
@@ -399,13 +399,13 @@ class Trade(commands.Cog):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
             return
 
         if 'error' in create_order:
-            await ctx.send('{} {} {}'.format(EMOJI_RED_NO, ctx.author.mention, create_order['error']))
+            await ctx.reply('{} {} {}'.format(EMOJI_RED_NO, ctx.author.mention, create_order['error']))
         elif 'result' in create_order:
-            await ctx.send('{} {} {}'.format(ctx.author.mention, create_order['error']))
+            await ctx.reply('{} {} {}'.format(ctx.author.mention, create_order['error']))
 
 
     @commands.command(
@@ -432,7 +432,7 @@ class Trade(commands.Cog):
                 and 'enable_trade' in serverinfo and serverinfo['enable_trade'] == "NO":
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
                     await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}buy command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
@@ -444,7 +444,7 @@ class Trade(commands.Cog):
         # check if bot is going to restart
         if IS_RESTARTING:
             await ctx.message.add_reaction(EMOJI_REFRESH)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
             return
 
         # check if the argument is ref or ticker by length
@@ -453,7 +453,7 @@ class Trade(commands.Cog):
             # ,buy trtl (example)
             COIN_NAME = ref_number.upper()
             if COIN_NAME not in ENABLE_TRADE_COIN:
-                await ctx.send(f'{EMOJI_ERROR} **{COIN_NAME}** is not in our list.')
+                await ctx.reply(f'{EMOJI_ERROR} **{COIN_NAME}** is not in our list.')
                 return
             
             # get list of all coin where they sell XXX
@@ -483,11 +483,11 @@ class Trade(commands.Cog):
                 table.padding_left = 0
                 table.padding_right = 0
                 title = "MARKET SELLING **{}**".format(COIN_NAME)
-                await ctx.send(f'[ {title} ]\n'
+                await ctx.reply(f'[ {title} ]\n'
                                f'```{table.table}```')
                 return
             else:
-                await ctx.send(f'{ctx.author.mention} Currently, no opening selling **{COIN_NAME}**. Please make some open order for others.')
+                await ctx.reply(f'{ctx.author.mention} Currently, no opening selling **{COIN_NAME}**. Please make some open order for others.')
                 return
         else:
             # assume reference number
@@ -496,7 +496,7 @@ class Trade(commands.Cog):
                 # check if own order
                 if get_order_num['sell_user_server'] == SERVER_BOT and ctx.author.id == int(get_order_num['userid_sell']):
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} #**{ref_number}** is your own selling order.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} #**{ref_number}** is your own selling order.')
                     return
                 else:
                     # check if sufficient balance
@@ -532,7 +532,7 @@ class Trade(commands.Cog):
                             await logchanbot(traceback.format_exc())
                     if actual_balance < get_order_num['amount_get_after_fee']:
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        await ctx.send('{} {} You do not have sufficient balance.'
+                        await ctx.reply('{} {} You do not have sufficient balance.'
                                        '```Needed: {}{}\n'
                                        'Have:   {}{}```'.format(EMOJI_RED_NO, ctx.author.mention, 
                                                          num_format_coin(get_order_num['amount_get'], 
@@ -546,7 +546,7 @@ class Trade(commands.Cog):
                         if match_order:
                             await ctx.message.add_reaction(EMOJI_OK_BOX)
                             try:
-                                await ctx.send('{} #**{}** Order completed!'
+                                await ctx.reply('{} #**{}** Order completed!'
                                                '```'
                                                'Get: {}{}\n'
                                                'From selling: {}{}\n'
@@ -580,11 +580,11 @@ class Trade(commands.Cog):
                             return
                         else:
                             await ctx.message.add_reaction(EMOJI_ERROR)
-                            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} **{ref_number}** internal error, please report.')
+                            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} **{ref_number}** internal error, please report.')
                             return
             else:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} #**{ref_number}** does not exist or already completed.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} #**{ref_number}** does not exist or already completed.')
                 return
 
 
@@ -613,7 +613,7 @@ class Trade(commands.Cog):
                 and 'enable_trade' in serverinfo and serverinfo['enable_trade'] == "NO":
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
                     await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}trade/market command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
@@ -645,16 +645,16 @@ class Trade(commands.Cog):
             COIN_NAME = coin.upper()
             if COIN_NAME not in ENABLE_TRADE_COIN:
                 await ctx.message.add_reaction(EMOJI_RED_NO)
-                await ctx.send(f'{EMOJI_RED_NO} {COIN_NAME} in not in our list.')
+                await ctx.reply(f'{EMOJI_RED_NO} {COIN_NAME} in not in our list.')
                 return
             else:
                 get_list_orders = await self.get_open_orders(ctx, option_order, COIN_NAME, None)
         elif coin_pair and len(coin_pair) == 2:
             if coin_pair[0] not in ENABLE_TRADE_COIN:
-                await ctx.send(f'{EMOJI_ERROR} **{coin_pair[0]}** is not in our list. Available right now: **{config.trade.enable_coin}**')
+                await ctx.reply(f'{EMOJI_ERROR} **{coin_pair[0]}** is not in our list. Available right now: **{config.trade.enable_coin}**')
                 return
             elif coin_pair[1] not in ENABLE_TRADE_COIN:
-                await ctx.send(f'{EMOJI_ERROR} **{coin_pair[1]}** is not in our list. Available right now: **{config.trade.enable_coin}**')
+                await ctx.reply(f'{EMOJI_ERROR} **{coin_pair[1]}** is not in our list. Available right now: **{config.trade.enable_coin}**')
                 return
             else:
                 get_list_orders = await self.get_open_orders(ctx, option_order, coin_pair[0], coin_pair[1])
@@ -706,7 +706,7 @@ class Trade(commands.Cog):
                 and 'enable_trade' in serverinfo and serverinfo['enable_trade'] == "NO":
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
                     await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}cancel trade command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
@@ -719,12 +719,12 @@ class Trade(commands.Cog):
             get_open_order = await store.sql_get_open_order_by_sellerid_all(str(ctx.author.id), 'OPEN')
             if len(get_open_order) == 0:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have any open order.')
+                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have any open order.')
                 return
             else:
                 cancel_order = await store.sql_cancel_open_order_by_sellerid(str(ctx.author.id), 'ALL')
                 await ctx.message.add_reaction(EMOJI_OK_BOX)
-                await ctx.send(f'{ctx.author.mention} You have cancelled all opened order(s).')
+                await ctx.reply(f'{ctx.author.mention} You have cancelled all opened order(s).')
                 return
         else:
             if len(order_num) < 6:
@@ -732,25 +732,25 @@ class Trade(commands.Cog):
                 COIN_NAME = order_num.upper()
                 if COIN_NAME not in ENABLE_TRADE_COIN:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} **{COIN_NAME}** is not valid.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} **{COIN_NAME}** is not valid.')
                     return
                 else:
                     get_open_order = await store.sql_get_open_order_by_sellerid(str(ctx.author.id), COIN_NAME, 'OPEN')
                     if len(get_open_order) == 0:
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        await ctx.send(f'{ctx.author.mention} You do not have any open order for **{COIN_NAME}**.')
+                        await ctx.reply(f'{ctx.author.mention} You do not have any open order for **{COIN_NAME}**.')
                         return
                     else:
                         cancel_order = await store.sql_cancel_open_order_by_sellerid(str(ctx.author.id), COIN_NAME)
                         await ctx.message.add_reaction(EMOJI_OK_BOX)
-                        await ctx.send(f'{ctx.author.mention} You have cancelled all opened sell(s) for **{COIN_NAME}**.')
+                        await ctx.reply(f'{ctx.author.mention} You have cancelled all opened sell(s) for **{COIN_NAME}**.')
                         return
             else:
                 # open order number
                 get_open_order = await store.sql_get_open_order_by_sellerid_all(str(ctx.author.id), 'OPEN')
                 if len(get_open_order) == 0:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have any open order.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have any open order.')
                     return
                 else:
                     cancelled = False
@@ -760,11 +760,11 @@ class Trade(commands.Cog):
                             if cancel_order: cancelled = True
                     if cancelled == False:
                         await ctx.message.add_reaction(EMOJI_ERROR)
-                        await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have sell #**{order_num}**. Please check command `myorder`')
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have sell #**{order_num}**. Please check command `myorder`')
                         return
                     else:
                         await ctx.message.add_reaction(EMOJI_OK_BOX)
-                        await ctx.send(f'{ctx.author.mention} You cancelled #**{order_num}**.')
+                        await ctx.reply(f'{ctx.author.mention} You cancelled #**{order_num}**.')
                         return
 
 
@@ -792,7 +792,7 @@ class Trade(commands.Cog):
                 and 'enable_trade' in serverinfo and serverinfo['enable_trade'] == "NO":
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
                     await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}order command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
@@ -807,7 +807,7 @@ class Trade(commands.Cog):
             ref_number = str(ref_number)
         except ValueError:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid # number.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid # number.')
             return
         get_order_num = await store.sql_get_order_numb(ref_number, 'ANY')
         if get_order_num:
@@ -834,11 +834,11 @@ class Trade(commands.Cog):
                 # if he bought this
                 response_text = response_text.replace("Sold", "You bought: ")
                 response_text = response_text.replace("For (After Fee):", "From selling (After Fee): ")
-            await ctx.send(f'{ctx.author.mention} {response_text}')
+            await ctx.reply(f'{ctx.author.mention} {response_text}')
             return
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} I could not find #**{ref_number}**.')
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} I could not find #**{ref_number}**.')
         return
 
 
@@ -866,7 +866,7 @@ class Trade(commands.Cog):
                 and 'enable_trade' in serverinfo and serverinfo['enable_trade'] == "NO":
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Trade Command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING TRADE`')
                     await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}myorder command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
@@ -881,7 +881,7 @@ class Trade(commands.Cog):
                 COIN_NAME = ticker.upper()
                 if COIN_NAME not in ENABLE_TRADE_COIN:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid ticker **{COIN_NAME}**.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid ticker **{COIN_NAME}**.')
                     return
                 else:
                     get_open_order = await store.sql_get_open_order_by_sellerid(str(ctx.author.id), COIN_NAME, 'OPEN')
@@ -908,7 +908,7 @@ class Trade(commands.Cog):
                         
                         return
                     else:
-                        await ctx.send(f'{ctx.author.mention} You do not have any active selling of **{COIN_NAME}**.')
+                        await ctx.reply(f'{ctx.author.mention} You do not have any active selling of **{COIN_NAME}**.')
                         return
             else:
                 # assume this is reference number
@@ -917,7 +917,7 @@ class Trade(commands.Cog):
                     ref_number = str(ref_number)
                 except ValueError:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid # number.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid # number.')
                     return
                 get_order_num = await store.sql_get_order_numb(ref_number)
                 if get_order_num:
@@ -944,11 +944,11 @@ class Trade(commands.Cog):
                         # if he bought this
                         response_text = response_text.replace("Sold", "You bought: ")
                         response_text = response_text.replace("For (After Fee):", "From selling (After Fee): ")
-                    await ctx.send(f'{ctx.author.mention} {response_text}')
+                    await ctx.reply(f'{ctx.author.mention} {response_text}')
                     return
                 else:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.send(f'{EMOJI_RED_NO} {ctx.author.mention} I could not find #**{ref_number}**.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} I could not find #**{ref_number}**.')
                 return
         else:
             get_open_order = await store.sql_get_open_order_by_sellerid_all(str(ctx.author.id), 'OPEN')
@@ -973,7 +973,7 @@ class Trade(commands.Cog):
                 
                 return
             else:
-                await ctx.send(f'{ctx.author.mention} You do not have any active selling.')
+                await ctx.reply(f'{ctx.author.mention} You do not have any active selling.')
                 return
 
 
