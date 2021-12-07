@@ -79,11 +79,12 @@ class MemberLookupConverter(discord.ext.commands.MemberConverter):
 
 class EmbedPaginatorInter:
 
-    def __init__(self, bot, inter, pages):
+    def __init__(self, bot, inter, pages, private:bool=False):
         self.bot = bot
         self.inter = inter
         self.pages = pages
         self.msg = None
+        self.private = private
 
 
     async def paginate_with_slash(self):
@@ -127,7 +128,7 @@ class EmbedPaginatorInter:
 
             # Note that we assign a list of rows to components
             if hasattr(self.inter, 'message'):
-                self.msg = await self.inter.send(embed=self.pages[pagenum], components=[row])
+                self.msg = await self.inter.reply(embed=self.pages[pagenum], components=[row])
             else:
                 self.msg = await self.inter.reply(embed=self.pages[pagenum], components=[row], ephemeral=True)
             starttime = datetime.datetime.utcnow()

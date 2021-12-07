@@ -17,7 +17,9 @@ class CoinMap(commands.Cog):
                                 description="Get view from coin360.")
     async def coinmap(self, ctx):
         try:
+            tmp_msg = await ctx.send("Loading...")
             map_image = await self.bot.loop.run_in_executor(None, coin360.get_coin360)
+            await tmp_msg.delete()
             if map_image:
                 await ctx.reply(f'{config.coin360.static_coin360_link + map_image}', ephemeral=False)
             else:
@@ -33,7 +35,9 @@ class CoinMap(commands.Cog):
 
         async with ctx.typing():
             try:
+                tmp_msg = await ctx.send("Loading...")
                 map_image = await self.bot.loop.run_in_executor(None, coin360.get_coin360)
+                await tmp_msg.delete()
                 if map_image:
                     msg = await ctx.reply(f'{config.coin360.static_coin360_link + map_image}')
                     await msg.add_reaction(EMOJI_OK_BOX)

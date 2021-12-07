@@ -2,12 +2,15 @@ import sys, traceback
 import time, timeago
 import discord
 from discord.ext import commands
+from discord.ext.commands import clean_content
+
 from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice, SlashInteraction
 import dislash
+import re
 
 from config import config
 from Bot import *
-
+from Bot import _tip
 
 class TipTip(commands.Cog):
 
@@ -215,8 +218,34 @@ class TipTip(commands.Cog):
                             return {"result": True}
         else:
             # Check if there are mentioned users or roles.
-            print(option)
-            await ctx.reply(option)
+            list_member_ids = []
+            list_m = re.findall(r'<@!?(\d+)>', option)
+            list_r = re.findall(r'<@&(\d+)>', option)
+            guild_members = ctx.guild.members
+            if len(list_m) > 0:
+                # members
+                for each_m in list_m:
+                    member = self.bot.get_user(int(each_m))
+                    if member and member.id not in list_member_ids:
+                        list_member_ids.append(int(each_m))
+            if len(list_r) > 0:
+                # roles
+                for each_r in list_r:
+                    get_role = discord.utils.get(ctx.guild.roles, id=int(each_r))
+                    if get_role:
+                        role_listMember = [member.id for member in guild_members if get_role in member.roles and member.id not in list_member_ids]
+                        if len(role_listMember) >= 1:
+                            list_member_ids += role_listMember
+            # If he is in:
+            if ctx.author.id in list_member_ids: list_member_ids.remove(ctx.author.id)
+            if len(list_member_ids) > 0:
+                try:
+                    await _tip(ctx, amount, COIN_NAME, list_member_ids, False)
+                except Exception as e:
+                    traceback.print_exc(file=sys.stdout)
+                    await logchanbot(traceback.format_exc())
+            else:
+                return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} There is no user to tip to."}
 
 
     @inter_client.slash_command(

@@ -798,6 +798,7 @@ class Guild(commands.Cog):
         embed = discord.Embed(title=f'[ GUILD {ctx.guild.name} BALANCE ]', timestamp=datetime.utcnow())
         any_balance = 0
         if coin is None:
+            tmp_msg = await ctx.reply("Loading balance...")
             for COIN_NAME in [coinItem.upper() for coinItem in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH]:
                 if not is_maintenance_coin(COIN_NAME):
                     wallet = await store.sql_get_userwallet(str(ctx.guild.id), COIN_NAME)
@@ -820,6 +821,7 @@ class Guild(commands.Cog):
                         if actual_balance > 0:
                             any_balance += 1
                             embed.add_field(name=COIN_NAME, value=num_format_coin(actual_balance, COIN_NAME)+" "+COIN_NAME, inline=True)
+            await tmp_msg.delete()
             if any_balance == 0:
                 embed.add_field(name="INFO", value='`This guild has no balance for any coin yet.`', inline=True)
             embed.add_field(name='Related commands', value=f'`{prefix}mbalance TICKER` or `{prefix}mdeposit TICKER`', inline=False)

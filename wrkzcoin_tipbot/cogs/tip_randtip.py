@@ -2,6 +2,10 @@ import sys, traceback
 import time, timeago
 import discord
 from discord.ext import commands
+from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice, SlashInteraction
+import dislash
+
+import random
 
 from config import config
 from Bot import *
@@ -18,70 +22,42 @@ class TipRandomTip(commands.Cog):
             self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
-    @commands.command(
-        usage="randtip <amount> <coin> [option]", 
-        aliases=['randomtip'], 
-        description="Do a random tip to user."
-    )
-    async def randtip(
-        self, 
-        ctx, 
-        amount: str, 
-        coin: str, 
-        *, 
-        rand_option: str=None
+    async def random_tip(
+        self,
+        ctx,
+        amount,
+        coin,
+        rand_option
     ):
         await self.bot_log()
         # check if bot is going to restart
         if IS_RESTARTING:
-            await ctx.message.add_reaction(EMOJI_REFRESH)
-            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
-            return
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this."}
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'tip')
         if account_lock:
-            await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
-            return
+            return {"error": f"{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}"}
         # end of check if account locked
 
         # Check if tx in progress
         if ctx.author.id in TX_IN_PROCESS:
-            await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
-            await msg.add_reaction(EMOJI_OK_BOX)
-            return
-
-        amount = amount.replace(",", "")
-
-        try:
-            amount = Decimal(amount)
-        except ValueError:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
-            return
+            return {"error": f"{EMOJI_ERROR} {ctx.author.mention}, You have another tx in progress."}
 
         if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.reply(f'{EMOJI_RED_NO} This command can not be in private.')
-            return
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, This command can not be in private."}
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         COIN_NAME = coin.upper()
-        print("COIN_NAME: " + COIN_NAME)
 
         # TRTL discord
         if ctx.guild.id == TRTL_DISCORD and COIN_NAME != "TRTL":
-            return
+            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} Not available in this guild."}
 
-        if COIN_NAME not in (ENABLE_COIN_ERC + ENABLE_COIN_TRC + ENABLE_COIN + ENABLE_XMR + ENABLE_COIN_DOGE + ENABLE_COIN_NANO + ENABLE_XCH):
-            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} **{COIN_NAME}** is not in our supported coins.')
-            await msg.add_reaction(EMOJI_OK_BOX)
-            return
+        if COIN_NAME not in ENABLE_COIN_ERC + ENABLE_COIN_TRC + ENABLE_COIN + ENABLE_XMR + ENABLE_COIN_DOGE + ENABLE_COIN_NANO + ENABLE_XCH:
+            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} **{COIN_NAME}** is not in our supported coins."}
 
         if not is_coin_tipable(COIN_NAME):
-            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} TIPPING is currently disable for {COIN_NAME}.')
-            await msg.add_reaction(EMOJI_OK_BOX)
-            return
+            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} TIPPING is currently disable for {COIN_NAME}."}
 
         if COIN_NAME in ENABLE_COIN_ERC:
             coin_family = "ERC-20"
@@ -94,34 +70,11 @@ class TipRandomTip(commands.Cog):
         if COIN_NAME == serverinfo['default_coin'].upper() or serverinfo['tiponly'].upper() == "ALLCOIN":
             pass
         elif COIN_NAME not in tiponly_coins:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} not in allowed coins set by server manager.')
-            return
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} not in allowed coins set by server manager."}
         # End of checking allowed coins
 
         if is_maintenance_coin(COIN_NAME):
-            await ctx.message.add_reaction(EMOJI_MAINTENANCE)
-            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
-            return
-
-        # Check flood of tip
-        floodTip = await store.sql_get_countLastTip(str(ctx.author.id), config.floodTipDuration)
-        if floodTip >= config.floodTip:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Cool down your tip or TX. or increase your amount next time.')
-            await self.botLogChan.send('A user reached max. TX threshold. Currently halted: `.tip`')
-            return
-        # End of Check flood of tip
-
-        # Check if maintenance
-        if IS_MAINTENANCE == 1:
-            if int(ctx.author.id) in MAINTENANCE_OWNER:
-                pass
-            else:
-                await ctx.message.add_reaction(EMOJI_WARNING)
-                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
-                return
-        # End Check if maintenance
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance."}
 
         # Get a random user in the guild, except bots. At least 3 members for random.
         has_last = False
@@ -148,8 +101,7 @@ class TipRandomTip(commands.Cog):
                         try:
                             num_user = int(num_user)
                             if num_user < minimum_users:
-                                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Number of random users cannot below **{minimum_users}**.')
-                                return
+                                return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Number of random users cannot below **{minimum_users}**."}
                             elif num_user >= minimum_users:
                                 message_talker = await store.sql_get_messages(str(ctx.message.guild.id), str(ctx.channel.id), 0, num_user + 1)
                                 if ctx.author.id in message_talker:
@@ -158,14 +110,10 @@ class TipRandomTip(commands.Cog):
                                     # remove the last one
                                     message_talker.pop()
                                 if len(message_talker) < minimum_users:
-                                    await ctx.message.add_reaction(EMOJI_ERROR)
-                                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} There is not sufficient user to count for random tip.')
-                                    return
+                                    return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} There is not sufficient user to count for random tip."}
                                 elif len(message_talker) < num_user:
                                     try:
-                                        await ctx.message.add_reaction(EMOJI_INFORMATION)
-                                        await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} I could not find sufficient talkers up to **{num_user}**. I found only **{len(message_talker)}**'
-                                                       f' and will random to one of those **{len(message_talker)}** users.')
+                                        await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} I could not find sufficient talkers up to **{num_user}**. I found only **{len(message_talker)}** and will random to one of those **{len(message_talker)}** users.')
                                     except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                                         # No need to tip if failed to message
                                         await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
@@ -173,17 +121,11 @@ class TipRandomTip(commands.Cog):
                                         #return
                             has_last = True
                         except ValueError:
-                            await ctx.message.add_reaction(EMOJI_ERROR)
-                            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid param after **LAST** for random tip. Support only *LAST* **X**u right now.')
-                            return
+                            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Invalid param after **LAST** for random tip. Support only *LAST* **X**u right now."}
                     else:
-                        await ctx.message.add_reaction(EMOJI_ERROR)
-                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid param after **LAST** for random tip. Support only *LAST* **X**u right now.')
-                        return
+                        return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Invalid param after **LAST** for random tip. Support only *LAST* **X**u right now."}
                 else:
-                    await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid param after **LAST** for random tip. Support only *LAST* **X**u right now.')
-                    return
+                    return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Invalid param after **LAST** for random tip. Support only *LAST* **X**u right now."}
             if has_last == False and listMembers and len(listMembers) >= minimum_users:
                 rand_user = random.choice(listMembers)
                 max_loop = 0
@@ -194,10 +136,7 @@ class TipRandomTip(commands.Cog):
                         rand_user = random.choice(listMembers)
                     max_loop += 1
                     if max_loop >= 5:
-                        await ctx.message.add_reaction(EMOJI_ERROR)
-                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} Please try again, maybe guild doesnot have so many users.')
-                        return
-                        break
+                        return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} Please try again, maybe guild doesnot have so many users."}
             elif has_last == True and message_talker and len(message_talker) >= minimum_users:
                 rand_user_id = random.choice(message_talker)
                 max_loop = 0
@@ -210,20 +149,15 @@ class TipRandomTip(commands.Cog):
                         rand_user = self.bot.get_user(rand_user_id)
                     max_loop += 1
                     if max_loop >= 10:
-                        await ctx.message.add_reaction(EMOJI_ERROR)
-                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} Please try again, maybe guild doesnot have so many users.')
-                        return
-                        break
+                        return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} Please try again, maybe guild doesnot have so many users."}
             else:
-                await ctx.message.add_reaction(EMOJI_ERROR)
-                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} not enough member for random tip.')
-                return
+                return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} not enough member for random tip."}
         except Exception as e:
+            traceback.print_exc(file=sys.stdout)
             await logchanbot(traceback.format_exc())
             return
             
         notifyList = await store.sql_get_tipnotify()
-
         if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
             real_amount = float(amount)
             token_info = await store.get_token_info(COIN_NAME)
@@ -265,35 +199,19 @@ class TipRandomTip(commands.Cog):
             await logchanbot(traceback.format_exc())
 
         if real_amount > MaxTx:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than '
-                           f'{num_format_coin(MaxTx, COIN_NAME)} '
-                           f'{COIN_NAME}.')
-            return
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than {num_format_coin(MaxTx, COIN_NAME)} {COIN_NAME}."}
         elif real_amount < MinTx:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than '
-                           f'{num_format_coin(MinTx, COIN_NAME)} '
-                           f'{COIN_NAME}.')
-            return
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than {num_format_coin(MinTx, COIN_NAME)} {COIN_NAME}."}
         elif real_amount > actual_balance:
-            await ctx.message.add_reaction(EMOJI_ERROR)
-            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to do a random tip of '
-                           f'{num_format_coin(real_amount, COIN_NAME)} '
-                           f'{COIN_NAME}.')
-            return
+            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to do a random tip of {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}."}
 
         # add queue also randtip
         if ctx.author.id not in TX_IN_PROCESS:
             TX_IN_PROCESS.append(ctx.author.id)
         else:
-            await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
-            msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
-            await msg.add_reaction(EMOJI_OK_BOX)
-            return
+            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress."}
 
         print('random get user: {}/{}'.format(rand_user.name, rand_user.id))
-
         tip = None
         user_to = await store.sql_get_userwallet(str(rand_user.id), COIN_NAME)
         if user_to is None:
@@ -372,8 +290,59 @@ class TipRandomTip(commands.Cog):
                     await msg.add_reaction(EMOJI_OK_BOX)
                 except Exception as e:
                     await logchanbot(traceback.format_exc())
-            await ctx.message.add_reaction(EMOJI_OK_BOX)
             return
+
+
+    @inter_client.slash_command(
+        usage="randtip", 
+        options=[
+            Option('amount', 'amount', OptionType.NUMBER, required=True),
+            Option('coin_name', 'coin_name', OptionType.STRING, required=True),
+            Option('option', 'all, online, last 1hr, last 10u,..', OptionType.STRING, required=True)
+        ],
+        description="Do a random tip to user."
+    )
+    async def randtip(
+        self, 
+        ctx,
+        amount: float,
+        coin_name: str,
+        option: str
+    ):
+        await self.bot_log()
+        # TODO: If it is DM, let's make a secret tip
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
+            return
+
+        random_tip = await self.random_tip(ctx, amount, coin_name, option)
+        if random_tip and "error" in random_tip:
+            await ctx.reply(random_tip['error'])
+
+
+    @commands.command(
+        usage="randtip <amount> <coin> [option]", 
+        aliases=['randomtip'], 
+        description="Do a random tip to user."
+    )
+    async def randtip(
+        self, 
+        ctx, 
+        amount: str, 
+        coin: str, 
+        *, 
+        rand_option: str=None
+    ):
+        amount = amount.replace(",", "")
+        try:
+            amount = Decimal(amount)
+        except ValueError:
+            await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
+            return
+
+        random_tip = await self.random_tip(ctx, amount, coin.upper(), rand_option)
+        if random_tip and "error" in random_tip:
+            await ctx.reply(random_tip['error'])
 
 
 def setup(bot):
