@@ -9,6 +9,7 @@ import json
 
 from config import config
 from Bot import *
+import store
 import redis_utils
 from utils import EmbedPaginator, EmbedPaginatorInter
 
@@ -150,14 +151,17 @@ class Pools(commands.Cog):
                         embed.add_field(name="OTHER LINKS", value="{} / {} / {} / {}".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), "[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
                         embed.set_footer(text="Data from https://miningpoolstats.stream")
                         try:
-                            msg = await ctx.reply(embed=embed)
+                            if isinstance(ctx.channel, discord.DMChannel) == True:
+                                msg = await ctx.reply(embed=embed)
+                            else:
+                                msg = await ctx.reply(embed=embed, components=[row_close_message])
+                                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                             respond_date = int(time.time())
                             await store.sql_miningpoolstat_fetch(COIN_NAME, str(ctx.author.id), 
                                                                 '{}#{}'.format(ctx.author.name, ctx.author.discriminator), 
                                                                 requested_date, respond_date, json.dumps(get_pool_data), str(ctx.guild.id) if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
                                                                 ctx.guild.name if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
                                                                 str(ctx.channel.id), is_cache, SERVER_BOT, 'NO')
-                            await msg.add_reaction(EMOJI_OK_BOX)
                         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                             if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
                                 await ctx.message.add_reaction(EMOJI_ERROR)
@@ -296,15 +300,17 @@ class Pools(commands.Cog):
                                             await logchanbot(traceback.format_exc())
                                     embed.add_field(name="OTHER LINKS", value="{} / {} / {} / {}".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), "[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
                                     embed.set_footer(text="Data from https://miningpoolstats.stream")
-                                    msg = await ctx.reply(embed=embed)
+                                    if isinstance(ctx.channel, discord.DMChannel) == True:
+                                        msg = await ctx.reply(embed=embed)
+                                    else:
+                                        msg = await ctx.reply(embed=embed, components=[row_close_message])
+                                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                                     respond_date = int(time.time())
                                     await store.sql_miningpoolstat_fetch(COIN_NAME, str(ctx.author.id), 
                                                                         '{}#{}'.format(ctx.author.name, ctx.author.discriminator), 
                                                                         requested_date, respond_date, json.dumps(result), str(ctx.guild.id) if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
                                                                         ctx.guild.name if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
                                                                         str(ctx.channel.id), is_cache, SERVER_BOT, 'YES')
-                                    # sleep 3s
-                                    await msg.add_reaction(EMOJI_OK_BOX)
                                     break
                                     if ctx.author.id in MINGPOOLSTAT_IN_PROCESS:
                                         MINGPOOLSTAT_IN_PROCESS.remove(ctx.author.id)
