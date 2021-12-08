@@ -4,6 +4,7 @@ import traceback
 import discord
 from discord.ext import commands
 from Bot import *
+import store
 
 from config import config
 
@@ -27,27 +28,30 @@ class About(commands.Cog):
 
     @inter_client.slash_command(description="Show disclaimer.")
     async def disclaimer(self, ctx):
-        await ctx.reply(f"{EMOJI_INFORMATION} **THANK YOU FOR USING** {DISCLAIM_MSG_LONG}", ephemeral=True)
+        msg = await ctx.reply(f"{EMOJI_INFORMATION} **THANK YOU FOR USING** {DISCLAIM_MSG_LONG}", ephemeral=True)
 
 
     @inter_client.slash_command(description="Get information about TipBot.")
     async def about(self, ctx):
         try:
-            await ctx.reply(embed=self.about_embed())
+            msg = await ctx.reply(embed=self.about_embed(), components=[row_close_message])
+            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
         except Exception as e:
             await logchanbot(traceback.format_exc())
 
 
     @commands.command(usage="disclaimer", description="Show disclaimer.")
     async def disclaimer(self, ctx):
-        await ctx.reply(f'{EMOJI_INFORMATION} **THANK YOU FOR USING** {DISCLAIM_MSG_LONG}')
+        msg = await ctx.reply(f'{EMOJI_INFORMATION} **THANK YOU FOR USING** {DISCLAIM_MSG_LONG}', components=[row_close_message])
+        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
         return
 
 
     @commands.command(usage="about", description="Get information about TipBot.")
     async def about(self, ctx):
         try:
-            await ctx.reply(embed=self.about_embed())
+            msg = await ctx.reply(embed=self.about_embed(), components=[row_close_message])
+            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
         except Exception as e:
             await ctx.author.send(embed=self.about_embed())
             await logchanbot(traceback.format_exc())

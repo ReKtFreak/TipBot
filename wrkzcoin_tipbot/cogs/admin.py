@@ -22,6 +22,7 @@ class Admin(commands.Cog):
             self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
+    @commands.dm_only()
     @commands.group(
         usage="admin <subcommand>", 
         hidden = True, 
@@ -30,11 +31,6 @@ class Admin(commands.Cog):
     @commands.is_owner()
     async def admin(self, ctx):
         prefix = await get_guild_prefix(ctx)
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         if ctx.invoked_subcommand is None:
             await ctx.reply(f'{ctx.author.mention} Invalid {prefix}admin command')
         return
@@ -103,11 +99,6 @@ class Admin(commands.Cog):
         coin: str, 
         to_userid: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         COIN_NAME = coin.upper()
         if COIN_NAME not in (ENABLE_COIN + ENABLE_XMR + ENABLE_COIN_DOGE + ENABLE_COIN_NANO+ENABLE_XCH):
             await ctx.reply(f'{EMOJI_ERROR} **{COIN_NAME}** is not in our list.')
@@ -162,11 +153,6 @@ class Admin(commands.Cog):
         ctx, 
         coin: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         COIN_NAME = coin.upper()
         if is_maintenance_coin(COIN_NAME):
             await ctx.reply(f'{EMOJI_OK_BOX} Set **{COIN_NAME}** to maintenance **OFF**.')
@@ -188,11 +174,6 @@ class Admin(commands.Cog):
         ctx, 
         coin: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         COIN_NAME = coin.upper()
         if is_coin_txable(COIN_NAME):
             await ctx.reply(f'{EMOJI_OK_BOX} Set **{COIN_NAME}** **DISABLE** TX.')
@@ -239,11 +220,6 @@ class Admin(commands.Cog):
         ctx, 
         coin: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         COIN_NAME = coin.upper()
         if is_coin_tipable(COIN_NAME):
             await ctx.reply(f'{EMOJI_OK_BOX} Set **{COIN_NAME}** **DISABLE** TIP.')
@@ -265,11 +241,6 @@ class Admin(commands.Cog):
         ctx, 
         coin: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         COIN_NAME = coin.upper()
         if is_coin_depositable(COIN_NAME):
             await ctx.reply(f'{EMOJI_OK_BOX} Set **{COIN_NAME}** **DISABLE** DEPOSIT.')
@@ -286,14 +257,10 @@ class Admin(commands.Cog):
         description="Check a coin status."
     )
     async def auditcoin(
+        self,
         ctx, 
         coin: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         COIN_NAME = coin.upper()
         if is_maintenance_coin(COIN_NAME):
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)
@@ -367,12 +334,6 @@ class Admin(commands.Cog):
         coin: str
     ):
         await self.bot_log()
-
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         COIN_NAME = coin.upper()
         if is_maintenance_coin(COIN_NAME):
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)
@@ -443,11 +404,6 @@ class Admin(commands.Cog):
         self, 
         ctx
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         if IS_DEBUG:
             IS_DEBUG == False
             await ctx.reply(f'{EMOJI_REFRESH} {ctx.author.mention} Switch debug from **ON** to **OFF**')
@@ -469,12 +425,6 @@ class Admin(commands.Cog):
         ctx
     ):
         await self.bot_log()
-
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         if IS_RESTARTING:
             await ctx.reply(f'{EMOJI_REFRESH} {ctx.author.mention} I already got this command earlier.')
             return
@@ -499,14 +449,9 @@ class Admin(commands.Cog):
         *, 
         desc: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         if len(desc) < 16:
             await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} descriotion too short.')
+            await ctx.reply(f'{ctx.author.mention} description too short.')
             return
 
         check_exist = await store.sql_help_doc_get(section, what)
@@ -547,11 +492,6 @@ class Admin(commands.Cog):
         section: str, 
         what: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         check_exist = await store.sql_help_doc_get(section, what)
         if check_exist is None:
             await ctx.message.add_reaction(EMOJI_ERROR) 
@@ -627,11 +567,6 @@ class Admin(commands.Cog):
         user_id: str, 
         create_wallet: str = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         create_acc = None
         user_server = SERVER_BOT
         # check if there is that user
@@ -745,11 +680,6 @@ class Admin(commands.Cog):
         *, 
         reason: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         get_discord_userinfo = await store.sql_discord_userinfo_get(user_id)
         if get_discord_userinfo is None:
             await store.sql_userinfo_locked(user_id, 'YES', reason, str(ctx.author.id))
@@ -776,11 +706,6 @@ class Admin(commands.Cog):
         ctx, 
         user_id: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         get_discord_userinfo = await store.sql_discord_userinfo_get(user_id)
         if get_discord_userinfo:
             if get_discord_userinfo['locked'].upper() == "NO":
@@ -805,11 +730,6 @@ class Admin(commands.Cog):
         main_id: str, 
         user_id: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         if main_id == user_id:
             await ctx.author.send(f'{main_id} and {user_id} can not be the same.')
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -841,11 +761,6 @@ class Admin(commands.Cog):
         self, 
         ctx
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
         if len(TX_IN_PROCESS) == 0 and len(GAME_INTERACTIVE_PRGORESS) == 0 and len(GAME_SLOT_IN_PRGORESS) == 0 \
     and len(GAME_DICE_IN_PRGORESS) == 0 and len(GAME_MAZE_IN_PROCESS) == 0 and len(CHART_TRADEVIEW_IN_PROCESS) == 0 \
     and len(GAME_INTERACTIVE_ECO) == 0:
@@ -914,10 +829,6 @@ class Admin(commands.Cog):
         self, 
         ctx
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
         ts = datetime.utcnow()
         embed = discord.Embed(title='Pending Actions', timestamp=ts)
         embed.add_field(name="TX_IN_PROCESS", value=str(len(TX_IN_PROCESS)), inline=True)

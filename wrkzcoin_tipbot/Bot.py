@@ -6,6 +6,9 @@ from discord.ext import commands
 from discord.ext.commands import Bot, AutoShardedBot, when_mentioned_or, CheckFailure
 import dislash
 
+from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice, SlashInteraction
+import dislash
+
 from discord.utils import get
 
 import time, timeago
@@ -348,6 +351,23 @@ ROUND_AMOUNT_COIN = {
     "DEGO" : 4 # 10^4
     }
 
+
+# Create a row of buttons
+row_close_message = ActionRow(
+    Button(
+        style=ButtonStyle.blurple,
+        label="❎ Close",
+        custom_id="close_message"
+    )
+)
+
+row_close_any_message = ActionRow(
+    Button(
+        style=ButtonStyle.green,
+        label="❎ Close",
+        custom_id="close_any_message"
+    )
+)
 
 # TRTL discord. Need for some specific tasks later.
 TRTL_DISCORD = 388915017187328002

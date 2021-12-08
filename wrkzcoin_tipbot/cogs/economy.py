@@ -7,6 +7,8 @@ import dislash
 
 from config import config
 from Bot import *
+import store
+
 
 class Economy(commands.Cog):
 
@@ -1357,10 +1359,7 @@ class Economy(commands.Cog):
             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, Internal error."}
 
 
-    async def eco_work(self, ctx, claim: str=None):
-        if isinstance(ctx.channel, discord.DMChannel):
-            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, This command can not be DM."}
-        
+    async def eco_work(self, ctx, claim: str=None):        
         if self.botLogChan is None:
             self.botLogChan = self.bot.get_channel(LOG_CHAN)
         # disable game for TRTL discord
@@ -1577,6 +1576,7 @@ class Economy(commands.Cog):
             return {"error": f"{EMOJI_ERROR} {ctx.author.mention}, Internal error."}
 
 
+    @dislash.guild_only()
     @inter_client.slash_command(description="Economy game commands.")
     async def eco(self, ctx):
         pass
@@ -1893,17 +1893,13 @@ class Economy(commands.Cog):
 
 
     # Message commands
+    @commands.guild_only()
     @commands.group(
         usage="economy <subcommand>", 
         aliases=['eco'], 
         description="Economy game commands."
     )
     async def economy(self, ctx):
-        if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
-            return
-
         prefix = await get_guild_prefix(ctx)
         if ctx.invoked_subcommand is None:
             await ctx.reply(f'{ctx.author.mention} Invalid {prefix}economy command.\n Please use {prefix}help economy')

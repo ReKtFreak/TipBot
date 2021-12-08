@@ -259,6 +259,7 @@ class TipMtip(commands.Cog):
                 return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} There is no user to tip to."}
 
 
+    @dislash.guild_only()
     @inter_client.slash_command(
         usage="mtip", 
         options=[
@@ -268,6 +269,7 @@ class TipMtip(commands.Cog):
         ],
         description="Moderator tip."
     )
+    @dislash.has_permissions(manage_channels=True)
     async def mtip(
         self, 
         ctx,
@@ -276,16 +278,12 @@ class TipMtip(commands.Cog):
         option: str
     ):
         await self.bot_log()
-        # TODO: If it is DM, let's make a secret tip
-        if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
-            return
-
         process_mtip = await self.process_mtip(ctx, amount, coin_name, option)
         if process_mtip and "error" in process_mtip:
             await ctx.reply(process_mtip['error'])
 
 
+    @commands.guild_only()
     @commands.command(
         usage="mtip <amount> [arg]", 
         aliases=['gtip', 'modtip', 'guildtip'], 

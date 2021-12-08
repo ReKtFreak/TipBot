@@ -9,6 +9,7 @@ from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, O
 from config import config
 from Bot import *
 from utils import EmbedPaginator, EmbedPaginatorInter
+import store
 
 
 class Balance(commands.Cog):
@@ -118,9 +119,13 @@ class Balance(commands.Cog):
             else:
                 embed.set_footer(text=f"{get_notice_txt(COIN_NAME)}")
             try:
-                msg = await ctx.reply(embed=embed, ephemeral=True)
-            except:
-                pass
+                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                    msg = await ctx.reply(embed=embed, components=[row_close_message])
+                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                else:
+                    msg = await ctx.reply(embed=embed, ephemeral=True)
+            except Exception as e:
+                traceback.print_exc(file=sys.stdout)
         else:
             await ctx.reply(f'There is no such ticker {COIN_NAME}', ephemeral=True)
 
@@ -137,9 +142,12 @@ class Balance(commands.Cog):
         ctx, 
         coin: str=None
     ):
-        show_balance = await self.show_balance(ctx, coin)
-        if show_balance and "error" in show_balance:
-            await ctx.reply(show_balance['error'], ephemeral=True)
+        try:
+            show_balance = await self.show_balance(ctx, coin)
+            if show_balance and "error" in show_balance:
+                await ctx.reply(show_balance['error'], ephemeral=True)
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
 
 
     @commands.command(
@@ -152,9 +160,12 @@ class Balance(commands.Cog):
         ctx, 
         coin: str = None
     ):
-        show_balance = await self.show_balance(ctx, coin)
-        if show_balance and "error" in show_balance:
-            await ctx.reply(show_balance['error'], ephemeral=True)
+        try:
+            show_balance = await self.show_balance(ctx, coin)
+            if show_balance and "error" in show_balance:
+                await ctx.reply(show_balance['error'])
+        except Exception as e:
+            traceback.print_exc(file=sys.stdout)
 
 
 def setup(bot):

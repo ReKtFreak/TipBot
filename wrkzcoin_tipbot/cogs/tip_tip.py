@@ -248,6 +248,7 @@ class TipTip(commands.Cog):
                 return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} There is no user to tip to."}
 
 
+    @dislash.guild_only()
     @inter_client.slash_command(
         usage="tip", 
         options=[
@@ -275,7 +276,7 @@ class TipTip(commands.Cog):
             await ctx.reply(process_tip['error'])
 
 
-
+    @commands.guild_only()
     @commands.command(
         usage="tip <amount> [option]", 
         description="Tip to user(s)."

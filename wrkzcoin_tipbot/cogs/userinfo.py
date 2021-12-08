@@ -4,9 +4,11 @@ import discord
 from discord.ext import commands
 from datetime import datetime
 from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType
+import dislash
 
 from config import config
 from Bot import *
+
 
 class Userinfo(commands.Cog):
 
@@ -58,6 +60,7 @@ class Userinfo(commands.Cog):
         return embed
 
 
+    @dislash.guild_only()
     @inter_client.slash_command(usage="userinfo <member>",
                                 options=[
                                     Option("user", "Enter user", OptionType.USER, required=True)
@@ -73,13 +76,15 @@ class Userinfo(commands.Cog):
         prefix = await get_guild_prefix(ctx)
         try:
             get_stat = await self.get_userinfo(user)
-            await ctx.reply(embed=get_stat)
+            msg = await ctx.reply(embed=get_stat, components=[row_close_message])
+            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
         except:
             traceback.print_exc(file=sys.stdout)
             error = discord.Embed(title=":exclamation: Error", description=" :warning: You need to mention the user you want this info for!", color=0xe51e1e)
             await ctx.reply(embed=error)
 
 
+    @commands.guild_only()
     @commands.command(
         usage="userinfo <member>", 
         description="Get user info in discord server."
@@ -89,14 +94,12 @@ class Userinfo(commands.Cog):
         ctx, 
         member: discord.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
-            await ctx.reply(f'{ctx.author.mention} This command can not be in Direct Message.')
-            return
         if member is None:
             member = ctx.author
         try:
             get_stat = await self.get_userinfo(member)
-            await ctx.reply(embed=get_stat)
+            msg = await ctx.reply(embed=get_stat, components=[row_close_message])
+            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
         except:
             traceback.print_exc(file=sys.stdout)
             error = discord.Embed(title=":exclamation: Error", description=" :warning: You need to mention the user you want this info for!", color=0xe51e1e)

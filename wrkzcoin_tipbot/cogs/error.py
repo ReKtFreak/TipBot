@@ -21,35 +21,26 @@ class Error(commands.Cog):
         error = getattr(error, "original", error)  # get original error
 
         if isinstance(error, commands.NoPrivateMessage):
-            await ctx.reply(f'{ctx.author.mention} This command cannot be used in private messages.')
+            return await ctx.reply(f'{ctx.author.mention} This command cannot be used in private messages.')
 
         elif isinstance(error, commands.DisabledCommand):
-            await ctx.reply(f'{ctx.author.mention} Sorry. This command is disabled and cannot be used.')
+            return await ctx.reply(f'{ctx.author.mention} Sorry. This command is disabled and cannot be used.')
 
-        if isinstance(error, commands.MissingPermissions):
+        elif isinstance(error, commands.MissingPermissions):
             return await ctx.reply(f'{ctx.author.mention} Does not have the perms to use this: `{ctx.command.name}` command.')
 
-        if isinstance(error, commands.MissingRole):
+        elif isinstance(error, commands.MissingRole):
             return await ctx.reply(f'{ctx.author.mention}: ' + str(error))
 
-        if isinstance(error, commands.NoPrivateMessage):
-            return await ctx.reply(f"{ctx.author.mention} This command cannot be used in a DM.")
-
-        if isinstance(error, commands.CheckFailure) or isinstance(error, commands.CheckAnyFailure):
-            if not self.bot.maintenance_mode:
-                await ctx.reply(f"{ctx.author.mention} You do not have permission to use this command (`{ctx.prefix}{ctx.command.name}`).")  # \nCheck(s) failed: {failed}")
+        elif isinstance(error, commands.CheckFailure) or isinstance(error, commands.CheckAnyFailure):
+            await ctx.reply(f"{ctx.author.mention} You do not have permission to use this command or not here. (`{ctx.prefix}{ctx.command.name}`).")
             return
 
-        if isinstance(error, commands.CommandOnCooldown):
-            await ctx.reply(
-                f"To prevent overload, this command is on cooldown for: ***{round(error.retry_after)}*** more seconds. Retry the command then.",
-                delete_after=5)
-            return
+        elif isinstance(error, commands.CommandOnCooldown):
+            return await ctx.reply(f"To prevent overload, this command is on cooldown for: ***{round(error.retry_after)}*** more seconds. Retry the command then.", delete_after=5)
 
-        if isinstance(error, commands.MaxConcurrencyReached):
-            return await ctx.reply(f"The maximum number of concurrent usages of this command has been reached ({error.number}/{error.number})! Please wait until the previous "
-                                  f"execution "
-                                  f"of the command `{ctx.prefix}{ctx.command.name}` is completed!")
+        elif isinstance(error, commands.MaxConcurrencyReached):
+            return await ctx.reply(f"The maximum number of concurrent usages of this command has been reached ({error.number}/{error.number})! Please wait until the previous execution of the command `{ctx.prefix}{ctx.command.name}` is completed!")
 
         if isinstance(error, commands.MissingRequiredArgument):
             embed = discord.Embed(title="Error!", description="You appear to be missing a required argument!", color=discord.Color.red())

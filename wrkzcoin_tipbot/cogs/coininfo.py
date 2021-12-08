@@ -126,9 +126,11 @@ class Coininfo(commands.Cog):
             guild_id = ctx.guild.id
             coin_info = await self.get_coininfo(COIN_NAME, is_private, guild_id)
             if coin_info and 'result' in coin_info:
-                await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['result']))
+                msg = await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['result']), components=[row_close_any_message])
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
             elif coin_info and 'error' in coin_info:
-                await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['error']))
+                msg = await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['error']), components=[row_close_any_message])
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
 
 
     @commands.command(
@@ -170,7 +172,8 @@ class Coininfo(commands.Cog):
             table = AsciiTable(table_data)
             table.padding_left = 0
             table.padding_right = 0
-            msg = await ctx.reply(f"**[ TIPBOT COIN LIST ]**\n```{table.table}```")
+            msg = await ctx.reply(f"**[ TIPBOT COIN LIST ]**\n```{table.table}```", components=[row_close_any_message])
+            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
         else:
             COIN_NAME = coin.upper()
             is_private = False
@@ -181,9 +184,11 @@ class Coininfo(commands.Cog):
                 guild_id = ctx.guild.id
             coin_info = await self.get_coininfo(COIN_NAME, is_private, guild_id)
             if coin_info and 'result' in coin_info:
-                await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['result']))
+                msg = await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['result']), components=[row_close_any_message])
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
             elif coin_info and 'error' in coin_info:
-                await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['error']))
+                msg = await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['error']), components=[row_close_any_message])
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
 
 
 def setup(bot):

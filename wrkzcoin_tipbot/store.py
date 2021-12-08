@@ -7532,6 +7532,57 @@ async def api_trade_store(user_id: str, uri: str, post_data: str=None):
 # End of Public Private API only
 
 
+# owner message to delete (which bot respond)
+async def add_discord_bot_message(message_id: str, guild_id: str, owner_id: str):
+    global pool
+    try:
+        await openConnection()
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                sql = """ INSERT INTO discord_bot_message_owner (`message_id`, `guild_id`, `owner_id`, `stored_time`) 
+                          VALUES (%s, %s, %s, %s) """
+                await cur.execute(sql, (message_id, guild_id, owner_id, int(time.time())))
+                await conn.commit()
+                return True
+    except Exception as e:
+        traceback.print_exc(file=sys.stdout)
+        await logchanbot(traceback.format_exc())
+    return None
+
+
+async def get_discord_bot_message(message_id: str, is_deleted: str="NO"):
+    global pool
+    try:
+        await openConnection()
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                sql = """ SELECT * FROM `discord_bot_message_owner` WHERE `message_id`=%s AND `is_deleted`=%s LIMIT 1 """
+                await cur.execute(sql, (message_id, is_deleted))
+                result = await cur.fetchone()
+                if result: return result
+    except Exception as e:
+        traceback.print_exc(file=sys.stdout)
+        await logchanbot(traceback.format_exc())
+    return None
+
+
+async def delete_discord_bot_message(message_id: str, owner_id: str):
+    global pool
+    try:
+        await openConnection()
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                sql = """ UPDATE `discord_bot_message_owner` SET `is_deleted`=%s, `date_deleted`=%s WHERE `message_id`=%s AND `owner_id`=%s LIMIT 1 """
+                await cur.execute(sql, ("YES", int(time.time()), message_id, owner_id))
+                await conn.commit()
+                return True
+    except Exception as e:
+        traceback.print_exc(file=sys.stdout)
+        await logchanbot(traceback.format_exc())
+    return None
+# End owner message
+
+
 # Steal from https://nitratine.net/blog/post/encryption-and-decryption-in-python/
 def encrypt_string(to_encrypt: str):
     key = (config.encrypt.key).encode()

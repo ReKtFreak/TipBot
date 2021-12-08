@@ -5,6 +5,7 @@ import traceback
 
 import discord
 from discord.ext import commands
+import dislash
 
 from Bot import *
 import store
@@ -21,6 +22,35 @@ class Events(commands.Cog):
     async def bot_log(self):
         if self.botLogChan is None:
             self.botLogChan = self.bot.get_channel(LOG_CHAN)
+
+
+    @commands.Cog.listener()
+    async def on_button_click(self, ctx):
+        # bot's message and click is close_message
+        if ctx.message.author == self.bot.user and ctx.component.custom_id == "close_message":
+            get_message = await store.get_discord_bot_message(str(ctx.message.id), "NO")
+            if get_message and get_message['owner_id'] == str(ctx.author.id):
+                try:
+                    await ctx.message.delete()
+                    await store.delete_discord_bot_message(str(ctx.message.id), str(ctx.author.id))
+                except Exception as e:
+                    traceback.print_exc(file=sys.stdout)
+            elif get_message and get_message['owner_id'] != str(ctx.author.id):
+                # Not your message.
+                return
+            else:
+                # no record, just delete
+                try:
+                    await ctx.message.delete()
+                except Exception as e:
+                    traceback.print_exc(file=sys.stdout)
+        # bot's message and click is close_any_message
+        elif ctx.message.author == self.bot.user and ctx.component.custom_id == "close_any_message":
+            try:
+                await ctx.message.delete()
+            except Exception as e:
+                traceback.print_exc(file=sys.stdout)
+
 
 
     @commands.Cog.listener()

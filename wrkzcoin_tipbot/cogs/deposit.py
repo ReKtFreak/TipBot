@@ -241,8 +241,12 @@ class Deposit(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_MAINTENANCE)
                     pass
                 else:
-                    await ctx.message.add_reaction(EMOJI_WARNING)
-                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
+                    if isinstance(ctx.channel, discord.DMChannel):
+                        await ctx.message.add_reaction(EMOJI_WARNING)
+                        await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}")
+                    else:
+                        msg = await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}", components=[row_close_message])
+                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                     return
             else:
                 pass
@@ -251,28 +255,32 @@ class Deposit(commands.Cog):
             wallet = await self.get_deposit_coin_user(ctx.author.id, coin_name)
             if 'error' in wallet:
                 error_msg = wallet['error']
-                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {error_msg}')
+                if isinstance(ctx.channel, discord.DMChannel):
+                    await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.mention} {error_msg}")
+                else:
+                    msg = await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.mention} {error_msg}", components=[row_close_message])
+                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 return
 
             deposit_address = wallet['balance_wallet_address']
             # generate QR if not exists
             gen_qr_address = await self.generate_qr_address(deposit_address)
             if gen_qr_address is None:
-                await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Failed to generate QR.')
+                if isinstance(ctx.channel, discord.DMChannel):
+                    msg = await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.mention} Failed to generate QR.")
+                else:
+                    msg = await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.mention} Failed to generate QR.", components=[row_close_message])
+                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 return
 
             if option and option.upper() in ["PLAIN", "TEXT", "NOEMBED"]:
                 try:
                     msg = await ctx.reply(f'{ctx.author.mention} Your **{COIN_NAME}**\'s deposit address: ```{deposit_address}```')
-                    await msg.add_reaction(EMOJI_OK_BOX)
-                    await ctx.message.add_reaction(EMOJI_OK_HAND)
                     return
                 except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                     if isinstance(ctx.channel, discord.DMChannel) == False:
                         try:
                             msg = await ctx.author.send(f'{ctx.author.mention} Your **{COIN_NAME}**\'s deposit address: ```{deposit_address}```')
-                            await msg.add_reaction(EMOJI_OK_BOX)
-                            await ctx.message.add_reaction(EMOJI_OK_HAND)
                             return
                         except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                             await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
@@ -300,19 +308,15 @@ class Deposit(commands.Cog):
                 prefix = await get_guild_prefix(ctx)
                 embed.set_footer(text=f"Use:{prefix}deposit {COIN_NAME} plain (for plain text)")
                 try:
-                    msg = await ctx.reply(embed=embed)
-                    await msg.add_reaction(EMOJI_OK_BOX)
-                    await ctx.message.add_reaction(EMOJI_OK_HAND)
+                    if isinstance(ctx.channel, discord.DMChannel):
+                        msg = await ctx.reply(embed=embed)
+                    else:
+                        msg = await ctx.reply(embed=embed, components=[row_close_message])
+                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                     return
                 except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                    try:
-                        msg = await ctx.reply(embed=embed)
-                        await msg.add_reaction(EMOJI_OK_BOX)
-                        await ctx.message.add_reaction(EMOJI_OK_HAND)
-                        return
-                    except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                    if not isinstance(ctx.channel, discord.DMChannel):
                         await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
-                        return
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
 

@@ -3,9 +3,12 @@ import sys, traceback
 import discord
 from discord.ext import commands
 from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType
+import dislash
 
 from config import config
 from Bot import *
+import store
+
 
 class Voucher(commands.Cog):
 
@@ -283,7 +286,6 @@ class Voucher(commands.Cog):
                 else:
                     # reject and tell to wait
                     msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have another tx in process. Please wait it to finish. ')
-                    await msg.add_reaction(EMOJI_OK_BOX)
                     return
                     
                 if voucher_make:             
@@ -293,13 +295,11 @@ class Voucher(commands.Cog):
                                             f'Amount: {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}\n'
                                             f'Voucher Fee (Incl. network fee): {num_format_coin(fee_voucher_amount, COIN_NAME)} {COIN_NAME}\n'
                                             f'Voucher comment: {comment}```')
-                        await msg.add_reaction(EMOJI_OK_BOX)
                     except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                         await logchanbot(traceback.format_exc())
-                        await ctx.message.add_reaction(EMOJI_ERROR)
-                        await ctx.reply(f'{ctx.author.mention} Sorry, I failed to DM you.')
+                        await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention}, Failed to DM!')
                 else:
-                    await ctx.message.add_reaction(EMOJI_ERROR)
+                    await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention}, error voucher creation!')
             return
         elif voucher_numb == 1:
             # do some QR code
@@ -369,29 +369,32 @@ class Voucher(commands.Cog):
             else:
                 # reject and tell to wait
                 msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You have another tx in process. Please wait it to finish. ')
-                await msg.add_reaction(EMOJI_OK_BOX)
                 return
 
             if voucher_make:
-                await ctx.message.add_reaction(EMOJI_OK_HAND)
                 if isinstance(ctx.channel, discord.DMChannel) == False:
                     try:
                         await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
                     except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                         pass                
                 try:
-                    msg = await ctx.reply(f'New Voucher Link: {qrstring}\n'
-                                        '```'
-                                        f'Amount: {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}\n'
-                                        f'Voucher Fee (Incl. network fee): {num_format_coin(fee_voucher_amount, COIN_NAME)} {COIN_NAME}\n'
-                                        f'Voucher comment: {comment}```')
-                    await msg.add_reaction(EMOJI_OK_BOX)
+                    if isinstance(ctx.channel, discord.DMChannel) == False:
+                        msg = await ctx.reply(f'New Voucher Link: {qrstring}\n'
+                                            '```'
+                                            f'Amount: {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}\n'
+                                            f'Voucher Fee (Incl. network fee): {num_format_coin(fee_voucher_amount, COIN_NAME)} {COIN_NAME}\n'
+                                            f'Voucher comment: {comment}```', components=[row_close_message])
+                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                    else:
+                        msg = await ctx.reply(f'New Voucher Link: {qrstring}\n'
+                                            '```'
+                                            f'Amount: {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}\n'
+                                            f'Voucher Fee (Incl. network fee): {num_format_coin(fee_voucher_amount, COIN_NAME)} {COIN_NAME}\n'
+                                            f'Voucher comment: {comment}```')
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     await logchanbot(traceback.format_exc())
-                    await ctx.message.add_reaction(EMOJI_ERROR)
-                    await ctx.reply(f'{ctx.author.mention} Sorry, I failed to DM you.')
             else:
-                await ctx.message.add_reaction(EMOJI_ERROR)
+                msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention}, error voucher creation!')
             return
 
 
@@ -399,7 +402,10 @@ class Voucher(commands.Cog):
         usage="voucher view", 
         description="View recent made voucher in a list."
     )
-    async def view(self, ctx):
+    async def view(
+        self, 
+        ctx
+    ):
         get_vouchers = await store.sql_voucher_get_user(str(ctx.author.id), SERVER_BOT, 15, 'YESNO')
         if get_vouchers and len(get_vouchers) > 0:
             table_data = [
@@ -417,10 +423,11 @@ class Voucher(commands.Cog):
                     await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     pass
-            await ctx.message.add_reaction(EMOJI_OK_HAND)
-            msg = await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n'
-                                 f'```{table.table}```\n')
-            await msg.add_reaction(EMOJI_OK_BOX)
+            if isinstance(ctx.channel, discord.DMChannel) == False:
+                msg = await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n```{table.table}```', components=[row_close_message])
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+            else:
+                await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n```{table.table}```')
             return
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -460,10 +467,11 @@ class Voucher(commands.Cog):
                     await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     pass
-            await ctx.message.add_reaction(EMOJI_OK_HAND)
-            msg = await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n'
-                                 f'```{table.table}```\n')
-            await msg.add_reaction(EMOJI_OK_BOX)
+            if isinstance(ctx.channel, discord.DMChannel) == False:
+                msg = await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n```{table.table}```', components=[row_close_message])
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+            else:
+                await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n```{table.table}```')
             return
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -505,9 +513,11 @@ class Voucher(commands.Cog):
                 except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
                     pass
             await ctx.message.add_reaction(EMOJI_OK_HAND)
-            msg = await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n'
-                                 f'```{table.table}```\n')
-            await msg.add_reaction(EMOJI_OK_BOX)
+            if isinstance(ctx.channel, discord.DMChannel) == False:
+                msg = await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n```{table.table}```', components=[row_close_message])
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+            else:
+                await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n```{table.table}```')
             return
         else:
             await ctx.message.add_reaction(EMOJI_ERROR)

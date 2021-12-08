@@ -12,6 +12,7 @@ import store
 from Bot import *
 from utils import EmbedPaginator, EmbedPaginatorInter
 
+
 class Trade(commands.Cog):
 
     def __init__(self, bot):
@@ -544,7 +545,6 @@ class Trade(commands.Cog):
                         # let's make order update
                         match_order = await store.sql_match_order_by_sellerid(str(ctx.author.id), ref_number, SERVER_BOT, get_order_num['sell_user_server'], get_order_num['userid_sell'], True)
                         if match_order:
-                            await ctx.message.add_reaction(EMOJI_OK_BOX)
                             try:
                                 await ctx.reply('{} #**{}** Order completed!'
                                                '```'
@@ -723,7 +723,6 @@ class Trade(commands.Cog):
                 return
             else:
                 cancel_order = await store.sql_cancel_open_order_by_sellerid(str(ctx.author.id), 'ALL')
-                await ctx.message.add_reaction(EMOJI_OK_BOX)
                 await ctx.reply(f'{ctx.author.mention} You have cancelled all opened order(s).')
                 return
         else:
@@ -759,11 +758,9 @@ class Trade(commands.Cog):
                             cancel_order = await store.sql_cancel_open_order_by_sellerid(str(ctx.author.id), order_num) 
                             if cancel_order: cancelled = True
                     if cancelled == False:
-                        await ctx.message.add_reaction(EMOJI_ERROR)
                         await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You do not have sell #**{order_num}**. Please check command `myorder`')
                         return
                     else:
-                        await ctx.message.add_reaction(EMOJI_OK_BOX)
                         await ctx.reply(f'{ctx.author.mention} You cancelled #**{order_num}**.')
                         return
 

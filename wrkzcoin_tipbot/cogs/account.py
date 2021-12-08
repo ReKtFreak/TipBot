@@ -24,6 +24,7 @@ class Account(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+
     @inter_client.slash_command(description="Various Account commands.")
     async def account(self, ctx):
         # This is just a parent for subcommands

@@ -16,7 +16,7 @@ import store
 from Bot import *
 # tb
 from tb.tbfun import action as tb_action
-
+import store
 
 from config import config
 
@@ -74,7 +74,7 @@ class Tb(commands.Cog):
                         e.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar)
                         e.set_image(url=draw_link)
                         e.set_footer(text=f"Draw requested by {ctx.author.name}#{ctx.author.discriminator}")
-                        msg = await ctx.reply(embed=e)
+                        msg = await ctx.reply(embed=e, components=[row_close_message])
                         await msg.add_reaction(EMOJI_OK_BOX)
                         msg_content = "SLASH COMMAND"
                         if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
@@ -113,21 +113,19 @@ class Tb(commands.Cog):
                     e.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar)
                     e.set_image(url=draw_link)
                     e.set_footer(text=f"Draw requested by {ctx.author.name}#{ctx.author.discriminator}")
-                    msg = await ctx.reply(embed=e)
-                    await msg.add_reaction(EMOJI_OK_BOX)
+                    msg = await ctx.reply(embed=e, components=[row_close_message])
+                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                     await store.sql_add_tbfun(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
                                 str(ctx.channel.id), str(ctx.guild.id), ctx.guild.name, 'DRAW', ctx.message.content, SERVER_BOT)
                 except Exception as e:
                     await logchanbot(traceback.format_exc())
                     if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
                         await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
-                    await ctx.message.add_reaction(EMOJI_OK_HAND)
             else:
                 if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
                     await ctx.message.add_reaction(EMOJI_ERROR)
                 else:
-                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error.')
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error.', components=[row_close_message])
         except Exception as e:
             await logchanbot(traceback.format_exc())
         return
@@ -194,8 +192,8 @@ class Tb(commands.Cog):
                         e.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar)
                         e.set_image(url=draw_link)
                         e.set_footer(text=f"Sketchme requested by {ctx.author.name}#{ctx.author.discriminator}")
-                        msg = await ctx.reply(embed=e)
-                        await msg.add_reaction(EMOJI_OK_BOX)
+                        msg = await ctx.reply(embed=e, components=[row_close_message])
+                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                         msg_content = "SLASH COMMAND"
                         if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
                             msg_content = ctx.message.content
@@ -228,7 +226,7 @@ class Tb(commands.Cog):
                         e.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar)
                         e.set_image(url=draw_link)
                         e.set_footer(text=f"Sketchme requested by {ctx.author.name}#{ctx.author.discriminator}")
-                        msg = await ctx.reply(embed=e)
+                        msg = await ctx.reply(embed=e, components=[row_close_message])
                         await msg.add_reaction(EMOJI_OK_BOX)
                         await store.sql_add_tbfun(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
                                     str(ctx.channel.id), str(ctx.guild.id), ctx.guild.name, 'SKETCHME', ctx.message.content, SERVER_BOT)
@@ -236,7 +234,6 @@ class Tb(commands.Cog):
                         await logchanbot(traceback.format_exc())
                         if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
                             await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
-                    await ctx.message.add_reaction(EMOJI_OK_HAND)
                 except asyncio.TimeoutError:
                     if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
                         await ctx.message.add_reaction(EMOJI_ERROR)
@@ -261,9 +258,10 @@ class Tb(commands.Cog):
 
             fun_image = await tb_action(user1, user2, random_gif_name, 'PUNCH', config.tbfun_image.punch_gif)
             if fun_image:
-                msg = await ctx.reply("Loading...")
-                await ctx.reply(file=discord.File(random_gif_name))
-                await msg.delete()
+                tmp_msg = await ctx.reply("Loading...")
+                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                await tmp_msg.delete()
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
                 if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
@@ -290,9 +288,10 @@ class Tb(commands.Cog):
 
             fun_image = await tb_action(user1, user2, random_gif_name, 'SPANK', config.tbfun_image.spank_gif)
             if fun_image:
-                msg = await ctx.reply("Loading...")
-                await ctx.reply(file=discord.File(random_gif_name))
-                await msg.delete()
+                tmp_msg = await ctx.reply("Loading...")
+                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                await tmp_msg.delete()
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
                 if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
@@ -319,9 +318,10 @@ class Tb(commands.Cog):
 
             fun_image = await tb_action(user1, user2, random_gif_name, 'SLAP', config.tbfun_image.slap_gif)
             if fun_image:
-                msg = await ctx.reply("Loading...")
-                await ctx.reply(file=discord.File(random_gif_name))
-                await msg.delete()
+                tmp_msg = await ctx.reply("Loading...")
+                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                await tmp_msg.delete()
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
                 if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
@@ -346,9 +346,10 @@ class Tb(commands.Cog):
             random_gif_name = config.fun.fun_img_path + str(uuid.uuid4()) + ".gif"
             fun_image = await tb_action(user1, user2, random_gif_name, 'PRAISE', config.tbfun_image.praise_gif)
             if fun_image:
-                msg = await ctx.reply("Loading...")
-                await ctx.reply(file=discord.File(random_gif_name))
-                await msg.delete()
+                tmp_msg = await ctx.reply("Loading...")
+                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                await tmp_msg.delete()
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
                 if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
@@ -374,9 +375,10 @@ class Tb(commands.Cog):
 
             fun_image = await tb_action(user1, user2, random_gif_name, 'SHOOT', config.tbfun_image.shoot_gif)
             if fun_image:
-                msg = await ctx.reply("Loading...")
-                await ctx.reply(file=discord.File(random_gif_name))
-                await msg.delete()
+                tmp_msg = await ctx.reply("Loading...")
+                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                await tmp_msg.delete()
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
                 if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
@@ -402,9 +404,10 @@ class Tb(commands.Cog):
 
             fun_image = await tb_action(user1, user2, random_gif_name, 'KICK', config.tbfun_image.kick_gif)
             if fun_image:
-                msg = await ctx.reply("Loading...")
-                await ctx.reply(file=discord.File(random_gif_name))
-                await msg.delete()
+                tmp_msg = await ctx.reply("Loading...")
+                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                await tmp_msg.delete()
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
                 if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
@@ -430,9 +433,10 @@ class Tb(commands.Cog):
 
             fun_image = await tb_action(user1, user2, random_gif_name, 'FISTBUMP', config.tbfun_image.fistbump_gif)
             if fun_image:
-                msg = await ctx.reply("Loading...")
-                await ctx.reply(file=discord.File(random_gif_name))
-                await msg.delete()
+                tmp_msg = await ctx.reply("Loading...")
+                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                await tmp_msg.delete()
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
                 if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
@@ -458,9 +462,10 @@ class Tb(commands.Cog):
 
             fun_image = await tb_action(user1, user2, random_gif_name, 'DANCE', config.tbfun_image.single_dance_gif)
             if fun_image:
-                msg = await ctx.reply("Loading...")
-                await ctx.reply(file=discord.File(random_gif_name))
-                await msg.delete()
+                tmp_msg = await ctx.reply("Loading...")
+                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                await tmp_msg.delete()
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
                 if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
@@ -511,21 +516,20 @@ class Tb(commands.Cog):
             if emoji_url is None:
                 if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                msg = await ctx.reply(f'{ctx.author.mention} I could not get that emoji image or it is a unicode text and not supported.')
+                msg = await ctx.reply(f'{ctx.author.mention} I could not get that emoji image or it is a unicode text and not supported.', components=[row_close_any_message])
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 await msg.add_reaction(EMOJI_OK_BOX)
                 return
             else:
                 try:
-                    msg = await ctx.reply(f'{ctx.author.mention} {emoji_url}')
-                    await msg.add_reaction(EMOJI_OK_BOX)
-                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
-                        await ctx.message.add_reaction(EMOJI_OK_HAND)
+                    msg = await ctx.reply(f'{ctx.author.mention} {emoji_url}', components=[row_close_message])
+                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 except (discord.errors.NotFound, discord.errors.Forbidden) as e:
                     if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
                         await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                 return
         except Exception as e:
-            await ctx.reply(f'{ctx.author.mention} Internal error for getting emoji.')
+            await ctx.reply(f'{ctx.author.mention} Internal error for getting emoji.', components=[row_close_any_message])
             await logchanbot(traceback.format_exc())
         return
 
@@ -819,7 +823,7 @@ class Tb(commands.Cog):
         if isinstance(ctx.channel, discord.DMChannel) == True:
             return
         if ctx.invoked_subcommand is None:
-            await ctx.reply(f'{ctx.author.mention} Invalid {prefix}tb command.\n Please use {prefix}help tb')
+            await ctx.reply(f'{ctx.author.mention} Invalid {prefix}tb command.\n Please use {prefix}help tb', components=[row_close_message])
             return
 
 
