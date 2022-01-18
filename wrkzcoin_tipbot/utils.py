@@ -79,7 +79,7 @@ class MemberLookupConverter(discord.ext.commands.MemberConverter):
 
 class EmbedPaginatorInter:
 
-    def __init__(self, bot, inter, pages, private:bool=False):
+    def __init__(self, bot, inter, pages, private:bool=True):
         self.bot = bot
         self.inter = inter
         self.pages = pages
@@ -130,7 +130,7 @@ class EmbedPaginatorInter:
             if hasattr(self.inter, 'message'):
                 self.msg = await self.inter.reply(embed=self.pages[pagenum], components=[row])
             else:
-                self.msg = await self.inter.reply(embed=self.pages[pagenum], components=[row], ephemeral=True)
+                self.msg = await self.inter.reply(embed=self.pages[pagenum], components=[row], ephemeral=self.private)
             starttime = datetime.datetime.utcnow()
 
             while True:
@@ -171,7 +171,7 @@ class EmbedPaginatorInter:
                         embed.title = embed.title + f" (Page {pagenum + 1}/{len(self.pages)})"
                 else:
                     embed.title = f" (Page {pagenum + 1}/{len(self.pages)})"
-                await inter.create_response(embed=self.pages[pagenum], components=[row], ephemeral=True, type=dislash.ResponseType.UpdateMessage)
+                await inter.create_response(embed=self.pages[pagenum], components=[row], ephemeral=self.private, type=dislash.ResponseType.UpdateMessage)
                 continue
 
 

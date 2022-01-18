@@ -233,7 +233,7 @@ class Pools(commands.Cog):
                                     all_pages.append(page)
                                     break
                             try:
-                                paginator = EmbedPaginatorInter(self.bot, ctx, all_pages)
+                                paginator = EmbedPaginatorInter(self.bot, ctx, all_pages, False)
                                 await store.sql_miningpoolstat_fetch(COIN_NAME, str(ctx.author.id), 
                                                                     '{}#{}'.format(ctx.author.name, ctx.author.discriminator), 
                                                                     requested_date, int(time.time()), json.dumps(get_pool_data), str(ctx.guild.id) if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 

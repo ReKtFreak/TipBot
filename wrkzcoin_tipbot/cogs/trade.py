@@ -357,7 +357,7 @@ class Trade(commands.Cog):
                 item_nos += 1
             if empty_page == False:
                 all_pages.append(page)
-            paginator = EmbedPaginatorInter(self.bot, ctx, all_pages)
+            paginator = EmbedPaginatorInter(self.bot, ctx, all_pages, False)
             await paginator.paginate_with_slash()
 
 
@@ -679,7 +679,7 @@ class Trade(commands.Cog):
                 item_nos += 1
             if empty_page == False:
                 all_pages.append(page)
-            paginator = EmbedPaginatorInter(self.bot, ctx, all_pages)
+            paginator = EmbedPaginatorInter(self.bot, ctx, all_pages, False)
             await paginator.paginate_with_slash()
 
 
