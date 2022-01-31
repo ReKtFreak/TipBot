@@ -1,7 +1,7 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from config import config
 from Bot import *
@@ -64,7 +64,7 @@ class TipFreeTip(commands.Cog):
         except Exception as e:
             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Invalid duration."}
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{EMOJI_RED_NO} This command can not be in private."}
 
         if duration_s == 0:
@@ -74,10 +74,6 @@ class TipFreeTip(commands.Cog):
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         COIN_NAME = coin.upper()
-
-        # TRTL discord
-        if ctx.guild.id == TRTL_DISCORD and COIN_NAME != "TRTL":
-            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, Not in this guild with this coin."}
 
         if COIN_NAME not in ENABLE_COIN + ENABLE_XMR + ENABLE_COIN_DOGE + ENABLE_COIN_NANO + ENABLE_COIN_ERC + ENABLE_COIN_TRC + ENABLE_XCH:
             return {"error": f"{EMOJI_ERROR} {ctx.author.mention} **{COIN_NAME}** is not in our supported coins."}
@@ -139,7 +135,7 @@ class TipFreeTip(commands.Cog):
             TX_IN_PROCESS.append(ctx.author.id)
         attend_list = []
         ts = datetime.utcnow()
-        embed = discord.Embed(title=f"Free Tip appears {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}", description=f"React {EMOJI_PARTY} to collect", timestamp=ts)
+        embed = disnake.Embed(title=f"Free Tip appears {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}", description=f"React {EMOJI_PARTY} to collect", timestamp=ts)
         add_index = 0
         try:
             if comment and len(comment) > 0:
@@ -149,9 +145,9 @@ class TipFreeTip(commands.Cog):
             embed.add_field(name="Individual Tip Amount", value=f"{num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}", inline=True)
             embed.add_field(name="Num. Attendees", value="**0** members", inline=True)
             embed.set_footer(text=f"Free tip by {ctx.author.name}#{ctx.author.discriminator}, Time Left: {seconds_str(duration_s)}")
-            msg: discord.Message = await ctx.send(embed=embed)
+            msg: disnake.Message = await ctx.send(embed=embed)
             await msg.add_reaction(EMOJI_PARTY)
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             if ctx.author.id in TX_IN_PROCESS:
                 TX_IN_PROCESS.remove(ctx.author.id)
             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, I got no permission."}
@@ -168,10 +164,10 @@ class TipFreeTip(commands.Cog):
         while time_left > 0:
             # Retrieve new reactions
             try:
-                _msg: discord.Message = await self.bot.get_channel(ctx.channel.id).fetch_message(msg.id)
+                _msg: disnake.Message = await self.bot.get_channel(ctx.channel.id).fetch_message(msg.id)
 
                 # Find reaction we're looking for
-                r = discord.utils.get(_msg.reactions, emoji=EMOJI_PARTY)
+                r = disnake.utils.get(_msg.reactions, emoji=EMOJI_PARTY)
                 if r:
                     # Get list of Users that reacted & filter bots out
                     attend_list = [i for i in await r.users().flatten() if not i.bot and i != ctx.author]
@@ -212,9 +208,9 @@ class TipFreeTip(commands.Cog):
                 return
 
         try:
-            _msg: discord.Message = await self.bot.get_channel(ctx.channel.id).fetch_message(msg.id)
+            _msg: disnake.Message = await self.bot.get_channel(ctx.channel.id).fetch_message(msg.id)
             # Find reaction we're looking for
-            r = discord.utils.get(_msg.reactions, emoji=EMOJI_PARTY)
+            r = disnake.utils.get(_msg.reactions, emoji=EMOJI_PARTY)
             if r:
                 # Get list of Users that reacted & filter bots out
                 tmp_attend_list = [i for i in await r.users().flatten() if not i.bot and i != ctx.author]
@@ -240,15 +236,10 @@ class TipFreeTip(commands.Cog):
         notifyList = await store.sql_get_tipnotify()
 
         if len(attend_list) == 0:
-            embed = discord.Embed(title=f"Free Tip appears {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}", description=f"Already expired", timestamp=ts)
+            embed = disnake.Embed(title=f"Free Tip appears {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}", description=f"Already expired", timestamp=ts)
             if comment and len(comment) > 0:
                 embed.add_field(name="Comment", value=comment, inline=False)
             embed.set_footer(text=f"Free tip by {ctx.author.name}#{ctx.author.discriminator}, and no one collected!")
-            try:
-                await msg.edit(embed=embed, components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
-            except Exception as e:
-                traceback.print_exc(file=sys.stdout)
             if ctx.author.id in TX_IN_PROCESS:
                 TX_IN_PROCESS.remove(ctx.author.id)
             return
@@ -296,7 +287,7 @@ class TipFreeTip(commands.Cog):
                     f'was collected by ({len(attend_list_id)}) members in server `{ctx.guild.name}`.\n'
                     f'Each member got: `{amountDiv_str} {COIN_NAME}`\n'
                     f'Actual spending: `{ActualSpend_str} {COIN_NAME}`')
-            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+            except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                 await store.sql_toggle_tipnotify(str(ctx.author.id), "OFF")
             numMsg = 0
             for member_id in attend_list_id:
@@ -312,21 +303,21 @@ class TipFreeTip(commands.Cog):
                                     f'{COIN_NAME} from {ctx.author.name}#{ctx.author.discriminator} in server `{ctx.guild.name}` #{ctx.channel.name}\n'
                                     f'{NOTIFICATION_OFF_CMD}')
                                 numMsg += 1
-                            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                            except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                                 await store.sql_toggle_tipnotify(str(member.id), "OFF")
                 if numMsg >= config.tipallMax_LimitDM:
                     # stop DM if reaches
                     break
 
 
-    @dislash.guild_only()
-    @inter_client.slash_command(
+    @commands.guild_only()
+    @commands.slash_command(
         usage="freetip <amount> <coin> <duration> <comment here>", 
         options=[
-            Option('amount', 'amount', OptionType.STRING, required=True),
-            Option('coin', 'coin', OptionType.STRING, required=True),
-            Option('duration', 'duration', OptionType.STRING, required=True),
-            Option('comment', 'comment', OptionType.STRING, required=False)
+            Option('amount', 'amount', OptionType.string, required=True),
+            Option('coin', 'coin', OptionType.string, required=True),
+            Option('duration', 'duration', OptionType.string, required=True),
+            Option('comment', 'comment', OptionType.string, required=False)
         ],
         description="Distribute free tips to re-actors."
     )

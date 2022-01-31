@@ -1,7 +1,7 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from config import config
 from Bot import *
@@ -25,7 +25,7 @@ class TipAddress(commands.Cog):
         prefix = await get_guild_prefix(ctx)
 
         # if public and there is a bot channel
-        if isinstance(ctx.channel, discord.DMChannel) == False:
+        if isinstance(ctx.channel, disnake.DMChannel) == False:
             serverinfo = await get_info_pref_coin(ctx)
             server_prefix = serverinfo['server_prefix']
             # check if bot channel is set:
@@ -41,7 +41,7 @@ class TipAddress(commands.Cog):
             # end of bot channel check
 
         if len(args) == 0:
-            if isinstance(ctx.message.channel, discord.DMChannel):
+            if isinstance(ctx.message.channel, disnake.DMChannel):
                 COIN_NAME = 'WRKZ'
             else:
                 serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -97,7 +97,7 @@ class TipAddress(commands.Cog):
                 await msg.add_reaction(EMOJI_OK_BOX)
                 return
 
-            if COIN_NAME and member and isinstance(ctx.channel, discord.DMChannel) == False and member.bot == False:
+            if COIN_NAME and member and isinstance(ctx.channel, disnake.DMChannel) == False and member.bot == False:
                 # OK there is COIN_NAME and member
                 if member.id == ctx.author.id:
                     await ctx.message.add_reaction(EMOJI_ERROR)

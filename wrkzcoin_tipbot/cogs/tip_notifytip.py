@@ -1,9 +1,10 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice, SlashInteraction
-import dislash
+import disnake
+from disnake.ext import commands
+
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 from config import config
 from Bot import *
@@ -54,10 +55,10 @@ class TipNotifyTip(commands.Cog):
                 return {"result": True}
 
 
-    @inter_client.slash_command(
+    @commands.slash_command(
         usage="notifytip", 
         options=[
-            Option('onoff', 'onoff', OptionType.STRING, required=True, choices=[
+            Option('onoff', 'onoff', OptionType.string, required=True, choices=[
                 OptionChoice("Notification On", "ON"),
                 OptionChoice("Notification Off", "OFF")
             ])
@@ -71,7 +72,7 @@ class TipNotifyTip(commands.Cog):
     ):
         await self.bot_log()
         # TODO: If it is DM, let's make a secret tip
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
 

@@ -1,8 +1,8 @@
 import sys
 import traceback
 
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 from Bot import *
 
 from config import config
@@ -77,7 +77,7 @@ class Feedback(commands.Cog):
                                 # OK, let's add
                                 feedback_id = str(uuid.uuid4())
                                 text_in = "DM"
-                                if isinstance(ctx.channel, discord.DMChannel) == False: text_in = str(ctx.channel.id)
+                                if isinstance(ctx.channel, disnake.DMChannel) == False: text_in = str(ctx.channel.id)
                                 howto_contact_back = "N/A"
                                 msg = await ctx.reply(f'{ctx.author.mention} (Optional) Please let us know if and how we can contact you back '
                                                      f'(timeout {config.feedback_setting.waiting_for_feedback_text}s) - default N/A:')
@@ -97,7 +97,7 @@ class Feedback(commands.Cog):
                                 else:
                                     msg = await ctx.reply(f'{ctx.author.mention} Internal Error.')
                                     await msg.add_reaction(EMOJI_OK_BOX)
-            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+            except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 return
 

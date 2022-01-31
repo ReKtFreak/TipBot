@@ -1,16 +1,19 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 from decimal import getcontext, Decimal
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice
+
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
+
 # ascii table
 from terminaltables import AsciiTable
 
 from config import config
 import store
 from Bot import *
-from utils import EmbedPaginator, EmbedPaginatorInter
+from utils import MenuPage
 
 
 class Trade(commands.Cog):
@@ -251,12 +254,12 @@ class Trade(commands.Cog):
                 return {"result": get_message}
 
 
-    @inter_client.slash_command(usage="sell <sell_amount> <sell_ticker> <buy_amount> <buy_ticker>",
+    @commands.slash_command(usage="sell <sell_amount> <sell_ticker> <buy_amount> <buy_ticker>",
                                 options=[
-                                    Option('sell_amount', 'Enter amount of coin to sell', OptionType.NUMBER, required=True),
-                                    Option('sell_ticker', 'Enter coin ticker/name to sell', OptionType.STRING, required=True),
-                                    Option('buy_amount', 'Enter amount of coin to buy', OptionType.NUMBER, required=True),
-                                    Option('buy_ticker', 'Enter coin ticker/name to buy', OptionType.STRING, required=True)
+                                    Option('sell_amount', 'Enter amount of coin to sell', OptionType.number, required=True),
+                                    Option('sell_ticker', 'Enter coin ticker/name to sell', OptionType.string, required=True),
+                                    Option('buy_amount', 'Enter amount of coin to buy', OptionType.number, required=True),
+                                    Option('buy_ticker', 'Enter coin ticker/name to buy', OptionType.string, required=True)
                                 ],
                                 description="Make an opened sell of a coin for another coin.")
     async def sell(
@@ -268,8 +271,6 @@ class Trade(commands.Cog):
         buy_ticker: str
     ):
         await self.bot_log()
-        if isinstance(ctx.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return
         botLogChan = self.bot.get_channel(LOG_CHAN)
         # Slash command, can do any guild
         # check if bot is going to restart
@@ -284,10 +285,10 @@ class Trade(commands.Cog):
             # TODO: notify to all trade channels
 
 
-    @inter_client.slash_command(usage="trade <coin/pair> <desc|asc>",
+    @commands.slash_command(usage="trade <coin/pair> <desc|asc>",
                                 options=[
-                                    Option('coin', 'coin or pair', OptionType.STRING, required=True),
-                                    Option('option_order', 'desc or asc', OptionType.STRING, required=True, choices=[
+                                    Option('coin', 'coin or pair', OptionType.string, required=True),
+                                    Option('option_order', 'desc or asc', OptionType.string, required=True, choices=[
                                         OptionChoice("desc", "desc"),
                                         OptionChoice("asc", "asc")
                                     ]
@@ -345,9 +346,9 @@ class Trade(commands.Cog):
                 if item_nos == 0 or (item_nos > 0 and item_nos % per_page == 0):
                     if item_nos > 0 and item_nos % per_page == 0:
                         all_pages.append(page)
-                    page = discord.Embed(title=get_list_orders['title'],
+                    page = disnake.Embed(title=get_list_orders['title'],
                                          description="Thank you for trading with TipBot!",
-                                         color=discord.Color.blue(),
+                                         color=disnake.Color.blue(),
                                          timestamp=datetime.utcnow(), )
                     page.set_thumbnail(url=ctx.author.display_avatar)
                     page.set_footer(text="Use the reactions to flip pages.")
@@ -357,8 +358,7 @@ class Trade(commands.Cog):
                 item_nos += 1
             if empty_page == False:
                 all_pages.append(page)
-            paginator = EmbedPaginatorInter(self.bot, ctx, all_pages, False)
-            await paginator.paginate_with_slash()
+            await ctx.send(embed=all_pages[0], view=MenuPage(ctx, all_pages))
 
 
     @commands.command(
@@ -375,16 +375,13 @@ class Trade(commands.Cog):
         buy_ticker: str
     ):
         await self.bot_log()
-        if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return
-
         botLogChan = self.bot.get_channel(LOG_CHAN)
         try:
-            if isinstance(ctx.message.channel, discord.DMChannel) == True:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == True:
                 pass
             else:
                 serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-                if isinstance(ctx.message.channel, discord.DMChannel) == False and serverinfo \
+                if isinstance(ctx.message.channel, disnake.DMChannel) == False and serverinfo \
                 and 'enable_trade' in serverinfo and serverinfo['enable_trade'] == "NO":
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
@@ -392,7 +389,7 @@ class Trade(commands.Cog):
                     await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}sell command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
-            if isinstance(ctx.message.channel, discord.DMChannel) == False:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False:
                 return
             await logchanbot(traceback.format_exc())
             return
@@ -420,16 +417,12 @@ class Trade(commands.Cog):
         ref_number: str
     ):
         await self.bot_log()
-        # TRTL discord
-        if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return
-
         try:
-            if isinstance(ctx.message.channel, discord.DMChannel) == True:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == True:
                 pass
             else:
                 serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-                if isinstance(ctx.message.channel, discord.DMChannel) == False and serverinfo \
+                if isinstance(ctx.message.channel, disnake.DMChannel) == False and serverinfo \
                 and 'enable_trade' in serverinfo and serverinfo['enable_trade'] == "NO":
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
@@ -437,7 +430,7 @@ class Trade(commands.Cog):
                     await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}buy command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
-            if isinstance(ctx.message.channel, discord.DMChannel) == False:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False:
                 return
             await logchanbot(traceback.format_exc())
             return
@@ -567,15 +560,15 @@ class Trade(commands.Cog):
                                         if member:
                                             try:
                                                 await member.send(f'A user has bought #**{ref_number}**\n```Sold: {sold}\nGet: {bought}```')
-                                            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                                            except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                                                 pass
                                     # add message to trade channel as well.
                                     if ctx.channel.id != NOTIFY_TRADE_CHAN:
                                         botLogChan = self.bot.get_channel(NOTIFY_TRADE_CHAN)
                                         await self.botLogChan.send(f'A user has bought #**{ref_number}**\n```Sold: {sold}\nGet: {bought}\nFee: {fee}```')
-                                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                                     pass
-                            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                            except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                                 pass
                             return
                         else:
@@ -600,16 +593,12 @@ class Trade(commands.Cog):
         option_order: str=None
     ):
         await self.bot_log()
-        # TRTL discord
-        if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return
-
         try:
-            if isinstance(ctx.message.channel, discord.DMChannel) == True:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == True:
                 pass
             else:
                 serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-                if isinstance(ctx.message.channel, discord.DMChannel) == False and serverinfo \
+                if isinstance(ctx.message.channel, disnake.DMChannel) == False and serverinfo \
                 and 'enable_trade' in serverinfo and serverinfo['enable_trade'] == "NO":
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
@@ -617,7 +606,7 @@ class Trade(commands.Cog):
                     await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}trade/market command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
-            if isinstance(ctx.message.channel, discord.DMChannel) == False:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False:
                 return
             await logchanbot(traceback.format_exc())
             return
@@ -667,9 +656,9 @@ class Trade(commands.Cog):
                 if item_nos == 0 or (item_nos > 0 and item_nos % per_page == 0):
                     if item_nos > 0 and item_nos % per_page == 0:
                         all_pages.append(page)
-                    page = discord.Embed(title=get_list_orders['title'],
+                    page = disnake.Embed(title=get_list_orders['title'],
                                          description="Thank you for trading with TipBot!",
-                                         color=discord.Color.blue(),
+                                         color=disnake.Color.blue(),
                                          timestamp=datetime.utcnow(), )
                     page.set_thumbnail(url=ctx.author.display_avatar)
                     page.set_footer(text="Use the reactions to flip pages.")
@@ -679,8 +668,7 @@ class Trade(commands.Cog):
                 item_nos += 1
             if empty_page == False:
                 all_pages.append(page)
-            paginator = EmbedPaginatorInter(self.bot, ctx, all_pages, False)
-            await paginator.paginate_with_slash()
+            await ctx.send(embed=all_pages[0], view=MenuPage(ctx, all_pages))
 
 
     @commands.command(
@@ -693,16 +681,12 @@ class Trade(commands.Cog):
         order_num: str = 'ALL'
     ):
         await self.bot_log()
-        # TRTL discord
-        if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return
-
         try:
-            if isinstance(ctx.message.channel, discord.DMChannel) == True:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == True:
                 pass
             else:
                 serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-                if isinstance(ctx.message.channel, discord.DMChannel) == False and serverinfo \
+                if isinstance(ctx.message.channel, disnake.DMChannel) == False and serverinfo \
                 and 'enable_trade' in serverinfo and serverinfo['enable_trade'] == "NO":
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
@@ -710,7 +694,7 @@ class Trade(commands.Cog):
                     await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}cancel trade command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
-            if isinstance(ctx.message.channel, discord.DMChannel) == False:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False:
                 return
             await logchanbot(traceback.format_exc())
             return
@@ -776,16 +760,12 @@ class Trade(commands.Cog):
         order_num: str
     ):
         await self.bot_log()
-        # TRTL discord
-        if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return
-
         try:
-            if isinstance(ctx.message.channel, discord.DMChannel) == True:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == True:
                 pass
             else:
                 serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-                if isinstance(ctx.message.channel, discord.DMChannel) == False and serverinfo \
+                if isinstance(ctx.message.channel, disnake.DMChannel) == False and serverinfo \
                 and 'enable_trade' in serverinfo and serverinfo['enable_trade'] == "NO":
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
@@ -793,7 +773,7 @@ class Trade(commands.Cog):
                     await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}order command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
-            if isinstance(ctx.message.channel, discord.DMChannel) == False:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False:
                 return
             await logchanbot(traceback.format_exc())
             return
@@ -850,16 +830,12 @@ class Trade(commands.Cog):
         ticker: str = None
     ):
         await self.bot_log()
-        # TRTL discord
-        if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return
-
         try:
-            if isinstance(ctx.message.channel, discord.DMChannel) == True:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == True:
                 pass
             else:
                 serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-                if isinstance(ctx.message.channel, discord.DMChannel) == False and serverinfo \
+                if isinstance(ctx.message.channel, disnake.DMChannel) == False and serverinfo \
                 and 'enable_trade' in serverinfo and serverinfo['enable_trade'] == "NO":
                     prefix = serverinfo['prefix']
                     await ctx.message.add_reaction(EMOJI_ERROR)
@@ -867,7 +843,7 @@ class Trade(commands.Cog):
                     await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}myorder command** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                     return
         except Exception as e:
-            if isinstance(ctx.message.channel, discord.DMChannel) == False:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False:
                 return
             await logchanbot(traceback.format_exc())
             return

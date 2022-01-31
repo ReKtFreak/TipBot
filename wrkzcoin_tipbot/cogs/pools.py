@@ -1,9 +1,9 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, Option, OptionType
-import dislash
+import disnake
+from disnake.ext import commands
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 import json
 
@@ -11,7 +11,7 @@ from config import config
 from Bot import *
 import store
 import redis_utils
-from utils import EmbedPaginator, EmbedPaginatorInter
+from utils import MenuPage
 
 
 class Pools(commands.Cog):
@@ -65,9 +65,6 @@ class Pools(commands.Cog):
             if config.miningpoolstat.enable != 1:
                 await ctx.reply(f'{ctx.author.mention} Command temporarily disable')
                 return
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction and isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild.id == TRTL_DISCORD and COIN_NAME != "TURTLECOIN":
-                await ctx.message.add_reaction(EMOJI_ERROR)
-                return
             key = "TIPBOT:MININGPOOL:" + COIN_NAME
             key_hint = "TIPBOT:MININGPOOL:SHORTNAME:" + COIN_NAME
             if redis_utils.redis_conn and not redis_utils.redis_conn.exists(key):
@@ -86,7 +83,7 @@ class Pools(commands.Cog):
                 get_pool_data = None
                 is_cache = 'NO'
                 if redis_utils.redis_conn and redis_utils.redis_conn.exists(key_data):
-                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                    if type(ctx) is not disnake.interactions.MessageInteraction:
                         await ctx.message.add_reaction(EMOJI_FLOPPY)
                     get_pool_data = json.loads(redis_utils.redis_conn.get(key_data).decode())
                     is_cache = 'YES'
@@ -94,16 +91,16 @@ class Pools(commands.Cog):
                     if ctx.author.id not in MINGPOOLSTAT_IN_PROCESS:
                         MINGPOOLSTAT_IN_PROCESS.append(ctx.author.id)
                     else:
-                        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                        if type(ctx) is not disnake.interactions.MessageInteraction:
                             await ctx.message.add_reaction(EMOJI_ERROR)
                         await ctx.reply(f'{ctx.author.mention} You have another check of pools stats in progress.')
                         return
                     try:
-                        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                        if type(ctx) is not disnake.interactions.MessageInteraction:
                             await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
                         get_pool_data = await self.get_miningpoolstat_coin(COIN_NAME)
-                    except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                    except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
+                        if type(ctx) is not disnake.interactions.MessageInteraction:
                             await ctx.message.add_reaction(EMOJI_ERROR)
                         return
                 pool_nos_per_page = 8
@@ -112,7 +109,7 @@ class Pools(commands.Cog):
                         await ctx.reply(f"{ctx.author.name}#{ctx.author.discriminator}, Received 0 length of data for **{COIN_NAME}**.")
                         return
                     elif len(get_pool_data['data']) <= pool_nos_per_page:
-                        embed = discord.Embed(title='Mining Pools for {}'.format(COIN_NAME), description='', timestamp=datetime.utcnow(), colour=7047495)
+                        embed = disnake.Embed(title='Mining Pools for {}'.format(COIN_NAME), description='', timestamp=datetime.utcnow(), colour=7047495)
                         if 'symbol' in get_pool_data:
                             embed.add_field(name="Ticker", value=get_pool_data['symbol'], inline=True)
                         if 'algo' in get_pool_data:
@@ -151,19 +148,19 @@ class Pools(commands.Cog):
                         embed.add_field(name="OTHER LINKS", value="{} / {} / {} / {}".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), "[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
                         embed.set_footer(text="Data from https://miningpoolstats.stream")
                         try:
-                            if isinstance(ctx.channel, discord.DMChannel) == True:
+                            if isinstance(ctx.channel, disnake.DMChannel) == True:
                                 msg = await ctx.reply(embed=embed)
                             else:
-                                msg = await ctx.reply(embed=embed, components=[row_close_message])
-                                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                                msg = await ctx.reply(embed=embed, view=RowButton_close_message())
+                                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                             respond_date = int(time.time())
                             await store.sql_miningpoolstat_fetch(COIN_NAME, str(ctx.author.id), 
                                                                 '{}#{}'.format(ctx.author.name, ctx.author.discriminator), 
-                                                                requested_date, respond_date, json.dumps(get_pool_data), str(ctx.guild.id) if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
-                                                                ctx.guild.name if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
+                                                                requested_date, respond_date, json.dumps(get_pool_data), str(ctx.guild.id) if isinstance(ctx.channel, disnake.DMChannel) == False else 'DM', 
+                                                                ctx.guild.name if isinstance(ctx.channel, disnake.DMChannel) == False else 'DM', 
                                                                 str(ctx.channel.id), is_cache, SERVER_BOT, 'NO')
-                        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
+                            if type(ctx) is not disnake.interactions.MessageInteraction:
                                 await ctx.message.add_reaction(EMOJI_ERROR)
                             await logchanbot(traceback.format_exc())
                     else:
@@ -180,7 +177,7 @@ class Pools(commands.Cog):
                             for each_pool in pool_list:
                                 if num_pool == 0 or num_pool % pool_nos_per_page == 0:
                                     pool_links = ''
-                                    page = discord.Embed(title='Mining Pools for {}'.format(COIN_NAME), description='', timestamp=datetime.utcnow(), colour=7047495)
+                                    page = disnake.Embed(title='Mining Pools for {}'.format(COIN_NAME), description='', timestamp=datetime.utcnow(), colour=7047495)
                                     if 'symbol' in get_pool_data:
                                         page.add_field(name="Ticker", value=get_pool_data['symbol'], inline=True)
                                     if 'algo' in get_pool_data:
@@ -212,7 +209,7 @@ class Pools(commands.Cog):
                                     all_pages.append(page)
                                     if num_pool < len(pool_list):
                                         pool_links = ''
-                                        page = discord.Embed(title='Mining Pools for {}'.format(COIN_NAME), description='', timestamp=datetime.utcnow(), colour=7047495)
+                                        page = disnake.Embed(title='Mining Pools for {}'.format(COIN_NAME), description='', timestamp=datetime.utcnow(), colour=7047495)
                                         if 'symbol' in get_pool_data:
                                             page.add_field(name="Ticker", value=get_pool_data['symbol'], inline=True)
                                         if 'algo' in get_pool_data:
@@ -233,14 +230,14 @@ class Pools(commands.Cog):
                                     all_pages.append(page)
                                     break
                             try:
-                                paginator = EmbedPaginatorInter(self.bot, ctx, all_pages, False)
+                                await ctx.send(embed=all_pages[0], view=MenuPage(ctx, all_pages))
                                 await store.sql_miningpoolstat_fetch(COIN_NAME, str(ctx.author.id), 
                                                                     '{}#{}'.format(ctx.author.name, ctx.author.discriminator), 
-                                                                    requested_date, int(time.time()), json.dumps(get_pool_data), str(ctx.guild.id) if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
-                                                                    ctx.guild.name if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
+                                                                    requested_date, int(time.time()), json.dumps(get_pool_data), str(ctx.guild.id) if isinstance(ctx.channel, disnake.DMChannel) == False else 'DM', 
+                                                                    ctx.guild.name if isinstance(ctx.channel, disnake.DMChannel) == False else 'DM', 
                                                                     str(ctx.channel.id), is_cache, SERVER_BOT, 'NO')
                                 await paginator.paginate_with_slash()
-                            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                            except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                                 await logchanbot(traceback.format_exc())
                         except Exception as e:
                             await logchanbot(traceback.format_exc())
@@ -259,7 +256,7 @@ class Pools(commands.Cog):
                     try:
                         # loop and waiting for another fetch
                         retry = 0
-                        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                        if type(ctx) is not disnake.interactions.MessageInteraction:
                             await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
                         while True:
                             key = "TIPBOT:MININGPOOL2:" + COIN_NAME
@@ -269,7 +266,7 @@ class Pools(commands.Cog):
                                 result = json.loads(redis_utils.redis_conn.get(key_p).decode())
                                 is_cache = 'NO'
                                 try:
-                                    embed = discord.Embed(title='Mining Pools for {}'.format(COIN_NAME), description='', timestamp=datetime.utcnow(), colour=7047495)
+                                    embed = disnake.Embed(title='Mining Pools for {}'.format(COIN_NAME), description='', timestamp=datetime.utcnow(), colour=7047495)
                                     i = 0
                                     if result and len(result) > 0:
                                         pool_links = ''
@@ -300,23 +297,23 @@ class Pools(commands.Cog):
                                             await logchanbot(traceback.format_exc())
                                     embed.add_field(name="OTHER LINKS", value="{} / {} / {} / {}".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), "[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
                                     embed.set_footer(text="Data from https://miningpoolstats.stream")
-                                    if isinstance(ctx.channel, discord.DMChannel) == True:
+                                    if isinstance(ctx.channel, disnake.DMChannel) == True:
                                         msg = await ctx.reply(embed=embed)
                                     else:
-                                        msg = await ctx.reply(embed=embed, components=[row_close_message])
-                                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                                        msg = await ctx.reply(embed=embed, view=RowButton_close_message())
+                                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                                     respond_date = int(time.time())
                                     await store.sql_miningpoolstat_fetch(COIN_NAME, str(ctx.author.id), 
                                                                         '{}#{}'.format(ctx.author.name, ctx.author.discriminator), 
-                                                                        requested_date, respond_date, json.dumps(result), str(ctx.guild.id) if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
-                                                                        ctx.guild.name if isinstance(ctx.channel, discord.DMChannel) == False else 'DM', 
+                                                                        requested_date, respond_date, json.dumps(result), str(ctx.guild.id) if isinstance(ctx.channel, disnake.DMChannel) == False else 'DM', 
+                                                                        ctx.guild.name if isinstance(ctx.channel, disnake.DMChannel) == False else 'DM', 
                                                                         str(ctx.channel.id), is_cache, SERVER_BOT, 'YES')
                                     break
                                     if ctx.author.id in MINGPOOLSTAT_IN_PROCESS:
                                         MINGPOOLSTAT_IN_PROCESS.remove(ctx.author.id)
                                     return
                                 except Exception as e:
-                                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                                    if type(ctx) is not disnake.interactions.MessageInteraction:
                                         await ctx.message.add_reaction(EMOJI_ERROR)
                                     await logchanbot(traceback.format_exc())
                                     if ctx.author.id in MINGPOOLSTAT_IN_PROCESS:
@@ -326,17 +323,17 @@ class Pools(commands.Cog):
                                 retry += 1
                             if retry >= 5:
                                 redis_utils.redis_conn.lrem(key_queue, 0, COIN_NAME)
-                                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                                if type(ctx) is not disnake.interactions.MessageInteraction:
                                     await ctx.message.add_reaction(EMOJI_ERROR)
                                 await ctx.reply(f'{ctx.author.mention} We can not fetch data for **{COIN_NAME}**.')
                                 break
                                 if ctx.author.id in MINGPOOLSTAT_IN_PROCESS:
                                     MINGPOOLSTAT_IN_PROCESS.remove(ctx.author.id)
                                 return
-                    except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                    except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                         if ctx.author.id in MINGPOOLSTAT_IN_PROCESS:
                             MINGPOOLSTAT_IN_PROCESS.remove(ctx.author.id)
-                        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                        if type(ctx) is not disnake.interactions.MessageInteraction:
                             await ctx.message.add_reaction(EMOJI_ERROR)
                         return
                     except Exception as e:
@@ -347,9 +344,9 @@ class Pools(commands.Cog):
             traceback.print_exc(file=sys.stdout)
 
 
-    @inter_client.slash_command(usage="pools <coin>",
+    @commands.slash_command(usage="pools <coin>",
                                 options=[
-                                    Option("coin", "Enter a coin/ticker name", OptionType.STRING, required=True)
+                                    Option("coin", "Enter a coin/ticker name", OptionType.string, required=True)
                                 ],
                                 description="Check hashrate of a coin.")
     async def pools(

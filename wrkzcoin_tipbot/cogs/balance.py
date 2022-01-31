@@ -1,14 +1,14 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 import json
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType
-
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 from config import config
 from Bot import *
-from utils import EmbedPaginator, EmbedPaginatorInter
+from utils import MenuPage
 import store
 
 
@@ -24,7 +24,7 @@ class Balance(commands.Cog):
             self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
-    @inter_client.slash_command(description="Ping command")
+    @commands.slash_command(description="Ping command")
     async def ping(self, ctx):
         await ctx.reply(f"Pong! ({self.bot.latency*1000}ms)")
 
@@ -47,9 +47,9 @@ class Balance(commands.Cog):
         if coin.upper() == "ALL":
             #await ctx.reply('You selected all', ephemeral=True)
             all_pages = []
-            page = discord.Embed(title='[ YOUR BALANCE LIST ]',
+            page = disnake.Embed(title='[ YOUR BALANCE LIST ]',
                                   description="Thank you for using TipBot!",
-                                  color=discord.Color.blue(),
+                                  color=disnake.Color.blue(),
                                   timestamp=datetime.utcnow(), )
             page.add_field(name="Total Coin/Tokens: [{}]".format(len(ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH)), 
                            value="```"+", ".join(ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH)+"```", inline=True)
@@ -63,9 +63,9 @@ class Balance(commands.Cog):
             total_coins = len(user_coins)
             for COIN_NAME, value in user_coins.items():
                 if num_coins == 0 or num_coins % per_page == 0:
-                    page = discord.Embed(title='[ YOUR BALANCE LIST ]',
+                    page = disnake.Embed(title='[ YOUR BALANCE LIST ]',
                                          description="Thank you for using TipBot!",
-                                         color=discord.Color.blue(),
+                                         color=disnake.Color.blue(),
                                          timestamp=datetime.utcnow(), )
                     page.set_thumbnail(url=ctx.author.display_avatar)
                     page.set_footer(text="Use the reactions to flip pages.")
@@ -74,9 +74,9 @@ class Balance(commands.Cog):
                 if num_coins > 0 and num_coins % per_page == 0:
                     all_pages.append(page)
                     if num_coins < total_coins:
-                        page = discord.Embed(title='[ YOUR BALANCE LIST ]',
+                        page = disnake.Embed(title='[ YOUR BALANCE LIST ]',
                                              description="Thank you for using TipBot!",
-                                             color=discord.Color.blue(),
+                                             color=disnake.Color.blue(),
                                              timestamp=datetime.utcnow(), )
                         page.set_thumbnail(url=ctx.author.display_avatar)
                         page.set_footer(text="Use the reactions to flip pages.")
@@ -87,13 +87,12 @@ class Balance(commands.Cog):
                     all_pages.append(page)
                     break
             await tmp_msg.delete()
-            paginator = EmbedPaginatorInter(self.bot, ctx, all_pages, True)
-            await paginator.paginate_with_slash()
+            await ctx.send(embed=all_pages[0], view=MenuPage(ctx, all_pages))
             # If there is still page
         elif coin.upper() in ENABLE_COIN+ENABLE_COIN_DOGE+ENABLE_XMR+ENABLE_COIN_NANO+ENABLE_COIN_ERC+ENABLE_COIN_TRC+ENABLE_XCH:
             COIN_NAME = coin.upper()
             balance_user = await get_balance_coin_user(user_id, COIN_NAME, discord_guild=False, server__bot=SERVER_BOT)
-            embed = discord.Embed(title=f'[ {ctx.author.name}#{ctx.author.discriminator}\'s {COIN_NAME} balance ]', timestamp=datetime.utcnow())
+            embed = disnake.Embed(title=f'[ {ctx.author.name}#{ctx.author.discriminator}\'s {COIN_NAME} balance ]', timestamp=datetime.utcnow())
             try:
                 if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
                     embed.add_field(name="Deposited", value="`{} {}`".format(num_format_coin(float(balance_user['real_deposit_balance']), COIN_NAME), COIN_NAME), inline=True)
@@ -119,9 +118,9 @@ class Balance(commands.Cog):
             else:
                 embed.set_footer(text=f"{get_notice_txt(COIN_NAME)}")
             try:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
-                    msg = await ctx.reply(embed=embed, components=[row_close_message])
-                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                if type(ctx) is not disnake.interactions.MessageInteraction:
+                    msg = await ctx.reply(embed=embed, view=RowButton_close_message())
+                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 else:
                     msg = await ctx.reply(embed=embed, ephemeral=True)
             except Exception as e:
@@ -130,9 +129,9 @@ class Balance(commands.Cog):
             await ctx.reply(f'There is no such ticker {COIN_NAME}', ephemeral=True)
 
 
-    @inter_client.slash_command(usage="balance [coin]",
+    @commands.slash_command(usage="balance [coin]",
                                 options=[
-                                    Option("coin", "Enter coin ticker/name", OptionType.STRING, required=False)
+                                    Option("coin", "Enter coin ticker/name", OptionType.string, required=False)
                                     # By default, Option is optional
                                     # Pass required=True to make it a required arg
                                 ],

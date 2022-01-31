@@ -6,17 +6,15 @@ import traceback
 from datetime import datetime
 import random
 
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice
+import disnake
+from disnake.ext import commands
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 import store
 from Bot import *
 
 from config import config
-
-## NOTE:
-##  * TODO: verify, unverify, twofa cleanup
 
 
 class Account(commands.Cog):
@@ -25,7 +23,7 @@ class Account(commands.Cog):
         self.bot = bot
 
 
-    @inter_client.slash_command(description="Various Account commands.")
+    @commands.slash_command(description="Various Account commands.")
     async def account(self, ctx):
         # This is just a parent for subcommands
         # It's not necessary to do anything here,
@@ -35,7 +33,7 @@ class Account(commands.Cog):
     @account.sub_command(
         usage="account tradeapi", 
         options=[
-            Option('regen', 'y or n', OptionType.STRING, required=False, choices=[
+            Option('regen', 'y or n', OptionType.string, required=False, choices=[
                 OptionChoice("y", "y"),
                 OptionChoice("n", "n")
             ]
@@ -76,7 +74,7 @@ class Account(commands.Cog):
     @account.sub_command(
         usage="account deposit_link", 
         options=[
-            Option('option', 'DISABLE, OFF, HIDE, PUBLIC', OptionType.STRING, required=False, choices=[
+            Option('option', 'DISABLE, OFF, HIDE, PUBLIC', OptionType.string, required=False, choices=[
                 OptionChoice("DISABLE", "DISABLE"),
                 OptionChoice("OFF", "OFF"),
                 OptionChoice("HIDE", "HIDE"),
@@ -224,7 +222,7 @@ class Account(commands.Cog):
         regen: str=None
     ):
         # acc tradeapi | acc tradeapi regen
-        if isinstance(ctx.channel, discord.DMChannel) == False:
+        if isinstance(ctx.channel, disnake.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
             return
@@ -367,7 +365,7 @@ class Account(commands.Cog):
                     msg = await ctx.author.send(f'{ctx.author.mention} Your deposit link can be accessed from (**{status}**):\n{link}')
                     await ctx.message.add_reaction(EMOJI_OK_HAND)
                     await msg.add_reaction(EMOJI_OK_BOX)
-                except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                     await msg.add_reaction(EMOJI_ERROR)
                     msg = await ctx.reply(f'{ctx.author.mention} I failed to DM you. You can also use **{prefix}account deposit pub**, if you want it to be in public.')
                     await msg.add_reaction(EMOJI_OK_BOX)
@@ -385,7 +383,7 @@ class Account(commands.Cog):
                     msg = await ctx.author.send(f'{ctx.author.mention} Link generate successfully.\n{link}')
                     await msg.add_reaction(EMOJI_OK_BOX)
                     await ctx.message.add_reaction(EMOJI_OK_HAND)
-                except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     msg = await ctx.reply(f'{ctx.author.mention} I failed to DM you. You can also use **{prefix}account deposit pub**, if you want it to be in public.')
                     await msg.add_reaction(EMOJI_OK_BOX)
@@ -393,260 +391,6 @@ class Account(commands.Cog):
             else:
                 await ctx.message.add_reaction(EMOJI_ERROR) 
                 await ctx.reply(f'{ctx.author.mention} Internal error during link generation. Try later.')
-                return
-
-
-    @account.command(
-        usage='acc twofa', 
-        aliases=['2fa'], 
-        description="Generate a 2FA and scanned with Authenticator Program."
-    )
-    async def twofa(
-        self, 
-        ctx
-    ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
-        # check if account locked
-        account_lock = await alert_if_userlock(ctx, 'account twofa')
-        if account_lock:
-            await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
-            return
-        # end of check if account locked
-
-        # return message 2FA already ON if 2FA already validated
-        # show QR for 2FA if not yet ON
-        userinfo = await store.sql_discord_userinfo_get(str(ctx.author.id))
-        if userinfo is None:
-            # Create userinfo
-            random_secret32 = pyotp.random_base32()
-            create_userinfo = await store.sql_userinfo_2fa_insert(str(ctx.author.id), random_secret32)
-            totp = pyotp.TOTP(random_secret32, interval=30)
-            google_str = pyotp.TOTP(random_secret32, interval=30).provisioning_uri(f"{ctx.author.id}@tipbot.wrkz.work", issuer_name="Discord TipBot")
-            if create_userinfo:
-                # do some QR code
-                qr = qrcode.QRCode(
-                    version=1,
-                    error_correction=qrcode.constants.ERROR_CORRECT_L,
-                    box_size=10,
-                    border=2,
-                )
-                qr.add_data(google_str)
-                qr.make(fit=True)
-                img = qr.make_image(fill_color="black", back_color="white")
-                img = img.resize((256, 256))
-                img.save(config.qrsettings.path + random_secret32 + ".png")
-                await ctx.author.send("**Please use Authenticator to scan**", 
-                                            file=discord.File(config.qrsettings.path + random_secret32 + ".png"))
-                await ctx.author.send('**[NEX STEP]**\n'
-                                              'From your Authenticator Program, please get code and verify by: ```.account verify XXXXXX```'
-                                              f'Or use **code** below to add manually:```{random_secret32}```')
-                return
-            else:
-                await ctx.reply(f'{ctx.author.mention} Internal error during create 2FA.')
-                return
-        else:
-            # Check if 2FA secret has or not
-            # If has secret but not verified yet, show QR
-            # If has both secret and verify, tell you already verify
-            secret_code = None
-            verified = None
-            try:
-                verified = userinfo['twofa_verified']
-            except Exception as e:
-                await logchanbot(traceback.format_exc())
-            if verified and verified.upper() == "YES":
-                await ctx.reply(f'{ctx.author.mention} You already verified 2FA.')
-                return
-
-            try:
-                secret_code = store.decrypt_string(userinfo['twofa_secret'])
-            except Exception as e:
-                await logchanbot(traceback.format_exc())
-            if secret_code and len(secret_code) > 0:
-                if os.path.exists(config.qrsettings.path + secret_code + ".png"):
-                    pass
-                else:
-                    google_str = pyotp.TOTP(secret_code, interval=30).provisioning_uri(f"{ctx.author.id}@tipbot.wrkz.work", issuer_name="Discord TipBot")
-                    qr = qrcode.QRCode(
-                        version=1,
-                        error_correction=qrcode.constants.ERROR_CORRECT_L,
-                        box_size=10,
-                        border=2,
-                    )
-                    qr.add_data(google_str)
-                    qr.make(fit=True)
-                    img = qr.make_image(fill_color="black", back_color="white")
-                    img = img.resize((256, 256))
-                    img.save(config.qrsettings.path + secret_code + ".png")
-                await ctx.author.send("**Please use Authenticator to scan**", 
-                                      file=discord.File(config.qrsettings.path + secret_code + ".png"))
-                await ctx.author.send('**[NEX STEP]**\n'
-                                      'From your Authenticator Program, please get code and verify by: ```.account verify XXXXXX```'
-                                      f'Or use **code** below to add manually:```{secret_code}```')
-            else:
-                # Create userinfo
-                random_secret32 = pyotp.random_base32()
-                update_userinfo = await store.sql_userinfo_2fa_update(str(ctx.author.id), random_secret32)
-                totp = pyotp.TOTP(random_secret32, interval=30)
-                google_str = pyotp.TOTP(random_secret32, interval=30).provisioning_uri(f"{ctx.author.id}@tipbot.wrkz.work", issuer_name="Discord TipBot")
-                if update_userinfo:
-                    # do some QR code
-                    qr = qrcode.QRCode(
-                        version=1,
-                        error_correction=qrcode.constants.ERROR_CORRECT_L,
-                        box_size=10,
-                        border=2,
-                    )
-                    qr.add_data(google_str)
-                    qr.make(fit=True)
-                    img = qr.make_image(fill_color="black", back_color="white")
-                    img = img.resize((256, 256))
-                    img.save(config.qrsettings.path + random_secret32 + ".png")
-                    await ctx.author.send("**Please use Authenticator to scan**", 
-                                          file=discord.File(config.qrsettings.path + random_secret32 + ".png"))
-                    await ctx.author.send('**[NEX STEP]**\n'
-                                          'From your Authenticator Program, please get code and verify by: ```.account verify XXXXXX```'
-                                          f'Or use **code** below to add manually:```{random_secret32}```')
-                    return
-                else:
-                    await ctx.reply(f'{ctx.author.mention} Internal error during create 2FA.')
-                    return
-        return
-
-    @account.command(
-        usage='acc verify <code>', 
-        description="Verify 2FA code from QR code and your Authenticator Program."
-    )
-    async def verify(
-        self, 
-        ctx, 
-        codes: str
-    ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
-        # check if account locked
-        account_lock = await alert_if_userlock(ctx, 'account verify')
-        if account_lock:
-            await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
-            return
-        # end of check if account locked
-
-        if len(codes) != 6:
-            await ctx.reply(f'{ctx.author.mention} Incorrect code length.')
-            return
-
-        userinfo = await store.sql_discord_userinfo_get(str(ctx.author.id))
-        if userinfo is None:
-            await ctx.reply(f'{ctx.author.mention} You have not created 2FA code to scan yet.\n'
-                            'Please execute **account twofa** to generate 2FA scan code.')
-            return
-        else:
-            secret_code = None
-            verified = None
-            try:
-                verified = userinfo['twofa_verified']
-            except Exception as e:
-                await logchanbot(traceback.format_exc())
-            if verified and verified.upper() == "YES":
-                await ctx.reply(f'{ctx.author.mention} You already verified 2FA. You do not need this.')
-                return
-            
-            try:
-                secret_code = store.decrypt_string(userinfo['twofa_secret'])
-            except Exception as e:
-                await logchanbot(traceback.format_exc())
-
-            if secret_code and len(secret_code) > 0:
-                totp = pyotp.TOTP(secret_code, interval=30)
-                if codes in [totp.now(), totp.at(for_time=int(time.time()-15)), totp.at(for_time=int(time.time()+15))]:
-                    update_userinfo = await store.sql_userinfo_2fa_verify(str(ctx.author.id), 'YES')
-                    if update_userinfo:
-                        await ctx.reply(f'{ctx.author.mention} Thanks for verification with 2FA.')
-                        return
-                    else:
-                        await ctx.reply(f'{ctx.author.mention} Error verification 2FA.')
-                        return
-                else:
-                    await ctx.reply(f'{ctx.author.mention} Incorrect 2FA code. Please re-check.\n')
-                    return
-            else:
-                await ctx.reply(f'{ctx.author.mention} You have not created 2FA code to scan yet.\n'
-                                'Please execute **account twofa** to generate 2FA scan code.')
-                return
-
-
-    @account.command(
-        usage='acc unverify <code>', 
-        description="Unverify 2FA code from QR code."
-    )
-    async def unverify(
-        self, 
-        ctx, 
-        codes: str
-    ):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            await ctx.message.add_reaction(EMOJI_ERROR) 
-            await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
-            return
-
-        # check if account locked
-        account_lock = await alert_if_userlock(ctx, 'account verify')
-        if account_lock:
-            await ctx.message.add_reaction(EMOJI_LOCKED) 
-            await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
-            return
-        # end of check if account locked
-
-        if len(codes) != 6:
-            await ctx.reply(f'{ctx.author.mention} Incorrect code length.')
-            return
-
-        userinfo = await store.sql_discord_userinfo_get(str(ctx.author.id))
-        if userinfo is None:
-            await ctx.reply(f'{ctx.author.mention} You have not created 2FA code to scan yet.\n'
-                           'Nothing to **unverify**.')
-            return
-        else:
-            secret_code = None
-            verified = None
-            try:
-                verified = userinfo['twofa_verified']
-            except Exception as e:
-                await logchanbot(traceback.format_exc())
-            if verified and verified.upper() == "NO":
-                await ctx.reply(f'{ctx.author.mention} You have not verified yet. **Unverify** stopped.')
-                return
-            
-            try:
-                secret_code = store.decrypt_string(userinfo['twofa_secret'])
-            except Exception as e:
-                await logchanbot(traceback.format_exc())
-
-            if secret_code and len(secret_code) > 0:
-                totp = pyotp.TOTP(secret_code, interval=30)
-                if codes in [totp.now(), totp.at(for_time=int(time.time()-15)), totp.at(for_time=int(time.time()+15))]:
-                    update_userinfo = await store.sql_userinfo_2fa_verify(str(ctx.author.id), 'NO')
-                    if update_userinfo:
-                        await ctx.reply(f'{ctx.author.mention} You clear verification 2FA. You will need to add to your authentication program again later.')
-                        return
-                    else:
-                        await ctx.reply(f'{ctx.author.mention} Error unverify 2FA.')
-                        return
-                else:
-                    await ctx.reply(f'{ctx.author.mention} Incorrect 2FA code. Please re-check.\n')
-                    return
-            else:
-                await ctx.reply(f'{ctx.author.mention} You have not created 2FA code to scan yet.\n'
-                               'Nothing to **unverify**.')
                 return
 
 

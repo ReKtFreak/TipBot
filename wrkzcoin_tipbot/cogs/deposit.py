@@ -11,9 +11,11 @@ import qrcode
 import uuid
 from PIL import Image, ImageDraw, ImageFont
 
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice
+import disnake
+from disnake.ext import commands
+
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 import store
 from Bot import *
@@ -146,10 +148,10 @@ class Deposit(commands.Cog):
 
 
 
-    @inter_client.slash_command(usage="deposit <coin> [plain]",
+    @commands.slash_command(usage="deposit <coin> [plain]",
                                 options=[
-                                    Option('coin', 'Enter coin ticker/name', OptionType.STRING, required=True),
-                                    Option('option', 'plain/embed', OptionType.STRING, required=False, choices=[
+                                    Option('coin', 'Enter coin ticker/name', OptionType.string, required=True),
+                                    Option('option', 'plain/embed', OptionType.string, required=False, choices=[
                                         OptionChoice("plain", "plain"),
                                         OptionChoice("embed", "embed")
                                     ]
@@ -191,7 +193,7 @@ class Deposit(commands.Cog):
                     await ctx.reply(f"Your **{COIN_NAME}**\'s deposit address: ```{deposit_address}```", ephemeral=True)
                 else:
                     # embed
-                    embed = discord.Embed(title=f'Your Deposit {ctx.author.name}#{ctx.author.discriminator} / **{COIN_NAME}**', description='{}'.format(get_notice_txt(COIN_NAME)), timestamp=datetime.utcnow(), colour=7047495)
+                    embed = disnake.Embed(title=f'Your Deposit {ctx.author.name}#{ctx.author.discriminator} / **{COIN_NAME}**', description='{}'.format(get_notice_txt(COIN_NAME)), timestamp=datetime.utcnow(), colour=7047495)
                     embed.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar)
                     embed.add_field(name="{} Deposit Address".format(COIN_NAME), value=f"`{deposit_address}`", inline=False)
                     if wallet['user_wallet_address']:
@@ -241,12 +243,12 @@ class Deposit(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_MAINTENANCE)
                     pass
                 else:
-                    if isinstance(ctx.channel, discord.DMChannel):
+                    if isinstance(ctx.channel, disnake.DMChannel):
                         await ctx.message.add_reaction(EMOJI_WARNING)
                         await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}")
                     else:
-                        msg = await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}", components=[row_close_message])
-                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                        msg = await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}", view=RowButton_close_message())
+                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                     return
             else:
                 pass
@@ -255,46 +257,46 @@ class Deposit(commands.Cog):
             wallet = await self.get_deposit_coin_user(ctx.author.id, coin_name)
             if 'error' in wallet:
                 error_msg = wallet['error']
-                if isinstance(ctx.channel, discord.DMChannel):
+                if isinstance(ctx.channel, disnake.DMChannel):
                     await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.mention} {error_msg}")
                 else:
-                    msg = await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.mention} {error_msg}", components=[row_close_message])
-                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                    msg = await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.mention} {error_msg}", view=RowButton_close_message())
+                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 return
 
             deposit_address = wallet['balance_wallet_address']
             # generate QR if not exists
             gen_qr_address = await self.generate_qr_address(deposit_address)
             if gen_qr_address is None:
-                if isinstance(ctx.channel, discord.DMChannel):
+                if isinstance(ctx.channel, disnake.DMChannel):
                     msg = await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.mention} Failed to generate QR.")
                 else:
-                    msg = await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.mention} Failed to generate QR.", components=[row_close_message])
-                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                    msg = await ctx.reply(f"{EMOJI_RED_NO} {ctx.author.mention} Failed to generate QR.", view=RowButton_close_message())
+                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 return
 
             if option and option.upper() in ["PLAIN", "TEXT", "NOEMBED"]:
                 try:
                     msg = await ctx.reply(f'{ctx.author.mention} Your **{COIN_NAME}**\'s deposit address: ```{deposit_address}```')
                     return
-                except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                    if isinstance(ctx.channel, discord.DMChannel) == False:
+                except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
+                    if isinstance(ctx.channel, disnake.DMChannel) == False:
                         try:
                             msg = await ctx.author.send(f'{ctx.author.mention} Your **{COIN_NAME}**\'s deposit address: ```{deposit_address}```')
                             return
-                        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                             await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                             return
                     else:
                         await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                         return
             elif option is None or (option and option.lower() == "embed"):
-                embed = discord.Embed(title=f'Your Deposit {ctx.author.name}#{ctx.author.discriminator} / **{COIN_NAME}**', description='{}'.format(get_notice_txt(COIN_NAME)), timestamp=datetime.utcnow(), colour=7047495)
+                embed = disnake.Embed(title=f'Your Deposit {ctx.author.name}#{ctx.author.discriminator} / **{COIN_NAME}**', description='{}'.format(get_notice_txt(COIN_NAME)), timestamp=datetime.utcnow(), colour=7047495)
                 embed.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar)
                 embed.add_field(name="{} Deposit Address".format(COIN_NAME), value=f"`{deposit_address}`", inline=False)
-                if 'user_wallet_address' in wallet and wallet['user_wallet_address'] and isinstance(ctx.channel, discord.DMChannel) == True:
+                if 'user_wallet_address' in wallet and wallet['user_wallet_address'] and isinstance(ctx.channel, disnake.DMChannel) == True:
                     embed.add_field(name="Withdraw Address", value="`{}`".format(wallet['user_wallet_address']), inline=False)
-                elif 'user_wallet_address' in wallet and wallet['user_wallet_address'] and isinstance(ctx.channel, discord.DMChannel) == False:
+                elif 'user_wallet_address' in wallet and wallet['user_wallet_address'] and isinstance(ctx.channel, disnake.DMChannel) == False:
                     embed.add_field(name="Withdraw Address", value="`(Only in DM)`", inline=False)
                 if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
                     token_info = await store.get_token_info(COIN_NAME)
@@ -308,14 +310,14 @@ class Deposit(commands.Cog):
                 prefix = await get_guild_prefix(ctx)
                 embed.set_footer(text=f"Use:{prefix}deposit {COIN_NAME} plain (for plain text)")
                 try:
-                    if isinstance(ctx.channel, discord.DMChannel):
+                    if isinstance(ctx.channel, disnake.DMChannel):
                         msg = await ctx.reply(embed=embed)
                     else:
-                        msg = await ctx.reply(embed=embed, components=[row_close_message])
-                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                        msg = await ctx.reply(embed=embed, view=RowButton_close_message())
+                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                     return
-                except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                    if not isinstance(ctx.channel, discord.DMChannel):
+                except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
+                    if not isinstance(ctx.channel, disnake.DMChannel):
                         await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
         except Exception as e:
             traceback.print_exc(file=sys.stdout)

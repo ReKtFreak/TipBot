@@ -6,10 +6,11 @@ import traceback
 from datetime import datetime
 import random
 
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice, SlashInteraction
-import dislash
+import disnake
+from disnake.ext import commands
+
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 import store
 from Bot import *
@@ -47,9 +48,6 @@ class Games(commands.Cog):
             )
         )
         prefix = await get_guild_prefix(ctx)
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} Not available in this guild."}
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
@@ -85,7 +83,7 @@ class Games(commands.Cog):
                 if ctx.channel.id != int(serverinfo[index_game]):
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan: return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **blackjack** channel!!!"}
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             # Can not message, return
             return
         except Exception as e:
@@ -97,10 +95,10 @@ class Games(commands.Cog):
         count_played_free = await store.sql_game_count_user(str(ctx.author.id), config.game.duration_24h, SERVER_BOT, True)
         if count_played and count_played >= config.game.max_daily_play:
             free_game = True
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
 
         if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
             return {"error": f"{ctx.author.mention} You are ongoing with one **game** play."}
 
         game_text = '''
@@ -115,8 +113,8 @@ class Games(commands.Cog):
 
         try:
             await ctx.reply(f'{ctx.author.mention} ```{game_text}```')
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
             # Can not message, return
             return
 
@@ -134,13 +132,13 @@ class Games(commands.Cog):
         while not game_over:
             # check if bot is going to restart
             if IS_RESTARTING:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_REFRESH)
+                if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_REFRESH)
                 await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
                 return
             while not player_over:  # Keep looping until player stands or busts.
                 # check if bot is going to restart
                 if IS_RESTARTING:
-                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_REFRESH)
+                    if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_REFRESH)
                     await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
                     return
                 get_display = blackjack_displayHands(playerHand, dealerHand, False)
@@ -291,9 +289,6 @@ class Games(commands.Cog):
     ):
         await self.bot_log()
         prefix = await get_guild_prefix(ctx)
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} Not available in this guild."}
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
@@ -336,7 +331,7 @@ class Games(commands.Cog):
         count_played_free = await store.sql_game_count_user(str(ctx.author.id), config.game.duration_24h, SERVER_BOT, True)
         if count_played and count_played >= config.game.max_daily_play:
             free_game = True
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
 
         # Portion from https://github.com/MitchellAW/Discord-Bot/blob/master/features/rng.py
         slots = ['chocolate_bar', 'bell', 'tangerine', 'apple', 'cherries', 'seven']
@@ -389,7 +384,7 @@ class Games(commands.Cog):
         except Exception as e:
             await logchanbot(traceback.format_exc())
 
-        embed = discord.Embed(title="TIPBOT FREE SLOT ({} REWARD)".format("WITHOUT" if free_game else "WITH"), description="Anyone can freely play!", color=0x00ff00)
+        embed = disnake.Embed(title="TIPBOT FREE SLOT ({} REWARD)".format("WITHOUT" if free_game else "WITH"), description="Anyone can freely play!", color=0x00ff00)
         embed.add_field(name="Player", value="{}#{}".format(ctx.author.name, ctx.author.discriminator), inline=False)
         embed.add_field(name="Last 24h you played", value=str(count_played_free+count_played+1), inline=False)
         embed.add_field(name="Result", value=slotOutput, inline=False)
@@ -401,7 +396,7 @@ class Games(commands.Cog):
         else:
             embed.set_footer(text="Randomed Coin: {}".format(config.game.coin_game))
         try:
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
             if ctx.author.id in GAME_SLOT_IN_PRGORESS:
                 GAME_SLOT_IN_PRGORESS.remove(ctx.author.id)
             msg = await ctx.reply(embed=embed)
@@ -412,9 +407,9 @@ class Games(commands.Cog):
                 await asyncio.sleep(5)
                 try:
                     await msg.delete()
-                except discord.errors.NotFound as e:
+                except disnake.errors.NotFound as e:
                     pass
-        except (discord.errors.NotFound, discord.errors.Forbidden, discord.errors.NotFound) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden, disnake.errors.NotFound) as e:
             pass
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
@@ -429,9 +424,6 @@ class Games(commands.Cog):
     ):
         await self.bot_log()
         prefix = await get_guild_prefix(ctx)
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} Not available in this guild."}
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
@@ -459,7 +451,7 @@ class Games(commands.Cog):
                 if ctx.channel.id != int(serverinfo[index_game]):
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan: return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **maze** channel!!!"}
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             # No permission, return
             return
         except Exception as e:
@@ -473,7 +465,7 @@ class Games(commands.Cog):
         count_played = await store.sql_game_count_user(str(ctx.author.id), config.game.duration_24h, SERVER_BOT, False)
         if count_played and count_played >= config.game.max_daily_play:
             free_game = True
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
 
         # Make random height and width
         try:
@@ -508,7 +500,7 @@ class Games(commands.Cog):
             if ctx.guild.id not in GAME_MAZE_IN_PROCESS:
                 GAME_MAZE_IN_PROCESS.append(ctx.guild.id)
             else:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+                if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
                 return {"error": f"{ctx.author.mention} There is one **MAZE** started by a user in this guild already."}
             WALL = '#'
             WIDTH = random.choice([25, 27, 29, 31, 33, 35])
@@ -668,9 +660,6 @@ class Games(commands.Cog):
     ):
         await self.bot_log()
         prefix = await get_guild_prefix(ctx)
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} Not available in this guild."}
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
@@ -699,7 +688,7 @@ class Games(commands.Cog):
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan:
                         return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **dice** channel!!!"}
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             # No permission, return
             return
         except Exception as e:
@@ -711,7 +700,7 @@ class Games(commands.Cog):
         count_played_free = await store.sql_game_count_user(str(ctx.author.id), config.game.duration_24h, SERVER_BOT, True)
         if count_played and count_played >= config.game.max_daily_play:
             free_game = True
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
 
         won = False
         game_text = '''A player rolls two dice. Each die has six faces. 
@@ -799,8 +788,8 @@ class Games(commands.Cog):
             except Exception as e:
                 traceback.print_exc(file=sys.stdout)
                 await logchanbot(traceback.format_exc())
-        except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+        except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
         except Exception as e:
             await logchanbot(traceback.format_exc())
         if ctx.author.id in GAME_DICE_IN_PRGORESS:
@@ -814,10 +803,6 @@ class Games(commands.Cog):
     ):
         await self.bot_log()
         prefix = await get_guild_prefix(ctx)
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} Not available in this guild."}
-
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
@@ -846,7 +831,7 @@ class Games(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan: return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **snail** channel!!!"}
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             # No permission, return
             return
         except Exception as e:
@@ -861,7 +846,7 @@ class Games(commands.Cog):
         count_played_free = await store.sql_game_count_user(str(ctx.author.id), config.game.duration_24h, SERVER_BOT, True)
         if count_played and count_played >= config.game.max_daily_play:
             free_game = True
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
 
         time_start = int(time.time())
         won = False
@@ -1005,10 +990,6 @@ class Games(commands.Cog):
     ):
         await self.bot_log()
         prefix = await get_guild_prefix(ctx)
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} Not available in this guild."}
-
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
@@ -1035,7 +1016,7 @@ class Games(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan: return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **2048** channel!!!"}
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             # No permission, error
             return
         except Exception as e:
@@ -1052,7 +1033,7 @@ class Games(commands.Cog):
         count_played_free = await store.sql_game_count_user(str(ctx.author.id), config.game.duration_24h, SERVER_BOT, True)
         if count_played and count_played >= config.game.max_daily_play:
             free_game = True
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
 
         won = False
         score = 0
@@ -1111,7 +1092,7 @@ class Games(commands.Cog):
             while not game_over:
                 try:
                     if inter_msg == False: await msg.edit(content=f'{ctx.author.mention}```GAME 2048\n{board}```Your score: **{score}**', components=[row])
-                except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                     if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                         GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
                     await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} **GAME 2048** was deleted or I can not find it. Game stop!')
@@ -1121,7 +1102,7 @@ class Games(commands.Cog):
                 score = g2048_getScore(gameBoard)
 
                 if IS_RESTARTING:
-                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_REFRESH)
+                    if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_REFRESH)
                     await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is going to restart soon. Wait until it is back for using this.')
                     return
 
@@ -1232,10 +1213,6 @@ class Games(commands.Cog):
     ):
         await self.bot_log()
         prefix = await get_guild_prefix(ctx)
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} Not available in this guild."}
-
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}game** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
@@ -1260,7 +1237,7 @@ class Games(commands.Cog):
                     await ctx.message.add_reaction(EMOJI_ERROR)
                     gameChan = self.bot.get_channel(int(serverinfo[index_game]))
                     if gameChan: return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **sokoban** channel!!!"}
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             # No permission, return
             return
         except Exception as e:
@@ -1277,7 +1254,7 @@ class Games(commands.Cog):
         count_played_free = await store.sql_game_count_user(str(ctx.author.id), config.game.duration_24h, SERVER_BOT, True)
         if count_played and count_played >= config.game.max_daily_play:
             free_game = True
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
 
         # Set up the constants:
         WIDTH = 'width'
@@ -1383,7 +1360,7 @@ class Games(commands.Cog):
             currentLevel = loadLevel(get_level['template_str'])
             display_level = displayLevel(currentLevel)
 
-            embed = discord.Embed(title=f'SOKOBAN GAME {ctx.author.name}#{ctx.author.discriminator}', description='**SOKOBAN GAME** starts...', timestamp=datetime.utcnow(), colour=7047495)
+            embed = disnake.Embed(title=f'SOKOBAN GAME {ctx.author.name}#{ctx.author.discriminator}', description='**SOKOBAN GAME** starts...', timestamp=datetime.utcnow(), colour=7047495)
             embed.add_field(name="LEVEL", value=f'{level}')
             embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", 
                             "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
@@ -1431,7 +1408,7 @@ class Games(commands.Cog):
                     return
 
                 display_level = displayLevel(currentLevel)
-                embed = discord.Embed(title=f'SOKOBAN GAME {ctx.author.name}#{ctx.author.discriminator}', description=f'{display_level}', timestamp=datetime.utcnow(), colour=7047495)
+                embed = disnake.Embed(title=f'SOKOBAN GAME {ctx.author.name}#{ctx.author.discriminator}', description=f'{display_level}', timestamp=datetime.utcnow(), colour=7047495)
                 embed.add_field(name="LEVEL", value=f'{level}')
                 embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", 
                                 "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
@@ -1440,7 +1417,7 @@ class Games(commands.Cog):
                         await msg.edit(embed=embed, components=[row])
                     else:
                         await inter.create_response(embed=embed, components=[row], type=dislash.ResponseType.UpdateMessage)
-                except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                     if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                         GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
                     return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} **GAME SOKOBAN** was deleted or I can not find it. Game stop!"}
@@ -1595,7 +1572,7 @@ class Games(commands.Cog):
 
                     except Exception as e: # edit
                         await logchanbot(traceback.format_exc())
-                    embed = discord.Embed(title=f'SOKOBAN GAME FINISHED {ctx.author.name}#{ctx.author.discriminator}', description=f'{display_level}', timestamp=datetime.utcnow(), colour=7047495)
+                    embed = disnake.Embed(title=f'SOKOBAN GAME FINISHED {ctx.author.name}#{ctx.author.discriminator}', description=f'{display_level}', timestamp=datetime.utcnow(), colour=7047495)
                     embed.add_field(name="LEVEL", value=f'{level}')
                     duration = seconds_str(int(time.time()) - time_start)
                     embed.add_field(name="DURATION", value=f'{duration}')
@@ -1616,7 +1593,7 @@ class Games(commands.Cog):
             GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
 
 
-    @inter_client.slash_command(description="Various game commands.")
+    @commands.slash_command(description="Various game commands.")
     async def game(self, ctx):
         pass
 
@@ -1688,7 +1665,7 @@ class Games(commands.Cog):
     @game.sub_command(
         usage="game snail <bet number>", 
         options=[
-            Option('bet_numb', 'bet_numb', OptionType.INTEGER, required=True)
+            Option('bet_numb', 'bet_numb', OptionType.integer, required=True)
         ],
         description="Snail racing game. You bet which one."
     )
@@ -1748,12 +1725,6 @@ class Games(commands.Cog):
     )
     async def game(self, ctx):
         await self.bot_log()
-
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            await ctx.message.add_reaction(EMOJI_LOCKED)
-            return
-
         # bot check in the first place
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
@@ -1761,7 +1732,7 @@ class Games(commands.Cog):
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} (Bot) using **game** {ctx.guild.name} / {ctx.guild.id}')
             return
 
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} No, not working with DM.')
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried using **game** in **DM**')
@@ -1774,7 +1745,7 @@ class Games(commands.Cog):
                 await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **game** in {ctx.guild.name} / {ctx.guild.id} which is disable.')
                 await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, **Game** in this guild is disable.')
                 return
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             pass
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
@@ -1799,15 +1770,9 @@ class Games(commands.Cog):
     )
     async def stat(self, ctx):
         await self.bot_log()
-
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            await ctx.message.add_reaction(EMOJI_LOCKED)
-            return
-
         get_game_stat = await store.sql_game_stat()
         if get_game_stat and len(get_game_stat) > 0:   
-            stat = discord.Embed(title='TipBot Game Stat', description='', timestamp=datetime.utcnow(), colour=7047495)
+            stat = disnake.Embed(title='TipBot Game Stat', description='', timestamp=datetime.utcnow(), colour=7047495)
             stat.add_field(name='Total Plays', value='{}'.format(get_game_stat['paid_play']+get_game_stat['free_play']), inline=True)
             stat.add_field(name='Total Free Plays', value='{}'.format(get_game_stat['free_play']), inline=True)
             stat.add_field(name='Total Paid Plays', value='{}'.format(get_game_stat['paid_play']), inline=True)
@@ -1858,13 +1823,7 @@ class Games(commands.Cog):
     )
     async def bagel(self, ctx):
         await self.bot_log()
-
         # TODO: play in DM only
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            await ctx.message.add_reaction(EMOJI_LOCKED)
-            return
-
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             prefix = serverinfo['prefix']
@@ -1897,7 +1856,7 @@ class Games(commands.Cog):
                     if gameChan:
                         await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **bagel** channel!!!')
                         return
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             pass
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
@@ -2044,7 +2003,7 @@ class Games(commands.Cog):
                     if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                         GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
                     return
-        except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+        except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
         if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
@@ -2060,11 +2019,6 @@ class Games(commands.Cog):
         await self.bot_log()
 
         # TODO: play in DM only
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            await ctx.message.add_reaction(EMOJI_LOCKED)
-            return
-
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             prefix = serverinfo['prefix']
@@ -2097,7 +2051,7 @@ class Games(commands.Cog):
                     if gameChan:
                         await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **bagel** channel!!!')
                         return
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             pass
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
@@ -2271,7 +2225,7 @@ class Games(commands.Cog):
                     if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                         GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
                     return
-        except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+        except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
         if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
@@ -2287,10 +2241,6 @@ class Games(commands.Cog):
         await self.bot_log()
 
         # TODO: play in DM only
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            await ctx.message.add_reaction(EMOJI_LOCKED)
-            return
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
@@ -2324,7 +2274,7 @@ class Games(commands.Cog):
                     if gameChan:
                         await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **bagel** channel!!!')
                         return
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             pass
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
@@ -2506,7 +2456,7 @@ class Games(commands.Cog):
                     if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
                         GAME_INTERACTIVE_PRGORESS.remove(ctx.author.id)
                     return
-        except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+        except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
         if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
@@ -2536,11 +2486,6 @@ class Games(commands.Cog):
         await self.bot_log()
 
         # TODO: play in DM only
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            await ctx.message.add_reaction(EMOJI_LOCKED)
-            return
-
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_game' in serverinfo and serverinfo['enable_game'] == "NO":
             prefix = serverinfo['prefix']
@@ -2573,7 +2518,7 @@ class Games(commands.Cog):
                     if gameChan:
                         await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {gameChan.mention} is for game **hangman** channel!!!')
                         return
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             pass
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
@@ -2723,7 +2668,7 @@ class Games(commands.Cog):
                             hm_missed = hm_draw['missed_letter']
                             hm_word_line = hm_draw['word_line']
                             await ctx.reply(f'{ctx.author.mention} ```{hm_picture}\n\n{hm_word_line}\n{hm_missed}```')
-        except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+        except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
             await ctx.message.add_reaction(EMOJI_ERROR)
             return
         if ctx.author.id in GAME_INTERACTIVE_PRGORESS:
@@ -2873,7 +2818,7 @@ class Games(commands.Cog):
         currentLevel = loadLevel(get_level['template_str'])
         display_level = displayLevel(currentLevel)
 
-        embed = discord.Embed(title=f'SOKOBAN GAME TEST RUN {ctx.author.name}#{ctx.author.discriminator}', description=f'{display_level}', timestamp=datetime.utcnow(), colour=7047495)
+        embed = disnake.Embed(title=f'SOKOBAN GAME TEST RUN {ctx.author.name}#{ctx.author.discriminator}', description=f'{display_level}', timestamp=datetime.utcnow(), colour=7047495)
         embed.add_field(name="LEVEL", value=f'{level}')
         embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", 
                         "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)

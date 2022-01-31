@@ -1,7 +1,7 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from config import config
 from Bot import *
@@ -24,12 +24,12 @@ class Stats(commands.Cog):
     ):
         COIN_NAME = None
         serverinfo = None
-        if coin is None and isinstance(ctx.message.channel, discord.DMChannel) == False:
+        if coin is None and isinstance(ctx.message.channel, disnake.DMChannel) == False:
             serverinfo = await get_info_pref_coin(ctx)
             COIN_NAME = serverinfo['default_coin'].upper()
-        elif coin is None and isinstance(ctx.message.channel, discord.DMChannel):
+        elif coin is None and isinstance(ctx.message.channel, disnake.DMChannel):
             COIN_NAME = "BOT"
-        elif coin and isinstance(ctx.message.channel, discord.DMChannel) == False:
+        elif coin and isinstance(ctx.message.channel, disnake.DMChannel) == False:
             serverinfo = await get_info_pref_coin(ctx)
             COIN_NAME = coin.upper()
         elif coin:
@@ -38,10 +38,6 @@ class Stats(commands.Cog):
         if COIN_NAME not in (ENABLE_COIN+ENABLE_XMR+ENABLE_COIN_ERC+ENABLE_COIN_TRC) and COIN_NAME != "BOT":
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.reply(f'{ctx.author.mention} Unsupported or Unknown Ticker: **{COIN_NAME}**')
-            return
-
-        # TRTL discord
-        if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild.id == TRTL_DISCORD and COIN_NAME != "TRTL":
             return
 
         if is_maintenance_coin(COIN_NAME) and (ctx.author.id not in MAINTENANCE_OWNER):
@@ -54,13 +50,13 @@ class Stats(commands.Cog):
         if COIN_NAME == "BOT":
             total_claimed = '{:,.0f}'.format(await store.sql_faucet_count_all())
             total_tx = await store.sql_count_tx_all()
-            embed = discord.Embed(title="[ TIPBOT ]", description="TipBot Stats", timestamp=datetime.utcnow(), color=0xDEADBF)
+            embed = disnake.Embed(title="[ TIPBOT ]", description="TipBot Stats", timestamp=datetime.utcnow(), color=0xDEADBF)
             embed.set_author(name=self.bot.user.name, icon_url=self.bot.user.display_avatar)
             embed.add_field(name="Bot ID", value=str(self.bot.user.id), inline=True)
             embed.add_field(name="Guilds", value='{:,.0f}'.format(len(bot.guilds)), inline=True)
             embed.add_field(name="Shards", value='{:,.0f}'.format(self.bot.shard_count), inline=True)
             try:
-                embed.add_field(name="Total Online", value='{:,.0f}'.format(sum(1 for m in self.bot.get_all_members() if m.status == discord.Status.online)), inline=True)
+                embed.add_field(name="Total Online", value='{:,.0f}'.format(sum(1 for m in self.bot.get_all_members() if m.status == disnake.Status.online)), inline=True)
                 embed.add_field(name="Users", value='{:,.0f}'.format(sum(1 for m in self.bot.get_all_members() if m.bot == False)), inline=True)
                 embed.add_field(name="Bots", value='{:,.0f}'.format(sum(1 for m in self.bot.get_all_members() if m.bot == True)), inline=True)
             except Exception as e:
@@ -79,7 +75,7 @@ class Stats(commands.Cog):
             try:
                 msg = await ctx.reply(embed=embed)
                 await msg.add_reaction(EMOJI_OK_BOX)
-            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+            except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                 await logchanbot(traceback.format_exc())
                 await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
             return
@@ -138,7 +134,7 @@ class Stats(commands.Cog):
             if coin_family == "XMR":
                 desc = f"Tip min/max: {num_format_coin(get_min_mv_amount(COIN_NAME), COIN_NAME)}-{num_format_coin(get_max_mv_amount(COIN_NAME), COIN_NAME)} {COIN_NAME}\n"
                 desc += f"Tx min/max: {num_format_coin(get_min_tx_amount(COIN_NAME), COIN_NAME)}-{num_format_coin(get_max_tx_amount(COIN_NAME), COIN_NAME)} {COIN_NAME}\n"
-                embed = discord.Embed(title=f"[ {COIN_NAME} ]", 
+                embed = disnake.Embed(title=f"[ {COIN_NAME} ]", 
                                       description=desc, 
                                       timestamp=datetime.utcnow(), color=0xDEADBF)
                 embed.set_author(name=self.bot.user.name, icon_url=self.bot.user.display_avatar)
@@ -163,7 +159,7 @@ class Stats(commands.Cog):
                 try:
                     msg = await ctx.reply(embed=embed)
                     await msg.add_reaction(EMOJI_OK_BOX)
-                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                     # if embedded denied
                     msg = await ctx.reply(f'**[ {COIN_NAME} ]**\n'
                                    f'```[NETWORK HEIGHT] {height}\n'
@@ -189,7 +185,7 @@ class Stats(commands.Cog):
                         walletBalance = await get_sum_balances(COIN_NAME)
                 desc = f"Tip min/max: {num_format_coin(get_min_mv_amount(COIN_NAME), COIN_NAME)}-{num_format_coin(get_max_mv_amount(COIN_NAME), COIN_NAME)} {COIN_NAME}\n"
                 desc += f"Tx min/max: {num_format_coin(get_min_tx_amount(COIN_NAME), COIN_NAME)}-{num_format_coin(get_max_tx_amount(COIN_NAME), COIN_NAME)} {COIN_NAME}\n"
-                embed = discord.Embed(title=f"[ {COIN_NAME} ]", 
+                embed = disnake.Embed(title=f"[ {COIN_NAME} ]", 
                                       description=desc, 
                                       timestamp=datetime.utcnow(), color=0xDEADBF)
                 embed.set_author(name=self.bot.user.name, icon_url=self.bot.user.display_avatar)
@@ -211,7 +207,7 @@ class Stats(commands.Cog):
                 try:
                     msg = await ctx.reply(embed=embed)
                     await msg.add_reaction(EMOJI_OK_BOX)
-                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                     # if embedded denied
                     balance_str = ''
                     if walletBalance and ('unlocked' in walletBalance) and ('locked' in walletBalance) and walletStatus:
@@ -255,7 +251,7 @@ class Stats(commands.Cog):
                     walletBalance = await get_sum_balances(COIN_NAME)     
                 desc = f"Tip min/max: {num_format_coin(get_min_mv_amount(COIN_NAME), COIN_NAME)}-{num_format_coin(get_max_mv_amount(COIN_NAME), COIN_NAME)} {COIN_NAME}\n"
                 desc += f"Tx min/max: {num_format_coin(get_min_tx_amount(COIN_NAME), COIN_NAME)}-{num_format_coin(get_max_tx_amount(COIN_NAME), COIN_NAME)} {COIN_NAME}\n"
-                embed = discord.Embed(title=f"[ {COIN_NAME} ]", 
+                embed = disnake.Embed(title=f"[ {COIN_NAME} ]", 
                                       description=desc, 
                                       timestamp=datetime.utcnow(), color=0xDEADBF)
                 embed.set_author(name=self.bot.user.name, icon_url=self.bot.user.display_avatar)
@@ -273,7 +269,7 @@ class Stats(commands.Cog):
                 try:
                     msg = await ctx.reply(embed=embed)
                     await msg.add_reaction(EMOJI_OK_BOX)
-                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                     # if embedded denied
                     balance_str = ''
                     if ('unlocked' in walletBalance) and ('locked' in walletBalance):
@@ -301,7 +297,7 @@ class Stats(commands.Cog):
                 token_info = await store.get_token_info(COIN_NAME)
                 desc = f"Tip min/max: {num_format_coin(token_info['real_min_tip'], COIN_NAME)}-{num_format_coin(token_info['real_max_tip'], COIN_NAME)} {COIN_NAME}\n"
                 desc += f"Tx min/max: {num_format_coin(token_info['real_min_tx'], COIN_NAME)}-{num_format_coin(token_info['real_max_tx'], COIN_NAME)} {COIN_NAME}\n"
-                embed = discord.Embed(title=f"[ {COIN_NAME} ]", 
+                embed = disnake.Embed(title=f"[ {COIN_NAME} ]", 
                                       description=desc, 
                                       timestamp=datetime.utcnow(), color=0xDEADBF)
                 embed.set_author(name=self.bot.user.name, icon_url=self.bot.user.display_avatar)
@@ -323,7 +319,7 @@ class Stats(commands.Cog):
                 try:
                     msg = await ctx.reply(embed=embed)
                     await msg.add_reaction(EMOJI_OK_BOX)
-                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                     pass
             except Exception as e:
                 await ctx.message.add_reaction(EMOJI_ERROR)
@@ -334,7 +330,7 @@ class Stats(commands.Cog):
                 token_info = await store.get_token_info(COIN_NAME)
                 desc = f"Tip min/max: {num_format_coin(token_info['real_min_tip'], COIN_NAME)}-{num_format_coin(token_info['real_max_tip'], COIN_NAME)} {COIN_NAME}\n"
                 desc += f"Tx min/max: {num_format_coin(token_info['real_min_tx'], COIN_NAME)}-{num_format_coin(token_info['real_max_tx'], COIN_NAME)} {COIN_NAME}\n"
-                embed = discord.Embed(title=f"[ {COIN_NAME} ]", 
+                embed = disnake.Embed(title=f"[ {COIN_NAME} ]", 
                                       description=desc, 
                                       timestamp=datetime.utcnow(), color=0xDEADBF)
                 embed.set_author(name=self.bot.user.name, icon_url=self.bot.user.display_avatar)
@@ -355,7 +351,7 @@ class Stats(commands.Cog):
                 try:
                     msg = await ctx.reply(embed=embed)
                     await msg.add_reaction(EMOJI_OK_BOX)
-                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                     pass
             except Exception as e:
                 await ctx.message.add_reaction(EMOJI_ERROR)

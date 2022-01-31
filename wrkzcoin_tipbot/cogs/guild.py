@@ -7,10 +7,11 @@ from datetime import datetime
 import random
 import qrcode
 
-import discord
-from discord.ext import tasks, commands
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice, SlashInteraction
-import dislash
+import disnake
+from disnake.ext import tasks, commands
+
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 import store
 from Bot import *
@@ -141,7 +142,7 @@ class Guild(commands.Cog):
                                     won_amounts.append(float(total_reward) * 0.19)
                                     won_amounts.append(float(total_reward) * 0.01)
                                     update_status = await store.raffle_update_id(each_raffle['id'], 'COMPLETED', list_winners, won_amounts)
-                                    embed = discord.Embed(title = "RAFFLE #{} / {}".format(each_raffle['id'], each_raffle['guild_name']), color = 0xFF0000, timestamp=datetime.utcnow())
+                                    embed = disnake.Embed(title = "RAFFLE #{} / {}".format(each_raffle['id'], each_raffle['guild_name']), color = 0xFF0000, timestamp=datetime.utcnow())
                                     embed.add_field(name="ENTRY FEE", value="{} {}".format(num_format_coin(each_raffle['amount'], each_raffle['coin_name']), each_raffle['coin_name']), inline=True)
                                     embed.add_field(name="1st WINNER: {}".format(winner_1_name), value="{} {}".format(num_format_coin(won_amounts[0], each_raffle['coin_name']), each_raffle['coin_name']), inline=False)
                                     embed.add_field(name="2nd WINNER: {}".format(winner_2_name), value="{} {}".format(num_format_coin(won_amounts[1], each_raffle['coin_name']), each_raffle['coin_name']), inline=False)
@@ -170,7 +171,7 @@ class Guild(commands.Cog):
                                             if user_found:
                                                 try:
                                                     await user_found.send(embed=embed)
-                                                except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                                                except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                                                     traceback.print_exc(file=sys.stdout)
                                                     await logchanbot(f"[Discord]/Raffle can not message to {user_found.name}#{user_found.discriminator} about winning raffle.")
                                                 # TODO update alert win
@@ -199,7 +200,7 @@ class Guild(commands.Cog):
         duration: str
     ):
         await self.bot_log()
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         prefix = await get_guild_prefix(ctx)
@@ -221,7 +222,7 @@ class Guild(commands.Cog):
         duration = duration.upper()
 
         try:
-            num_online = len([member for member in ctx.guild.members if member.bot == False and member.status != discord.Status.offline])
+            num_online = len([member for member in ctx.guild.members if member.bot == False and member.status != disnake.Status.offline])
             if num_online < config.raffle.min_useronline and config.raffle.test_mode != 1:
                 return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Your guild needs to have at least: {str(config.raffle.min_useronline)} users online!"}
         except Exception as e:
@@ -304,7 +305,7 @@ class Guild(commands.Cog):
         subc: str=None
     ):
         await self.bot_log()
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         prefix = await get_guild_prefix(ctx)
@@ -339,7 +340,7 @@ class Guild(commands.Cog):
         if subc == "INFO":
             try:
                 ending_ts = datetime.utcfromtimestamp(int(get_raffle['ending_ts']))
-                embed = discord.Embed(title = "RAFFLE #{} / {}".format(get_raffle['id'], ctx.guild.name), color = 0xFF0000, timestamp=ending_ts)
+                embed = disnake.Embed(title = "RAFFLE #{} / {}".format(get_raffle['id'], ctx.guild.name), color = 0xFF0000, timestamp=ending_ts)
                 embed.add_field(name="ENTRY FEE", value="{} {}".format(num_format_coin(get_raffle['amount'], get_raffle['coin_name']), get_raffle['coin_name']), inline=True)
                 create_ts = datetime.utcfromtimestamp(int(get_raffle['created_ts'])).strftime("%Y-%m-%d %H:%M:%S")
                 create_ts_ago = str(timeago.format(create_ts, datetime.utcnow()))
@@ -468,12 +469,8 @@ class Guild(commands.Cog):
         coin: str
     ):
         await self.bot_log()
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
-
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} Not available in this guild."}
 
         COIN_NAME = coin.upper()
         if not is_coin_tipable(COIN_NAME):
@@ -551,20 +548,20 @@ class Guild(commands.Cog):
             MaxTx = get_max_mv_amount(COIN_NAME)
 
         if real_amount > MaxTx:
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be bigger than {num_format_coin(MaxTx, COIN_NAME)} {COIN_NAME}."}
         elif real_amount > actual_balance:
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Insufficient balance to transfer {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME} to this guild **{ctx.guild.name}**."}
         elif real_amount < MinTx:
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Transactions cannot be smaller than {num_format_coin(MinTx, COIN_NAME)} {COIN_NAME}."}
 
         # add queue also tip
         if ctx.author.id not in TX_IN_PROCESS:
             TX_IN_PROCESS.append(ctx.author.id)
         else:
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
             return {"error": f"{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress."}
 
         tip = None
@@ -599,7 +596,7 @@ class Guild(commands.Cog):
             except Exception as e:
                 traceback.print_exc(file=sys.stdout)
                 await logchanbot(traceback.format_exc())
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+            if type(ctx) is not disnake.interactions.MessageInteraction:
                 await ctx.message.add_reaction(get_emoji(COIN_NAME))
             # tipper shall always get DM. Ignore notifyList
             try:
@@ -619,11 +616,11 @@ class Guild(commands.Cog):
                         await user_found.send(f'{EMOJI_MONEYFACE} Your guild **{ctx.guild.name}** got a deposit of **{num_format_coin(real_amount, COIN_NAME)} '
                                               f'{COIN_NAME}** from {ctx.author.name}#{ctx.author.discriminator} in `#{ctx.channel.name}`\n'
                                               f'{NOTIFICATION_OFF_CMD}\n')
-                    except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                    except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                         await store.sql_toggle_tipnotify(str(member.id), "OFF")
             return {"result": True}
         else:
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+            if type(ctx) is not disnake.interactions.MessageInteraction:
                 await ctx.message.add_reaction(EMOJI_ERROR)
             # add to failed tx table
             await store.sql_add_failed_tx(COIN_NAME, str(ctx.author.id), ctx.author.name, real_amount, "TIP")
@@ -638,19 +635,16 @@ class Guild(commands.Cog):
     ):
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         prefix = await get_guild_prefix(ctx)
         COIN_NAME = coin_name.upper()
-        # disable guild tip for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return {"error": f"{EMOJI_LOCKED} Not available in this guild."}
 
         # Check if maintenance
         if IS_MAINTENANCE == 1:
             if int(ctx.author.id) in MAINTENANCE_OWNER:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     await ctx.message.add_reaction(EMOJI_MAINTENANCE)
                 pass
             else:
@@ -675,7 +669,7 @@ class Guild(commands.Cog):
             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER**"}
 
         if is_maintenance_coin(COIN_NAME) and (ctx.author.id not in MAINTENANCE_OWNER):
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_MAINTENANCE)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_MAINTENANCE)
             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance."}
 
         if coin_family in ["TRTL", "BCN"]:
@@ -752,12 +746,12 @@ class Guild(commands.Cog):
             try:
                 msg = await ctx.reply(f'{ctx.author.mention} Guild {ctx.guild.name} **{COIN_NAME}**\'s deposit address (not yours): ```{deposit}```')
                 await msg.add_reaction(EMOJI_OK_BOX)
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_OK_HAND)
-            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
+                if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_OK_HAND)
+            except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
+                if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
             return
 
-        embed = discord.Embed(title=f'**Guild {ctx.guild.name}** deposit / **{COIN_NAME}**', description='`This is guild\'s tipjar address. Do not deposit here unless you want to deposit to this guild and not yours!`', timestamp=datetime.utcnow(), colour=7047495)
+        embed = disnake.Embed(title=f'**Guild {ctx.guild.name}** deposit / **{COIN_NAME}**', description='`This is guild\'s tipjar address. Do not deposit here unless you want to deposit to this guild and not yours!`', timestamp=datetime.utcnow(), colour=7047495)
         embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon)
         embed.add_field(name="{} Deposit Address".format(COIN_NAME), value="`{}`".format(wallet['balance_wallet_address']), inline=False)
         if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
@@ -773,7 +767,7 @@ class Guild(commands.Cog):
         try:
             msg = await ctx.reply(embed=embed)
             await msg.add_reaction(EMOJI_OK_BOX)
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_OK_HAND)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_OK_HAND)
             return
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
@@ -787,15 +781,12 @@ class Guild(commands.Cog):
         await self.bot_log()
 
         prefix = await get_guild_prefix(ctx)
-        # disable guild tip for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return {"error": f"{EMOJI_LOCKED} Not available in this guild."}
 
         # If DM, error
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
-        embed = discord.Embed(title=f'[ GUILD {ctx.guild.name} BALANCE ]', timestamp=datetime.utcnow())
+        embed = disnake.Embed(title=f'[ GUILD {ctx.guild.name} BALANCE ]', timestamp=datetime.utcnow())
         any_balance = 0
         if coin is None:
             tmp_msg = await ctx.reply("Loading balance...")
@@ -830,7 +821,7 @@ class Guild(commands.Cog):
                 msg = await ctx.reply(embed=embed)
                 await msg.add_reaction(EMOJI_OK_BOX)
             except Exception as e:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
             return
         else:
@@ -864,9 +855,9 @@ class Guild(commands.Cog):
                         userregister = await store.sql_register_user(str(ctx.guild.id), COIN_NAME, SERVER_BOT, 0)
                 get_user_balance = await get_balance_coin_user(ctx.guild.id, COIN_NAME, discord_guild=True, server__bot=SERVER_BOT)
                 balance_actual = num_format_coin(get_user_balance['actual_balance'], COIN_NAME)
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     await ctx.message.add_reaction(EMOJI_OK_HAND)
-                embed = discord.Embed(title=f'[ GUILD {ctx.guild.name} BALANCE ]', timestamp=datetime.utcnow())
+                embed = disnake.Embed(title=f'[ GUILD {ctx.guild.name} BALANCE ]', timestamp=datetime.utcnow())
                 embed.add_field(name="Available "+COIN_NAME, value=balance_actual+" "+COIN_NAME, inline=False)
                 embed.add_field(name="Balance In / Out", value="{} / {} {}".format(num_format_coin(get_user_balance['actual_tip_income'], COIN_NAME), num_format_coin(get_user_balance['actual_tip_expense'], COIN_NAME), COIN_NAME), inline=False)
                 embed.add_field(name="Deposited", value="{} {}".format(num_format_coin(get_user_balance['actual_deposit'], COIN_NAME), COIN_NAME), inline=False)
@@ -880,7 +871,7 @@ class Guild(commands.Cog):
                     msg = await ctx.reply(embed=embed)
                     await msg.add_reaction(EMOJI_OK_BOX)
                 except Exception as e:
-                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                    if type(ctx) is not disnake.interactions.MessageInteraction:
                         await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                 return {"result": True}
 
@@ -891,7 +882,7 @@ class Guild(commands.Cog):
     ):
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
         prefix = await get_guild_prefix(ctx)
@@ -935,7 +926,7 @@ class Guild(commands.Cog):
             await logchanbot(traceback.format_exc())
         extra_text = f'Type: {prefix}setting or {prefix}help setting for more info. (Required permission)'
         try:
-            embed = discord.Embed(title=f'Guild {ctx.guild.id} / {ctx.guild.name}', timestamp=datetime.utcnow())
+            embed = disnake.Embed(title=f'Guild {ctx.guild.id} / {ctx.guild.name}', timestamp=datetime.utcnow())
             embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon)
             embed.add_field(name="Default Ticker", value=f'`{server_coin}`', inline=True)
             embed.add_field(name="Default Prefix", value=f'`{prefix}`', inline=True)
@@ -946,7 +937,7 @@ class Guild(commands.Cog):
             embed.set_footer(text=f"{extra_text}")
             msg = await ctx.reply(embed=embed)
             await msg.add_reaction(EMOJI_OK_BOX)
-        except (discord.errors.NotFound, discord.errors.Forbidden, Exception) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden, Exception) as e:
             msg = await ctx.reply(
                 '\n```'
                 f'Server ID:      {ctx.guild.id}\n'
@@ -967,7 +958,7 @@ class Guild(commands.Cog):
     ):
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -998,7 +989,7 @@ class Guild(commands.Cog):
     ):
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -1030,7 +1021,7 @@ class Guild(commands.Cog):
     ):
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         game_list = config.game.game_list.split(",")
@@ -1071,14 +1062,14 @@ class Guild(commands.Cog):
     ):
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         coin_list = coin_list.upper()
         if coin_list in ["ALLCOIN", "*", "ALL", "TIPALL", "ANY"]:
             changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'tiponly', "ALLCOIN")
             await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed tiponly in {ctx.guild.name} / {ctx.guild.id} to `ALLCOIN`')
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_OK_HAND)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_OK_HAND)
             await ctx.reply(f'{ctx.author.mention} all coins will be allowed in here.')
             return {"result": True}
         elif " " in coin_list or "," in coin_list:
@@ -1093,9 +1084,9 @@ class Guild(commands.Cog):
                 await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} changed tiponly in {ctx.guild.name} / {ctx.guild.id} to `{tiponly_value}`')
                 await ctx.reply(f'{ctx.author.mention} TIPONLY set to: **{tiponly_value}**.')
                 changeinfo = await store.sql_changeinfo_by_server(str(ctx.guild.id), 'tiponly', tiponly_value.upper())
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_OK_HAND)
+                if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_OK_HAND)
             else:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_INFORMATION)
+                if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_INFORMATION)
                 await ctx.reply(f'{ctx.author.mention} No known coin in **{coin_list}**. TIPONLY is remained unchanged.')
             return {"result": True}
         else:
@@ -1117,10 +1108,10 @@ class Guild(commands.Cog):
     ):
         prefix = await get_guild_prefix(ctx)
         await self.bot_log()
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
-        embed = discord.Embed(title = "GUILD {} SETTING / INFO".format(ctx.guild.name), timestamp=datetime.utcnow())
+        embed = disnake.Embed(title = "GUILD {} SETTING / INFO".format(ctx.guild.name), timestamp=datetime.utcnow())
         embed.add_field(name="Tip Only", value=f'`{prefix}setting tiponly <coin1> [coin2] ..`', inline=False)
         embed.add_field(name="Bot Channel", value=f'`{prefix}setting botchan #channel_name`', inline=False)
         embed.add_field(name="Ignore Tipping this Channel", value=f'`{prefix}setting ignorechan`', inline=False)
@@ -1150,7 +1141,7 @@ class Guild(commands.Cog):
         prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -1180,7 +1171,7 @@ class Guild(commands.Cog):
         prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -1210,7 +1201,7 @@ class Guild(commands.Cog):
         prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -1239,7 +1230,7 @@ class Guild(commands.Cog):
         prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -1269,7 +1260,7 @@ class Guild(commands.Cog):
         prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -1300,7 +1291,7 @@ class Guild(commands.Cog):
         prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -1332,7 +1323,7 @@ class Guild(commands.Cog):
         prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         if MUTE_CHANNEL is None:
@@ -1362,7 +1353,7 @@ class Guild(commands.Cog):
         prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         if MUTE_CHANNEL and str(ctx.guild.id) in MUTE_CHANNEL:
@@ -1386,7 +1377,7 @@ class Guild(commands.Cog):
         prefix = await get_guild_prefix(ctx)
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -1417,7 +1408,7 @@ class Guild(commands.Cog):
     ):
         await self.bot_log()
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{ctx.author.mention} This command can not be DM."}
 
         COIN_NAME = coin.upper()
@@ -1444,7 +1435,7 @@ class Guild(commands.Cog):
         try:
             amount = Decimal(amount)
         except ValueError:
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Invalid amount."}
         real_amount = int(Decimal(amount) * get_decimal(COIN_NAME)) if coin_family in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else float(amount)
         if real_amount < MinTx or real_amount >  MaxTx:
@@ -1456,7 +1447,7 @@ class Guild(commands.Cog):
             return {"result": True}
 
 
-    @inter_client.slash_command(description="Guild setting commands.")
+    @commands.slash_command(description="Guild setting commands.")
     async def setting(self, ctx):
         pass
 
@@ -1464,11 +1455,11 @@ class Guild(commands.Cog):
     @setting.sub_command(
         usage="setting tiponly <coin1, coin2, ....>", 
         options=[
-            Option('coin_list', 'coin_list', OptionType.STRING, required=True)
+            Option('coin_list', 'coin_list', OptionType.string, required=True)
         ],
         description="Deposit from your balance to guild's balance"
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def tiponly(
         self, 
         ctx,
@@ -1497,7 +1488,7 @@ class Guild(commands.Cog):
         usage="setting trade", 
         description="Toggle trade enable ON/OFF in your guild"
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def trade(
         self, 
         ctx,
@@ -1511,7 +1502,7 @@ class Guild(commands.Cog):
         usage="setting nsfw", 
         description="Toggle nsfw enable ON/OFF in your guild"
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def nsfw(
         self, 
         ctx,
@@ -1525,7 +1516,7 @@ class Guild(commands.Cog):
         usage="setting game", 
         description="Toggle game enable ON/OFF in your guild"
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def game(
         self, 
         ctx,
@@ -1539,7 +1530,7 @@ class Guild(commands.Cog):
         usage="setting market", 
         description="Toggle market enable ON/OFF in your guild"
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def market(
         self, 
         ctx,
@@ -1553,7 +1544,7 @@ class Guild(commands.Cog):
         usage="setting faucet", 
         description="Toggle faucet enable ON/OFF in your guild"
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def faucet(
         self, 
         ctx,
@@ -1566,11 +1557,11 @@ class Guild(commands.Cog):
     @setting.sub_command(
         usage="setting defaultcoin <coin>", 
         options=[
-            Option('coin', 'coin', OptionType.STRING, required=True)
+            Option('coin', 'coin', OptionType.string, required=True)
         ],
         description="Deposit from your balance to guild's balance"
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def defaultcoin(
         self, 
         ctx,
@@ -1585,7 +1576,7 @@ class Guild(commands.Cog):
         usage="setting mute", 
         description="Mute in your guild's said channel."
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def mute(
         self, 
         ctx,
@@ -1599,7 +1590,7 @@ class Guild(commands.Cog):
         usage="setting unmute", 
         description="Unmute in your guild's said channel."
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def unmute(
         self, 
         ctx,
@@ -1613,7 +1604,7 @@ class Guild(commands.Cog):
         usage="setting reacttip", 
         description="Toggle reacttip enable ON/OFF in your guild"
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def reacttip(
         self, 
         ctx,
@@ -1626,12 +1617,12 @@ class Guild(commands.Cog):
     @setting.sub_command(
         usage="setting reactamount <amount> <coin>", 
         options=[
-            Option('amount', 'amount', OptionType.NUMBER, required=True),
-            Option('coin', 'coin', OptionType.STRING, required=True)
+            Option('amount', 'amount', OptionType.number, required=True),
+            Option('coin', 'coin', OptionType.string, required=True)
         ],
         description="Deposit from your balance to guild's balance"
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def reactamount(
         self, 
         ctx,
@@ -1643,7 +1634,7 @@ class Guild(commands.Cog):
             await ctx.reply(guild_setting_reacttip_amount['error'])
 
 
-    @inter_client.slash_command(description="Guild commands.")
+    @commands.slash_command(description="Guild commands.")
     async def guild(
         self, 
         ctx
@@ -1654,13 +1645,13 @@ class Guild(commands.Cog):
     @guild.sub_command(
         usage="guild createraffle <amount> <coin> <duration>", 
         options=[
-            Option('amount', 'amount', OptionType.NUMBER, required=True),
-            Option('coin', 'coin', OptionType.STRING, required=True),
-            Option('duration', 'duration', OptionType.STRING, required=True)
+            Option('amount', 'amount', OptionType.number, required=True),
+            Option('coin', 'coin', OptionType.string, required=True),
+            Option('duration', 'duration', OptionType.string, required=True)
         ],
         description="Create a raffle."
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def createraffle(
         self, 
         ctx, 
@@ -1668,7 +1659,7 @@ class Guild(commands.Cog):
         coin: str, 
         duration: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
         guild_createraffle = await self.guild_createraffle(ctx, amount, coin, duration)
@@ -1679,7 +1670,7 @@ class Guild(commands.Cog):
     @guild.sub_command(
         usage="guild raffle [info|join|check]", 
         options=[
-            Option('subc', 'subc', OptionType.STRING, required=False, choices=[
+            Option('subc', 'subc', OptionType.string, required=False, choices=[
                 OptionChoice("Get Information", "INFO"),
                 OptionChoice("Join opened raffle", "JOIN"),
                 OptionChoice("Check raffle's status", "CHECK")
@@ -1688,13 +1679,13 @@ class Guild(commands.Cog):
         ],
         description="Create a raffle."
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def raffle(
         self, 
         ctx, 
         subc: str=None
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
         guild_raffle = await self.guild_raffle(ctx, subc)
@@ -1705,8 +1696,8 @@ class Guild(commands.Cog):
     @guild.sub_command(
         usage="guild deposit <amount> <coin>", 
         options=[
-            Option('amount', 'amount', OptionType.NUMBER, required=True),
-            Option('coin', 'coin', OptionType.STRING, required=True)
+            Option('amount', 'amount', OptionType.number, required=True),
+            Option('coin', 'coin', OptionType.string, required=True)
         ],
         description="Deposit from your balance to guild's balance"
     )
@@ -1716,7 +1707,7 @@ class Guild(commands.Cog):
         amount: float,
         coin: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
 
@@ -1733,7 +1724,7 @@ class Guild(commands.Cog):
     @guild.sub_command(
         usage="guild mdeposit <coin_name>", 
         options=[
-            Option('coin_name', 'coin_name', OptionType.STRING, required=True)
+            Option('coin_name', 'coin_name', OptionType.string, required=True)
         ],
         description="Get a deposit address for a guild."
     )
@@ -1742,7 +1733,7 @@ class Guild(commands.Cog):
         ctx,
         coin_name: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
 
@@ -1754,7 +1745,7 @@ class Guild(commands.Cog):
     @guild.sub_command(
         usage="guild mbalance", 
         options=[
-            Option('coin_name', 'coin_name', OptionType.STRING, required=False)
+            Option('coin_name', 'coin_name', OptionType.string, required=False)
         ],
         description="Get guild's balance."
     )
@@ -1763,7 +1754,7 @@ class Guild(commands.Cog):
         ctx,
         coin_name: str=None
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
         guild_mbalance = await self.guild_mbalance(ctx, coin_name)
@@ -1786,7 +1777,7 @@ class Guild(commands.Cog):
         usage="guild botchan", 
         description="Set Guild's bot channel."
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def botchan(
         self, 
         ctx
@@ -1800,7 +1791,7 @@ class Guild(commands.Cog):
         usage="guild rafflechan", 
         description="Set Guild's raffle channel."
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def rafflechan(
         self, 
         ctx
@@ -1813,7 +1804,7 @@ class Guild(commands.Cog):
     @guild.sub_command(
         usage="guild gamechan <game>", 
         options=[
-            Option('game', 'game', OptionType.STRING, required=True, choices=[
+            Option('game', 'game', OptionType.string, required=True, choices=[
                 OptionChoice("2048", "2048"),
                 OptionChoice("BLACKJACK", "BLACKJACK"),
                 OptionChoice("DICE", "DICE"),
@@ -1826,7 +1817,7 @@ class Guild(commands.Cog):
         ],
         description="Set Guild's game channel."
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def gamechan(
         self, 
         ctx,
@@ -1854,7 +1845,7 @@ class Guild(commands.Cog):
         description="Various guild's command"
     )
     async def guild(self, ctx):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
@@ -1878,7 +1869,7 @@ class Guild(commands.Cog):
         amount: str, 
         coin: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
@@ -1903,7 +1894,7 @@ class Guild(commands.Cog):
         coin_name: str,
         option: str=None
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
@@ -1924,7 +1915,7 @@ class Guild(commands.Cog):
         *, 
         tipmessage
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
@@ -2027,7 +2018,7 @@ class Guild(commands.Cog):
         ctx, 
         prefix_char: str=None
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
@@ -2035,10 +2026,10 @@ class Guild(commands.Cog):
         return
 
 
-    @inter_client.slash_command(
+    @commands.slash_command(
         usage="mdeposit <coin_name>", 
         options=[
-            Option('coin_name', 'coin_name', OptionType.STRING, required=True)
+            Option('coin_name', 'coin_name', OptionType.string, required=True)
         ],
         description="Get a deposit address for a guild."
     )
@@ -2047,7 +2038,7 @@ class Guild(commands.Cog):
         ctx,
         coin_name: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
 
@@ -2078,10 +2069,10 @@ class Guild(commands.Cog):
             await ctx.reply(guild_mdeposit['error'])
 
 
-    @inter_client.slash_command(
+    @commands.slash_command(
         usage="mbalance", 
         options=[
-            Option('coin_name', 'coin_name', OptionType.STRING, required=False)
+            Option('coin_name', 'coin_name', OptionType.string, required=False)
         ],
         description="Get guild's balance."
     )
@@ -2090,7 +2081,7 @@ class Guild(commands.Cog):
         ctx,
         coin_name: str=None
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
         guild_mbalance = await self.guild_mbalance(ctx, coin_name)

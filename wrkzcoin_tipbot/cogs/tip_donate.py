@@ -1,9 +1,10 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice, SlashInteraction
-import dislash
+import disnake
+from disnake.ext import commands
+
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 from config import config
 from Bot import *
@@ -26,7 +27,7 @@ class TipDonate(commands.Cog):
     ):
         donate_list = await store.sql_get_donate_list()
         item_list = []
-        embed = discord.Embed(title='Donation List', timestamp=datetime.utcnow())
+        embed = disnake.Embed(title='Donation List', timestamp=datetime.utcnow())
         for key, value in donate_list.items():
             if value:
                 coin_value = num_format_coin(value, key.upper())+key.upper()
@@ -35,14 +36,12 @@ class TipDonate(commands.Cog):
         embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
         if len(item_list) > 0:
             try:
-                msg = await ctx.reply(embed=embed, components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
-            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                msg = await ctx.reply(embed=embed)
+            except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                 msg_coins = ', '.join(item_list)
                 try:
-                    msg = await ctx.reply(f'Thank you for checking. So far, we got donations:\n```{msg_coins}```', components=[row_close_message])
-                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
-                except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                    msg = await ctx.reply(f'Thank you for checking. So far, we got donations:\n```{msg_coins}```')
+                except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                     return
 
 
@@ -115,23 +114,21 @@ class TipDonate(commands.Cog):
                 await logchanbot(traceback.format_exc())
 
             await self.botLogChan.send(f'{EMOJI_MONEYFACE} TipBot got donation: {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}')
-            msg = await ctx.reply(f"{EMOJI_MONEYFACE} TipBot got donation: {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}. Thank you.", components=[row_close_message])
-            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+            msg = await ctx.reply(f"{EMOJI_MONEYFACE} TipBot got donation: {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}. Thank you.")
             return
         else:
-            msg = await ctx.reply(f'{ctx.author.mention} Donating failed, try again. Thank you.', components=[row_close_message])
-            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+            msg = await ctx.reply(f'{ctx.author.mention} Donating failed, try again. Thank you.')
             await self.botLogChan.send(f'A user failed to donate `{num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
             # add to failed tx table
             await store.sql_add_failed_tx(COIN_NAME, str(ctx.author.id), ctx.author.name, real_amount, "DONATE")
             return
 
 
-    @inter_client.slash_command(
+    @commands.slash_command(
         usage="donate", 
         options=[
-            Option('amount', 'amount number or list', OptionType.STRING, required=True),
-            Option('coin', 'coin', OptionType.STRING, required=False)
+            Option('amount', 'amount number or list', OptionType.string, required=True),
+            Option('coin', 'coin', OptionType.string, required=False)
         ],
         description="Donate amount coin to TipBot dev."
     )
@@ -145,21 +142,18 @@ class TipDonate(commands.Cog):
             return await self.donate_list(ctx)
         else:
             if coin is None:
-                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Missing coin name.', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Missing coin name.')
                 return
             amount = amount.replace(",", "")
             try:
                 amount = Decimal(amount)
             except ValueError:
-                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
                 return
 
             process_donate = await self.process_donate(ctx, amount, coin.upper())
             if process_donate and "error" in process_donate:
-                msg = await ctx.reply(process_donate['error'], components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                msg = await ctx.reply(process_donate['error'])
 
 
     @commands.command(
@@ -176,22 +170,19 @@ class TipDonate(commands.Cog):
             return await self.donate_list(ctx)
         else:
             if coin is None:
-                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Missing coin name.', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Missing coin name.')
                 return
             amount = amount.replace(",", "")
             try:
                 amount = Decimal(amount)
             except ValueError:
                 await ctx.message.add_reaction(EMOJI_ERROR)
-                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Invalid amount.')
                 return
 
             process_donate = await self.process_donate(ctx, amount, coin.upper())
             if process_donate and "error" in process_donate:
-                msg = await ctx.reply(process_donate['error'], components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                msg = await ctx.reply(process_donate['error'])
 
 
 

@@ -1,7 +1,7 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from config import config
 from Bot import *
@@ -29,7 +29,7 @@ class Help(commands.Cog):
         await self.bot_log()
         async def help_main_embed(ctx, prefix, section: str='MAIN'):
             prefix = await get_guild_prefix(ctx)
-            embed = discord.Embed(title="List of commands", description="To avoid spamming other, you can do in Direct Message or Bot Channel", timestamp=datetime.utcnow(), color=0xDEADBF)
+            embed = disnake.Embed(title="List of commands", description="To avoid spamming other, you can do in Direct Message or Bot Channel", timestamp=datetime.utcnow(), color=0xDEADBF)
             help_specific = False
 
             if section.upper() == "GUILDSETTING":
@@ -78,12 +78,12 @@ class Help(commands.Cog):
                 # Try to find if there is a help to that
                 help_item = await store.sql_help_doc_get('help', section)
                 if help_item:
-                    embed = discord.Embed(title=f"Help {section.upper()}", description="To avoid spamming other, you can do in a bot channel", timestamp=datetime.utcnow(), color=0xDEADBF)
-                    embed.add_field(name="Explanation", value="```{}```".format(discord.utils.escape_markdown(help_item['detail'].replace('prefix', prefix))), inline=False)
+                    embed = disnake.Embed(title=f"Help {section.upper()}", description="To avoid spamming other, you can do in a bot channel", timestamp=datetime.utcnow(), color=0xDEADBF)
+                    embed.add_field(name="Explanation", value="```{}```".format(disnake.utils.escape_markdown(help_item['detail'].replace('prefix', prefix))), inline=False)
                     help_specific = True
                     try:
                         if 'example' in help_item and help_item['example'] and len(help_item['example'].strip()) > 0:
-                            embed.add_field(name="Example", value="`{}`".format(discord.utils.escape_markdown(help_item['example'].replace('prefix', prefix))), inline=False)
+                            embed.add_field(name="Example", value="`{}`".format(disnake.utils.escape_markdown(help_item['example'].replace('prefix', prefix))), inline=False)
                         else:
                             embed.add_field(name="Example", value="`N/A`", inline=False)
                     except Exception as e:
@@ -100,7 +100,7 @@ class Help(commands.Cog):
             cmd_donation = ["donate <amount> <coin_name>", "donate list"]
             embed.add_field(name="DONATION", value="`{}`".format(", ".join(cmd_donation)), inline=False)
 
-            if isinstance(ctx.message.channel, discord.DMChannel) == False:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False:
                 serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
                 coin_name = serverinfo['default_coin'].upper() if serverinfo else "WRKZ"
                 embed.add_field(name="GUILD INFO", value="`ID: {}, Name: {}, Default Coin: {}, Prefix: {}`".format(ctx.guild.id, ctx.guild.name, coin_name, prefix), inline=False)
@@ -120,7 +120,7 @@ class Help(commands.Cog):
                 return
 
             try:
-                if isinstance(ctx.channel, discord.DMChannel) == False:
+                if isinstance(ctx.channel, disnake.DMChannel) == False:
                     # check if bot channel is set:
                     serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
                     if serverinfo and serverinfo['botchan']:
@@ -134,7 +134,7 @@ class Help(commands.Cog):
                                 msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, bot channel was defined but I can not find it in this guild. Please command help in DM instead.')
                                 await msg.add_reaction(EMOJI_OK_BOX)
                             return
-            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+            except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                 pass
             except Exception as e:
                 traceback.print_exc(file=sys.stdout)
@@ -143,7 +143,7 @@ class Help(commands.Cog):
 
             try:
                 embed = await help_main_embed(ctx, prefix, section)
-                if isinstance(ctx.message.channel, discord.DMChannel) == False:
+                if isinstance(ctx.message.channel, disnake.DMChannel) == False:
                     msg = await ctx.reply(embed=embed)
                 else:
                     msg = await ctx.author.send(embed=embed)
@@ -204,7 +204,7 @@ class Help(commands.Cog):
                         section = "DISCLAIMER"
                     embed = await help_main_embed(ctx, prefix, section)
                     await msg.edit(embed=embed)
-            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+            except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                 await self.botLogChan.send(f'**Failed** Missing Permissions for sending help in guild {ctx.guild.id} / {ctx.guild.name} / # {ctx.message.channel.name}')
                 await message.add_reaction(EMOJI_ERROR)
             except Exception as e:
@@ -219,8 +219,8 @@ class Help(commands.Cog):
         prefix
     ):
         await self.bot_log()
-        embed = discord.Embed(title=f"List of SETTING command {message.guild.name}", description="Required Managed Channel Permission", timestamp=datetime.utcnow())
-        if isinstance(message.channel, discord.DMChannel) == True:
+        embed = disnake.Embed(title=f"List of SETTING command {message.guild.name}", description="Required Managed Channel Permission", timestamp=datetime.utcnow())
+        if isinstance(message.channel, disnake.DMChannel) == True:
             await message.add_reaction(EMOJI_ERROR) 
             await message.author.send('This command can not be in private.')
             return
@@ -237,7 +237,7 @@ class Help(commands.Cog):
         try:
             msg = await message.channel.send(embed=embed)
             await msg.add_reaction(EMOJI_OK_BOX)
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             await self.botLogChan.send(f'**Failed** Missing Permissions for sending help_setting in guild {message.guild.id} / {message.guild.name} / # {message.channel.name}')
             await message.add_reaction(EMOJI_ERROR)
         return

@@ -1,10 +1,11 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice, SlashInteraction
-import dislash
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
+
 import re
 
 from config import config
@@ -49,11 +50,6 @@ class TipMtip(commands.Cog):
         # Check if tx in progress
         if ctx.guild.id in TX_IN_PROCESS: return {"error": f"{EMOJI_ERROR} {ctx.author.mention} This guild `{ctx.guild.name}` has another tx in progress."}
 
-        # TRTL discord
-        if isinstance(ctx.channel, discord.DMChannel) == False and ctx.guild.id == TRTL_DISCORD and COIN_NAME != "TRTL":
-            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} Please use TRTL only."}
-
-
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         COIN_NAME = coin.upper()
 
@@ -94,15 +90,15 @@ class TipMtip(commands.Cog):
                 try:
                     num_user = int(num_user)
                     if len(ctx.guild.members) <= 10:
-                        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+                        if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
                         return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Please use normal mtip command. There are only few users."}
                     # Check if we really have that many user in the guild 20%
                     elif num_user >= len(ctx.guild.members):
                         try:
-                            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_INFORMATION)
+                            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_INFORMATION)
                             await ctx.reply(f'{ctx.author.mention} Boss, you want to mtip more than the number of people in this guild!?.'
                                             ' Can be done :). Wait a while.... I am doing it. (**counting..**)')
-                        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                             # No need to tip if failed to message
                             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} No permission."}
                         message_talker = await store.sql_get_messages(str(ctx.guild.id), str(ctx.channel.id), 0, len(ctx.guild.members))
@@ -110,7 +106,7 @@ class TipMtip(commands.Cog):
                             message_talker.remove(ctx.author.id)
 
                         if len(message_talker) == 0:
-                            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+                            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
                             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} There is not sufficient user to count."}
 
                         elif len(message_talker) < len(ctx.guild.members) - 1: # minus bot
@@ -118,8 +114,8 @@ class TipMtip(commands.Cog):
                             # tip all user who are in the list
                             try:
                                 await _tip_talker(ctx, amount, message_talker, True, COIN_NAME) # TODO
-                            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
+                            except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
+                                if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                             except Exception as e:
                                 traceback.print_exc(file=sys.stdout)
                                 await logchanbot(traceback.format_exc())
@@ -132,21 +128,21 @@ class TipMtip(commands.Cog):
                             # remove the last one
                             message_talker.pop()
                         if len(message_talker) == 0:
-                            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+                            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
                             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} There is not sufficient user to count."}
                         elif len(message_talker) < num_user:
                             try:
-                                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_INFORMATION)
+                                if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_INFORMATION)
                                 await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} I could not find sufficient talkers up to **{num_user}**. I found only **{len(message_talker)}** and tip to those **{len(message_talker)}** users if they are still here.')
-                            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                            except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                                 # No need to tip if failed to message
-                                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
+                                if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                                 return {"error": f"{EMOJI_INFORMATION} {ctx.author.mention} No permission."}
                             # tip all user who are in the list
                             try:
                                 await _tip_talker(ctx, amount, message_talker, True, COIN_NAME)
-                            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
+                            except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
+                                if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                                 # zipped mouth but still need to do tip talker
                                 await _tip_talker(ctx, amount, message_talker, True, COIN_NAME)
                             except Exception as e:
@@ -155,17 +151,17 @@ class TipMtip(commands.Cog):
                         else:
                             try:
                                 await _tip_talker(ctx, amount, message_talker, True, COIN_NAME)
-                            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
+                            except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
+                                if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                             except Exception as e:
                                 traceback.print_exc(file=sys.stdout)
                                 await logchanbot(traceback.format_exc())
                             return {"result": True}
                     else:
-                        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+                        if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
                         return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} What is this **{num_user}** number? Please give a number bigger than 0 :)"}
                 except ValueError:
-                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+                    if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
                     return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Invalid param after **LAST**."}
             else:
                 time_given = None
@@ -205,24 +201,24 @@ class TipMtip(commands.Cog):
                 try:
                     time_given = int(time_second)
                 except ValueError:
-                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+                    if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
                     return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Invalid time given check."}
                 if time_given:
                     if time_given < 5*60 or time_given > 60*24*60*60:
-                        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+                        if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
                         return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Please try time interval between 5minutes to 24hours."}
                     else:
                         message_talker = await store.sql_get_messages(str(ctx.guild.id), str(ctx.channel.id), time_given, None)
                         if ctx.author.id in message_talker:
                             message_talker.remove(ctx.author.id)
                         if len(message_talker) == 0:
-                            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
+                            if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ERROR)
                             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} There is no active talker in such period."}
                         else:
                             try:
                                 await _tip_talker(ctx, amount, message_talker, True, COIN_NAME)
-                            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
+                            except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
+                                if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                             except Exception as e:
                                 traceback.print_exc(file=sys.stdout)
                                 await logchanbot(traceback.format_exc())
@@ -242,7 +238,7 @@ class TipMtip(commands.Cog):
             if len(list_r) > 0:
                 # roles
                 for each_r in list_r:
-                    get_role = discord.utils.get(ctx.guild.roles, id=int(each_r))
+                    get_role = disnake.utils.get(ctx.guild.roles, id=int(each_r))
                     if get_role:
                         role_listMember = [member.id for member in guild_members if get_role in member.roles and member.id not in list_member_ids]
                         if len(role_listMember) >= 1:
@@ -259,17 +255,17 @@ class TipMtip(commands.Cog):
                 return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} There is no user to tip to."}
 
 
-    @dislash.guild_only()
-    @inter_client.slash_command(
+    @commands.guild_only()
+    @commands.slash_command(
         usage="mtip", 
         options=[
-            Option('amount', 'amount', OptionType.NUMBER, required=True),
-            Option('coin_name', 'coin_name', OptionType.STRING, required=True),
-            Option('option', 'last 12u, last 1hr, @mention @mention ..', OptionType.STRING, required=True)
+            Option('amount', 'amount', OptionType.number, required=True),
+            Option('coin_name', 'coin_name', OptionType.string, required=True),
+            Option('option', 'last 12u, last 1hr, @mention @mention ..', OptionType.string, required=True)
         ],
         description="Moderator tip."
     )
-    @dislash.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_channels=True)
     async def mtip(
         self, 
         ctx,

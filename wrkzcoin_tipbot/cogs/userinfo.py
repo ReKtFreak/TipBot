@@ -1,10 +1,12 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
+
 from datetime import datetime
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType
-import dislash
+
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 from config import config
 from Bot import *
@@ -42,28 +44,23 @@ class Userinfo(commands.Cog):
                 elif ratio_tip >= 5:
                     tip_text = "CryptoTip AirDropper"
 
-        embed = discord.Embed(title="{}'s info".format(intx.name), description="Here's what I could find.", color=0x00ff00)
+        embed = disnake.Embed(title="{}'s info".format(intx.name), description="Here's what I could find.", color=0x00ff00)
         embed.add_field(name="Name", value="{}#{}".format(intx.name, intx.discriminator), inline=True)
         embed.add_field(name="Display Name", value=intx.display_name, inline=True)
         embed.add_field(name="ID", value=intx.id, inline=True)
         embed.add_field(name="Status", value=intx.status, inline=True)
         embed.add_field(name="Highest role", value=intx.top_role)
         embed.add_field(name="Tip In/Out", value="{}/{} - {}".format('{:,}'.format(sub_intip), '{:,}'.format(sub_outtip), tip_text), inline=False)
-        if intx.guild.id != TRTL_DISCORD:
-            user_claims = await store.sql_faucet_count_user(str(intx.id))
-            if user_claims and user_claims > 0:
-                take_level = get_roach_level(user_claims)
-                embed.add_field(name="Faucet Taking Level", value=take_level, inline=False)
         embed.add_field(name="Joined", value=str(intx.joined_at.strftime("%d-%b-%Y") + ': ' + timeago.format(intx.joined_at, datetime.utcnow().astimezone())))
         embed.add_field(name="Created", value=str(intx.created_at.strftime("%d-%b-%Y") + ': ' + timeago.format(intx.created_at, datetime.utcnow().astimezone())))
         embed.set_thumbnail(url=intx.display_avatar)
         return embed
 
 
-    @dislash.guild_only()
-    @inter_client.slash_command(usage="userinfo <member>",
+    @commands.guild_only()
+    @commands.slash_command(usage="userinfo <member>",
                                 options=[
-                                    Option("user", "Enter user", OptionType.USER, required=True)
+                                    Option("user", "Enter user", OptionType.user, required=True)
                                     # By default, Option is optional
                                     # Pass required=True to make it a required arg
                                 ],
@@ -71,16 +68,15 @@ class Userinfo(commands.Cog):
     async def userinfo(
         self, 
         ctx, 
-        user: discord.Member
+        user: disnake.Member
     ):
         prefix = await get_guild_prefix(ctx)
         try:
             get_stat = await self.get_userinfo(user)
-            msg = await ctx.reply(embed=get_stat, components=[row_close_message])
-            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+            msg = await ctx.reply(embed=get_stat)
         except:
             traceback.print_exc(file=sys.stdout)
-            error = discord.Embed(title=":exclamation: Error", description=" :warning: You need to mention the user you want this info for!", color=0xe51e1e)
+            error = disnake.Embed(title=":exclamation: Error", description=" :warning: You need to mention the user you want this info for!")
             await ctx.reply(embed=error)
 
 
@@ -92,17 +88,16 @@ class Userinfo(commands.Cog):
     async def userinfo(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
         if member is None:
             member = ctx.author
         try:
             get_stat = await self.get_userinfo(member)
-            msg = await ctx.reply(embed=get_stat, components=[row_close_message])
-            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+            msg = await ctx.reply(embed=get_stat)
         except:
             traceback.print_exc(file=sys.stdout)
-            error = discord.Embed(title=":exclamation: Error", description=" :warning: You need to mention the user you want this info for!", color=0xe51e1e)
+            error = disnake.Embed(title=":exclamation: Error", description=" :warning: You need to mention the user you want this info for!")
             await ctx.reply(embed=error)
 
 

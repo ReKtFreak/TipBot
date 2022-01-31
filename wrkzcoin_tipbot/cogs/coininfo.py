@@ -1,8 +1,9 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType
+import disnake
+from disnake.ext import commands
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 import redis_utils
 import store
 
@@ -105,9 +106,9 @@ class Coininfo(commands.Cog):
 
 
 
-    @inter_client.slash_command(usage="coininfo <coin>",
+    @commands.slash_command(usage="coininfo <coin>",
                                 options=[
-                                    Option("coin", "Enter a coin/ticker name", OptionType.STRING, required=True)
+                                    Option("coin", "Enter a coin/ticker name", OptionType.string, required=True)
                                 ],
                                 description="Get coin's information in TipBot.")
     async def coininfo(
@@ -115,22 +116,20 @@ class Coininfo(commands.Cog):
         ctx, 
         coin: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == False and ctx.guild.id == TRTL_DISCORD:
-            return
         COIN_NAME = coin.upper()
         is_private = False
         guild_id = 0
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             is_private = True
         else:
             guild_id = ctx.guild.id
             coin_info = await self.get_coininfo(COIN_NAME, is_private, guild_id)
             if coin_info and 'result' in coin_info:
                 msg = await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['result']), components=[row_close_any_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
             elif coin_info and 'error' in coin_info:
                 msg = await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['error']), components=[row_close_any_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
 
 
     @commands.command(
@@ -144,8 +143,6 @@ class Coininfo(commands.Cog):
         coin: str = None
     ):
         if coin is None:
-            if isinstance(ctx.channel, discord.DMChannel) == False and ctx.guild.id == TRTL_DISCORD:
-                return
             table_data = [
                 ["TICKER", "Height", "Tip", "Wdraw", "Depth"]
                 ]
@@ -173,22 +170,22 @@ class Coininfo(commands.Cog):
             table.padding_left = 0
             table.padding_right = 0
             msg = await ctx.reply(f"**[ TIPBOT COIN LIST ]**\n```{table.table}```", components=[row_close_any_message])
-            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
         else:
             COIN_NAME = coin.upper()
             is_private = False
             guild_id = 0
-            if isinstance(ctx.channel, discord.DMChannel) == True:
+            if isinstance(ctx.channel, disnake.DMChannel) == True:
                 is_private = True
             else:
                 guild_id = ctx.guild.id
             coin_info = await self.get_coininfo(COIN_NAME, is_private, guild_id)
             if coin_info and 'result' in coin_info:
                 msg = await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['result']), components=[row_close_any_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
             elif coin_info and 'error' in coin_info:
                 msg = await ctx.reply("{}\n{}".format(ctx.author.mention, coin_info['error']), components=[row_close_any_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
 
 
 def setup(bot):

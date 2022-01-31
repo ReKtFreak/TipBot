@@ -1,7 +1,7 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from config import config
 from Bot import *
@@ -62,13 +62,9 @@ class TipTipTo(commands.Cog):
             await ctx.author.send(f'{COIN_NAME} is not in this function of TipTo.')
             return
 
-        # TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD and COIN_NAME != "TRTL":
-            return
-
         # offline can not tipto
         try:
-            if ctx.author.status == discord.Status.offline:
+            if ctx.author.status == disnake.Status.offline:
                 await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Offline status cannot use this.')
                 return
         except Exception as e:

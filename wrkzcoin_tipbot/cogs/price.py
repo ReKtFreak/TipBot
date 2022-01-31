@@ -1,9 +1,11 @@
 import sys
 import traceback
 
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType
+import disnake
+from disnake.ext import commands
+
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 from Bot import *
 
@@ -112,12 +114,9 @@ class CoinGecko(commands.Cog):
         ticker: str
     ):
         await self.bot_log()
-        if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return
-
         try:
             serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-            if isinstance(ctx.message.channel, discord.DMChannel) == False and serverinfo \
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False and serverinfo \
             and 'enable_market' in serverinfo and serverinfo['enable_market'] == "NO":
                 prefix = serverinfo['prefix']
                 await ctx.message.add_reaction(EMOJI_ERROR)
@@ -125,7 +124,7 @@ class CoinGecko(commands.Cog):
                 await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}cg** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                 return
         except Exception as e:
-            if isinstance(ctx.message.channel, discord.DMChannel) == False:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False:
                 return
             pass
 
@@ -145,7 +144,7 @@ class CoinGecko(commands.Cog):
             rank = ''
             if 'name' in get_cg and 'mcap_ranking' in get_cg and get_cg['mcap_ranking']:
                 rank = '{} Rank #{}'.format(get_cg['name'], get_cg['mcap_ranking'])
-            embed = discord.Embed(title='{} at CoinGecko'.format(ticker.upper()), description='{}'.format(rank), timestamp=datetime.utcnow(), colour=7047495)
+            embed = disnake.Embed(title='{} at CoinGecko'.format(ticker.upper()), description='{}'.format(rank), timestamp=datetime.utcnow(), colour=7047495)
             if isinstance(get_cg['marketcap_USD'], float) and get_cg['marketcap_USD'] > 0:
                 embed.add_field(name="MarketCap", value='{}USD'.format(format_amount(get_cg['marketcap_USD'])), inline=True)
             embed.add_field(name="High 24h", value='{}USD'.format(format_amount(get_cg['high24h_USD'])), inline=True)
@@ -172,7 +171,7 @@ class CoinGecko(commands.Cog):
                 msg = await ctx.reply(embed=embed)
                 await ctx.message.add_reaction(EMOJI_OK_HAND)
                 await msg.add_reaction(EMOJI_OK_BOX)
-            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+            except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                 message_price = '{} at CoinGecko\n'.format(ticker.upper())
                 if 'name' in get_cg and 'mcap_ranking' in get_cg and get_cg['mcap_ranking']:
                     message_price += '{} Rank #{}'.format(get_cg['name'], get_cg['mcap_ranking'])
@@ -192,7 +191,7 @@ class CoinGecko(commands.Cog):
                     msg = await ctx.reply(f'{ctx.author.mention}```{message_price}```')
                     await ctx.message.add_reaction(EMOJI_OK_HAND)
                     await msg.add_reaction(EMOJI_OK_BOX)
-                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                     await logchanbot(traceback.format_exc())
                     return
             return
@@ -216,21 +215,16 @@ class CoinGecko(commands.Cog):
         await self.bot_log()
         prefix = await get_guild_prefix(ctx)
         coin_list = ' '.join(coin_list.split())
-
-        # disable game for TRTL discord
-        if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return
-
         try:
             serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-            if isinstance(ctx.message.channel, discord.DMChannel) == False and serverinfo \
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False and serverinfo \
             and 'enable_market' in serverinfo and serverinfo['enable_market'] == "NO":
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
                 await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}price** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                 return
         except Exception as e:
-            if isinstance(ctx.message.channel, discord.DMChannel) == False:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False:
                 return
             pass
 
@@ -272,7 +266,7 @@ class CoinGecko(commands.Cog):
             table.padding_left = 0
             table.padding_right = 0
             try:
-                embed = discord.Embed(title='Price List Command', description='Price Information', timestamp=datetime.utcnow(), colour=7047495)
+                embed = disnake.Embed(title='Price List Command', description='Price Information', timestamp=datetime.utcnow(), colour=7047495)
                 if has_none == True:
                     embed.add_field(name=coin_list.upper(), value='```N/A for {}```'.format(coin_list), inline=False)
                 else:
@@ -284,7 +278,7 @@ class CoinGecko(commands.Cog):
                     msg = await ctx.reply(embed=embed)
                     await ctx.message.add_reaction(EMOJI_OK_HAND)
                     await msg.add_reaction(EMOJI_OK_BOX)
-                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                     await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                     await logchanbot(traceback.format_exc())
             except Exception as e:
@@ -306,12 +300,9 @@ class CoinGecko(commands.Cog):
         coin: str=None
     ):
         await self.bot_log()
-        # disable game for TRTL discord
-        if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return
         try:
             serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-            if isinstance(ctx.message.channel, discord.DMChannel) == False and serverinfo \
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False and serverinfo \
             and 'enable_market' in serverinfo and serverinfo['enable_market'] == "NO":
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
@@ -319,7 +310,7 @@ class CoinGecko(commands.Cog):
                 return
         except Exception as e:
             traceback.format_exc()
-            if isinstance(ctx.message.channel, discord.DMChannel) == False:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False:
                 return
             pass
         if coin is None:
@@ -431,22 +422,17 @@ class CoinGecko(commands.Cog):
         await self.bot_log()
         prefix = await get_guild_prefix(ctx)
         PriceQ = (' '.join(args)).split()
-
-        # disable game for TRTL discord
-        if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return
-
         note = None
         try:
             serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-            if isinstance(ctx.message.channel, discord.DMChannel) == False and serverinfo \
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False and serverinfo \
             and 'enable_market' in serverinfo and serverinfo['enable_market'] == "NO":
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
                 await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **{prefix}price** in {ctx.guild.name} / {ctx.guild.id} which is not ENABLE.')
                 return
         except Exception as e:
-            if isinstance(ctx.message.channel, discord.DMChannel) == False:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False:
                 return
             pass
 
@@ -479,7 +465,7 @@ class CoinGecko(commands.Cog):
                 if ticker in SAME_TICKERS:
                     note = f'There are more than one ticker for {ticker}. Please check yourself in cmc or coingecko.'
                 try:
-                    embed = discord.Embed(title='{} Price'.format(ticker), description='Price Information', timestamp=datetime.utcnow(), colour=7047495)
+                    embed = disnake.Embed(title='{} Price'.format(ticker), description='Price Information', timestamp=datetime.utcnow(), colour=7047495)
                     if 'cmc_price' in market_price and market_price['cmc_price'] > 0.00000001:
                         update = datetime.strptime(market_price['cmc_update'].split(".")[0], '%Y-%m-%dT%H:%M:%S')
                         ago = timeago.format(update, datetime.utcnow())
@@ -502,7 +488,7 @@ class CoinGecko(commands.Cog):
                         msg = await ctx.reply(embed=embed)
                         await ctx.message.add_reaction(EMOJI_OK_HAND)
                         await msg.add_reaction(EMOJI_OK_BOX)
-                    except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                    except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                         await logchanbot(traceback.format_exc())
                     return
                 except Exception as e:
@@ -542,7 +528,7 @@ class CoinGecko(commands.Cog):
                 if ticker in SAME_TICKERS:
                     note = f'There are more than one ticker for {ticker}. Please check yourself in cmc or coingecko.'
                 try:
-                    embed = discord.Embed(title='{}{} Price'.format(PriceQ[0], ticker), description='Price Information', timestamp=datetime.utcnow(), colour=7047495)
+                    embed = disnake.Embed(title='{}{} Price'.format(PriceQ[0], ticker), description='Price Information', timestamp=datetime.utcnow(), colour=7047495)
                     if 'cmc_price' in market_price and market_price['cmc_price'] > 0.00000001:
                         update = datetime.strptime(market_price['cmc_update'].split(".")[0], '%Y-%m-%dT%H:%M:%S')
                         ago = timeago.format(update, datetime.utcnow())
@@ -565,7 +551,7 @@ class CoinGecko(commands.Cog):
                         msg = await ctx.reply(embed=embed)
                         await ctx.message.add_reaction(EMOJI_OK_HAND)
                         await msg.add_reaction(EMOJI_OK_BOX)
-                    except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                    except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                         await logchanbot(traceback.format_exc())
                     return
                 except Exception as e:
@@ -594,7 +580,7 @@ class CoinGecko(commands.Cog):
                     else:
                         note = f'There are more than one ticker for {PriceQ[2].upper()}. Please check yourself in cmc or coingecko.'
                 try:
-                    embed = discord.Embed(title='{} IN {}'.format(PriceQ[0].upper(), PriceQ[2].upper()), description='Price Information', timestamp=datetime.utcnow(), colour=7047495)
+                    embed = disnake.Embed(title='{} IN {}'.format(PriceQ[0].upper(), PriceQ[2].upper()), description='Price Information', timestamp=datetime.utcnow(), colour=7047495)
                     if any(x is None for x in [tmpA1, tmpB1]) and any(x is None for x in [tmpA2, tmpB2]):
                         embed.add_field(name="From CoinMarketCap", value='`No data from CoinMarketCap`', inline=True)
                         embed.add_field(name="From CoinGecko", value='`No data from Coingecko`', inline=True)
@@ -612,7 +598,7 @@ class CoinGecko(commands.Cog):
                         msg = await ctx.reply(embed=embed)
                         await ctx.message.add_reaction(EMOJI_OK_HAND)
                         await msg.add_reaction(EMOJI_OK_BOX)
-                    except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                    except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                         await logchanbot(traceback.format_exc())
                 except Exception as e:
                     await logchanbot(traceback.format_exc())
@@ -663,7 +649,7 @@ class CoinGecko(commands.Cog):
                     else:
                         note = f'There are more than one ticker for {PriceQ[3].upper()}. Please check yourself in cmc or coingecko.'
                 try:
-                    embed = discord.Embed(title='{}{} IN {}'.format(PriceQ[0], PriceQ[1].upper(), PriceQ[3].upper()), description='Price Information', timestamp=datetime.utcnow(), colour=7047495)
+                    embed = disnake.Embed(title='{}{} IN {}'.format(PriceQ[0], PriceQ[1].upper(), PriceQ[3].upper()), description='Price Information', timestamp=datetime.utcnow(), colour=7047495)
                     if any(x is None for x in [tmpA1, tmpB1]) and any(x is None for x in [tmpA2, tmpB2]):
                         embed.add_field(name="From CoinMarketCap", value='`No data from CoinMarketCap`', inline=True)
                         embed.add_field(name="From CoinGecko", value='`No data from Coingecko`', inline=True)
@@ -687,17 +673,17 @@ class CoinGecko(commands.Cog):
                         msg = await ctx.reply(embed=embed)
                         await ctx.message.add_reaction(EMOJI_OK_HAND)
                         await msg.add_reaction(EMOJI_OK_BOX)
-                    except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                    except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                         await logchanbot(traceback.format_exc())
                 except Exception as e:
                     await logchanbot(traceback.format_exc())
                 return
 
 
-    @inter_client.slash_command(usage="paprika [coin]",
+    @commands.slash_command(usage="paprika [coin]",
                                 aliases=['pap'],
                                 options=[
-                                    Option("coin", "Enter coin ticker/name", OptionType.STRING, required=True)
+                                    Option("coin", "Enter coin ticker/name", OptionType.string, required=True)
                                     # By default, Option is optional
                                     # Pass required=True to make it a required arg
                                 ],
@@ -728,13 +714,10 @@ class CoinGecko(commands.Cog):
         coin: str=None
     ):
         await self.bot_log()
-        # disable game for TRTL discord
-        if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return
         prefix = await get_guild_prefix(ctx)
         try:
             serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
-            if isinstance(ctx.message.channel, discord.DMChannel) == False and serverinfo \
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False and serverinfo \
             and 'enable_market' in serverinfo and serverinfo['enable_market'] == "NO":
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Market command is not ENABLE yet in this guild. Please request Guild owner to enable by `{prefix}SETTING MARKET`')
@@ -742,7 +725,7 @@ class CoinGecko(commands.Cog):
                 return
         except Exception as e:
             traceback.format_exc()
-            if isinstance(ctx.message.channel, discord.DMChannel) == False:
+            if isinstance(ctx.message.channel, disnake.DMChannel) == False:
                 return
             pass
         if coin is None:

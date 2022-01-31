@@ -1,9 +1,9 @@
 import sys, traceback
 
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, Option, OptionType
-import dislash
+import disnake
+from disnake.ext import commands
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 from config import config
 from Bot import *
@@ -15,9 +15,9 @@ class Calculator(commands.Cog):
         self.bot = bot
 
 
-    @inter_client.slash_command(usage="cal <expression>",
+    @commands.slash_command(usage="cal <expression>",
                                 options=[
-                                    Option("eval_string", "Math to evaluate", OptionType.STRING, required=True)
+                                    Option("eval_string", "Math to evaluate", OptionType.string, required=True)
                                 ],
                                 description="Do some math.")
     async def cal(
@@ -25,7 +25,7 @@ class Calculator(commands.Cog):
         ctx, 
         eval_string: str = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
         if eval_string is None:
             await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention}, Example: `cal 2+3+4/2`')
@@ -61,7 +61,7 @@ class Calculator(commands.Cog):
         ctx, 
         eval_string: str = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
         if eval_string is None:
             await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention}, Example: `cal 2+3+4/2`')

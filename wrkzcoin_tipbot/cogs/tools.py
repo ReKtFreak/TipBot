@@ -6,10 +6,11 @@ import traceback
 from datetime import datetime
 import random
 
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice
-import dislash
+import disnake
+from disnake.ext import commands
+
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 import store
 from Bot import *
@@ -32,7 +33,7 @@ class Tool(commands.Cog):
             self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
 
-    @inter_client.slash_command(description="Various tool's commands.")
+    @commands.slash_command(description="Various tool's commands.")
     async def tool(self, ctx):
         # This is just a parent for subcommands
         # It's not necessary to do anything here,
@@ -45,23 +46,19 @@ class Tool(commands.Cog):
     @tool.sub_command(
         usage="tool avatar <member>", 
         options=[
-            Option('member', 'member', OptionType.USER, required=True)
+            Option('member', 'member', OptionType.user, required=True)
         ],
         description="Get avatar of a user."
     )
     async def avatar(
         self,
         ctx,
-        member: discord.Member
+        member: disnake.Member
     ):
         if member is None:
             member = ctx.author
         try:
-            if isinstance(ctx.channel, discord.DMChannel) == False:
-                msg = await ctx.reply(f'Avatar image for {member.mention}:\n{str(member.display_avatar)}', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
-            else:
-                msg = await ctx.reply(f'Avatar image for {member.mention}:\n{str(member.display_avatar)}')
+            msg = await ctx.reply(f'Avatar image for {member.mention}:\n{str(member.display_avatar)}')
         except Exception as e:
             await logchanbot(traceback.format_exc())
 
@@ -69,7 +66,7 @@ class Tool(commands.Cog):
     @tool.sub_command(
         usage="tool prime <number>", 
         options=[
-            Option('number', 'number', OptionType.STRING, required=True)
+            Option('number', 'number', OptionType.string, required=True)
         ],
         description="Check a given number if it is a prime number."
     )
@@ -115,7 +112,7 @@ class Tool(commands.Cog):
     async def tool(self, ctx):
         prefix = await get_guild_prefix(ctx)
         # Only WrkzCoin testing. Return if DM or other guild
-        if isinstance(ctx.channel, discord.DMChannel) == True or ctx.guild.id != 460755304863498250:
+        if isinstance(ctx.channel, disnake.DMChannel) == True or ctx.guild.id != 460755304863498250:
             return
         if ctx.invoked_subcommand is None:
             await ctx.reply(f'{ctx.author.mention} Invalid {prefix}tool command.\n Please use {prefix}help tool')
@@ -129,17 +126,13 @@ class Tool(commands.Cog):
     async def avatar(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
         if member is None:
             member = ctx.author
         try:
-            if isinstance(ctx.channel, discord.DMChannel) == False:
-                msg = await ctx.reply(f'Avatar image for {member.mention}:\n{str(member.display_avatar)}', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
-            else:
-                msg = await ctx.reply(f'Avatar image for {member.mention}:\n{str(member.display_avatar)}')
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+            msg = await ctx.reply(f'Avatar image for {member.mention}:\n{str(member.display_avatar)}')
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
         return
 
@@ -188,7 +181,7 @@ class Tool(commands.Cog):
     )
     async def emoji(self, ctx):
         try:
-            embed = discord.Embed(title='EMOJI INFO', description=f'{ctx.author.mention}, Re-act and getinfo', colour=7047495)
+            embed = disnake.Embed(title='EMOJI INFO', description=f'{ctx.author.mention}, Re-act and getinfo', colour=7047495)
             embed.add_field(name="EMOJI", value='None', inline=True)
             embed.set_footer(text="Timeout: 60s")
             msg = await ctx.reply(embed=embed)
@@ -208,7 +201,7 @@ class Tool(commands.Cog):
                     return
                 if reaction.emoji and str(reaction.emoji) != EMOJI_OK_BOX:
                     try:
-                        embed = discord.Embed(title='EMOJI INFO', description=f'{ctx.author.mention}, Re-act and getinfo', colour=7047495)
+                        embed = disnake.Embed(title='EMOJI INFO', description=f'{ctx.author.mention}, Re-act and getinfo', colour=7047495)
                         embed.add_field(name=f'EMOJI {reaction.emoji}', value='`{}`'.format(str(reaction.emoji) if re.findall(r'<?:\w*:\d*>', str(reaction.emoji)) else f'U+{ord(reaction.emoji):X}'), inline=True)
                         embed.set_footer(text="Timeout: 60s")
                         await msg.edit(embed=embed)
@@ -239,11 +232,7 @@ class Tool(commands.Cog):
             return
         try:
             value = hex(int(decimal))
-            if isinstance(ctx.channel, discord.DMChannel) == False:
-                msg = await ctx.reply(f'{ctx.author.mention} decimal of **{decimal}** is equal to hex:```{value}```', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
-            else:
-                msg = await ctx.reply(f'{ctx.author.mention} decimal of **{decimal}** is equal to hex:```{value}```')
+            msg = await ctx.reply(f'{ctx.author.mention} decimal of **{decimal}** is equal to hex:```{value}```')
         except ValueError:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.reply(f'{ctx.author.mention} **{decimal}** is an invalid decimal / integer.')
@@ -265,11 +254,7 @@ class Tool(commands.Cog):
             return
         try:
             value = int(hex_string, 16)
-            if isinstance(ctx.channel, discord.DMChannel) == False:
-                msg = await ctx.reply(f'{ctx.author.mention} hex of **{hex_string}** is equal to decimal:```{str(value)}```', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
-            else:
-                msg = await ctx.reply(f'{ctx.author.mention} hex of **{hex_string}** is equal to decimal:```{str(value)}```')
+            msg = await ctx.reply(f'{ctx.author.mention} hex of **{hex_string}** is equal to decimal:```{str(value)}```')
         except ValueError:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.reply(f'{ctx.author.mention} **{hex_string}** is an invalid hex.')
@@ -298,11 +283,7 @@ class Tool(commands.Cog):
             return
         try:
             str_value = str(bytes.fromhex(hex_string).decode())
-            if isinstance(ctx.channel, discord.DMChannel) == False:
-                msg = await ctx.reply(f'{ctx.author.mention} hex of **{hex_string}** in ascii is:```{str_value}```', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
-            else:
-                msg = await ctx.reply(f'{ctx.author.mention} hex of **{hex_string}** in ascii is:```{str_value}```')
+            msg = await ctx.reply(f'{ctx.author.mention} hex of **{hex_string}** in ascii is:```{str_value}```')
         except Exception as e:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.reply(f'{ctx.author.mention} **{hex_string}** I can not decode.')
@@ -326,9 +307,8 @@ class Tool(commands.Cog):
             return
         try:
             hex_value = str(binascii.hexlify(str2hex.encode('utf_8')).decode('utf_8'))
-            if isinstance(ctx.channel, discord.DMChannel) == False:
-                msg = await ctx.reply(f'{ctx.author.mention} ascii of **{str2hex}** in hex is:```{hex_value}```', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+            if isinstance(ctx.channel, disnake.DMChannel) == False:
+                msg = await ctx.reply(f'{ctx.author.mention} ascii of **{str2hex}** in hex is:```{hex_value}```')
             else:
                 msg = await ctx.reply(f'{ctx.author.mention} ascii of **{str2hex}** in hex is:```{hex_value}```')
         except Exception as e:
@@ -482,10 +462,9 @@ class Tool(commands.Cog):
                 async with ctx.typing():
                     make_voice = functools.partial(user_translated, speech, to_lang)
                     voice_file = await self.bot.loop.run_in_executor(None, make_voice)
-                    file = discord.File(config.tts.tts_saved_path + voice_file['file'], filename=voice_file['file'])
-                    if isinstance(ctx.channel, discord.DMChannel) == False:
-                        msg = await ctx.reply(file=file, content="{}: {}".format(ctx.author.mention, voice_file['translated']), components=[row_close_message])
-                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                    file = disnake.File(config.tts.tts_saved_path + voice_file['file'], filename=voice_file['file'])
+                    if isinstance(ctx.channel, disnake.DMChannel) == False:
+                        msg = await ctx.reply(file=file, content="{}: {}".format(ctx.author.mention, voice_file['translated']))
                     else:
                         msg = await ctx.reply(file=file, content="{}: {}".format(ctx.author.mention, voice_file['translated']))
                     await store.sql_add_trans_tts(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
@@ -523,10 +502,9 @@ class Tool(commands.Cog):
                     try:
                         make_voice = functools.partial(user_speech, speech)
                         voice_file = await self.bot.loop.run_in_executor(None, make_voice)
-                        file = discord.File(config.tts.tts_saved_path + voice_file, filename=voice_file)
-                        if isinstance(ctx.channel, discord.DMChannel) == False:
-                            msg = await ctx.reply(file=file, content=f"{ctx.author.mention}", components=[row_close_message])
-                            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                        file = disnake.File(config.tts.tts_saved_path + voice_file, filename=voice_file)
+                        if isinstance(ctx.channel, disnake.DMChannel) == False:
+                            msg = await ctx.reply(file=file, content=f"{ctx.author.mention}")
                         else:
                             msg = await ctx.reply(file=file, content=f"{ctx.author.mention}")
                         await store.sql_add_tts(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
@@ -564,10 +542,9 @@ class Tool(commands.Cog):
                 try:
                     make_voice = functools.partial(user_speech, speech)
                     voice_file = await self.bot.loop.run_in_executor(None, make_voice)
-                    file = discord.File(config.tts.tts_saved_path + voice_file, filename=voice_file)
-                    if isinstance(ctx.channel, discord.DMChannel) == False:
-                        msg = await ctx.reply(file=file, content=f"{ctx.author.mention}", components=[row_close_message])
-                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                    file = disnake.File(config.tts.tts_saved_path + voice_file, filename=voice_file)
+                    if isinstance(ctx.channel, disnake.DMChannel) == False:
+                        msg = await ctx.reply(file=file, content=f"{ctx.author.mention}")
                     else:
                         msg = await ctx.reply(file=file, content=f"{ctx.author.mention}")
                     await store.sql_add_tts(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
@@ -606,10 +583,9 @@ class Tool(commands.Cog):
                 try:
                     make_voice = functools.partial(user_speech, speech)
                     voice_file = await self.bot.loop.run_in_executor(None, make_voice)
-                    file = discord.File(config.tts.tts_saved_path + voice_file, filename=voice_file)
-                    if isinstance(ctx.channel, discord.DMChannel) == False:
-                        msg = await ctx.reply(file=file, content=f"{ctx.author.mention}", components=[row_close_message])
-                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                    file = disnake.File(config.tts.tts_saved_path + voice_file, filename=voice_file)
+                    if isinstance(ctx.channel, disnake.DMChannel) == False:
+                        msg = await ctx.reply(file=file, content=f"{ctx.author.mention}")
                     else:
                         msg = await ctx.reply(file=file, content=f"{ctx.author.mention}")
                     await store.sql_add_tts(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
@@ -637,11 +613,6 @@ class Tool(commands.Cog):
         if ctx.author.bot == True:
             await ctx.message.add_reaction(EMOJI_ERROR)
             await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Bot is not allowed using this.')
-            return
-
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            await ctx.message.add_reaction(EMOJI_LOCKED)
             return
 
         if not re.match('^[a-zA-Z0-9-_ ]+$', searched_text):
@@ -677,16 +648,15 @@ class Tool(commands.Cog):
                     first_result = finding
                 else:
                     first_result = searching[0]
-                embed = discord.Embed(title='TipBot Find', description=f'`{searched_text}`', timestamp=datetime.utcnow())
+                embed = disnake.Embed(title='TipBot Find', description=f'`{searched_text}`', timestamp=datetime.utcnow())
                 embed.add_field(name="Title", value="```{}```".format(first_result['what'].replace('prefix', prefix)), inline=False)
                 embed.add_field(name="Content", value="```{}```".format(first_result['detail'].replace('prefix', prefix)), inline=False)
                 if 'example' in first_result and first_result['example'] and len(first_result['example'].strip()) > 0:
                     embed.add_field(name="More", value="```{}```".format(first_result['example'].replace('prefix', prefix)), inline=False)
                 embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
                 embed.set_footer(text=f"Find requested by {ctx.author.name}#{ctx.author.discriminator}")
-                if isinstance(ctx.channel, discord.DMChannel) == False:
-                    msg = await ctx.reply(embed=embed, components=[row_close_message])
-                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                if isinstance(ctx.channel, disnake.DMChannel) == False:
+                    msg = await ctx.reply(embed=embed)
                 else:
                     msg = await ctx.reply(embed=embed)
                 reaction_numbers = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🆗']
@@ -714,7 +684,7 @@ class Tool(commands.Cog):
                             emoji_n = reaction_numbers.index(str(reaction.emoji))
                             if emoji_n <= len(searching):
                                 first_result = searching[emoji_n-1]
-                                embed = discord.Embed(title='TipBot Find {}/{}'.format(emoji_n+1, len(searching)), description=f'`{searched_text}`', timestamp=datetime.utcnow())
+                                embed = disnake.Embed(title='TipBot Find {}/{}'.format(emoji_n+1, len(searching)), description=f'`{searched_text}`', timestamp=datetime.utcnow())
                                 embed.add_field(name="Title", value="```{}```".format(first_result['what'].replace('prefix', prefix)), inline=False)
                                 embed.add_field(name="Content", value="```{}```".format(first_result['detail'].replace('prefix', prefix)), inline=False)
                                 if 'example' in first_result and first_result['example'] and len(first_result['example'].strip()) > 0:
@@ -728,7 +698,7 @@ class Tool(commands.Cog):
                 await ctx.message.add_reaction(EMOJI_INFORMATION)
                 await ctx.reply(f'{ctx.author.mention} Searching.. **{searched_text}** and has no result.')
             return
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
         except Exception as e:
             await logchanbot(traceback.format_exc())

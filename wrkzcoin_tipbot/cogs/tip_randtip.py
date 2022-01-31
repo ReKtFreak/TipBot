@@ -1,9 +1,11 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice, SlashInteraction
-import dislash
+import disnake
+from disnake.ext import commands
+
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
+
 
 import random
 
@@ -43,15 +45,11 @@ class TipRandomTip(commands.Cog):
         if ctx.author.id in TX_IN_PROCESS:
             return {"error": f"{EMOJI_ERROR} {ctx.author.mention}, You have another tx in progress."}
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, This command can not be in private."}
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         COIN_NAME = coin.upper()
-
-        # TRTL discord
-        if ctx.guild.id == TRTL_DISCORD and COIN_NAME != "TRTL":
-            return {"error": f"{EMOJI_ERROR} {ctx.author.mention} Not available in this guild."}
 
         if COIN_NAME not in ENABLE_COIN_ERC + ENABLE_COIN_TRC + ENABLE_COIN + ENABLE_XMR + ENABLE_COIN_DOGE + ENABLE_COIN_NANO + ENABLE_XCH:
             return {"error": f"{EMOJI_ERROR} {ctx.author.mention} **{COIN_NAME}** is not in our supported coins."}
@@ -86,7 +84,7 @@ class TipRandomTip(commands.Cog):
             if rand_option is None or rand_option.upper().startswith("ALL"):
                 listMembers = [member for member in ctx.guild.members if member.bot == False]
             elif rand_option and rand_option.upper().startswith("ONLINE"):
-                listMembers = [member for member in ctx.guild.members if member.bot == False and member.status != discord.Status.offline]
+                listMembers = [member for member in ctx.guild.members if member.bot == False and member.status != disnake.Status.offline]
             elif rand_option and rand_option.upper().strip().startswith("LAST "):
                 argument = rand_option.strip().split(" ")            
                 if len(argument) == 2:
@@ -114,7 +112,7 @@ class TipRandomTip(commands.Cog):
                                 elif len(message_talker) < num_user:
                                     try:
                                         await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} I could not find sufficient talkers up to **{num_user}**. I found only **{len(message_talker)}** and will random to one of those **{len(message_talker)}** users.')
-                                    except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                                    except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                                         # No need to tip if failed to message
                                         await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                                         # Let it still go through
@@ -260,7 +258,7 @@ class TipRandomTip(commands.Cog):
                 await ctx.author.send(
                     f'{EMOJI_ARROW_RIGHTHOOK} {rand_user.name}#{rand_user.discriminator} got your random tip of {num_format_coin(real_amount, COIN_NAME)} '
                     f'{COIN_NAME} in server `{ctx.guild.name}`')
-            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+            except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                 await store.sql_toggle_tipnotify(str(ctx.author.id), "OFF")
             if str(rand_user.id) not in notifyList:
                 try:
@@ -268,7 +266,7 @@ class TipRandomTip(commands.Cog):
                         f'{EMOJI_MONEYFACE} You got a random tip of {num_format_coin(real_amount, COIN_NAME)} '
                         f'{COIN_NAME} from {ctx.author.name}#{ctx.author.discriminator} in server `{ctx.guild.name}`\n'
                         f'{NOTIFICATION_OFF_CMD}')
-                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                     await store.sql_toggle_tipnotify(str(user.id), "OFF")
             try:
                 # try message in public also
@@ -277,7 +275,7 @@ class TipRandomTip(commands.Cog):
                                 f'{COIN_NAME} from {ctx.author.name}#{ctx.author.discriminator}')
                 await msg.add_reaction(EMOJI_OK_BOX)
                 randtip_public_respond = True
-            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+            except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                 pass
             serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
             if randtip_public_respond == False and serverinfo and 'botchan' in serverinfo and serverinfo['botchan']:
@@ -293,12 +291,12 @@ class TipRandomTip(commands.Cog):
             return
 
 
-    @inter_client.slash_command(
+    @commands.slash_command(
         usage="randtip", 
         options=[
-            Option('amount', 'amount', OptionType.NUMBER, required=True),
-            Option('coin_name', 'coin_name', OptionType.STRING, required=True),
-            Option('option', 'all, online, last 1hr, last 10u,..', OptionType.STRING, required=True)
+            Option('amount', 'amount', OptionType.number, required=True),
+            Option('coin_name', 'coin_name', OptionType.string, required=True),
+            Option('option', 'all, online, last 1hr, last 10u,..', OptionType.string, required=True)
         ],
         description="Do a random tip to user."
     )
@@ -311,7 +309,7 @@ class TipRandomTip(commands.Cog):
     ):
         await self.bot_log()
         # TODO: If it is DM, let's make a secret tip
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.reply(f'{ctx.author.mention} This command can not be DM.')
             return
 

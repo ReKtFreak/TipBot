@@ -1,7 +1,7 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from config import config
 from Bot import *
@@ -24,7 +24,7 @@ class Height(commands.Cog):
         COIN_NAME = None
         serverinfo = None
         if coin is None:
-            if isinstance(ctx.message.channel, discord.DMChannel):
+            if isinstance(ctx.message.channel, disnake.DMChannel):
                 await ctx.message.add_reaction(EMOJI_ERROR)
                 await ctx.reply('Please add ticker: '+ ', '.join(ENABLE_COIN).lower() + ' with this command if in DM.')
                 return
@@ -57,10 +57,6 @@ class Height(commands.Cog):
             except ValueError:
                 pass
         # end of bot channel check
-
-        # TRTL discord
-        if isinstance(ctx.message.channel, discord.DMChannel) == False and ctx.guild.id == TRTL_DISCORD and COIN_NAME != "TRTL":
-            return
 
         coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
         if COIN_NAME not in (ENABLE_COIN + ENABLE_XMR + ENABLE_XCH):

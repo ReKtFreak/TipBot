@@ -1,9 +1,10 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice, SlashInteraction
-import dislash
+import disnake
+from disnake.ext import commands
+
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 from config import config
 from Bot import *
@@ -21,12 +22,8 @@ class Economy(commands.Cog):
         if self.botLogChan is None:
             self.botLogChan = self.bot.get_channel(LOG_CHAN)
 
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": "This command can not be DM."}
-
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return {"error": "Not available in this guild."}
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         prefix = await get_guild_prefix(ctx)
         if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
@@ -92,7 +89,7 @@ class Economy(commands.Cog):
                         # List item
                         get_shop_itemlist = await store.economy_shop_get_item_list()
                         if get_shop_itemlist and len(get_shop_itemlist) > 0:
-                            e = discord.Embed(title="Shop Bot".format(ctx.author.name, ctx.author.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
+                            e = disnake.Embed(title="Shop Bot".format(ctx.author.name, ctx.author.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
                             for each_item in get_shop_itemlist:
                                 remark_text = ""
                                 if each_item['remark'] and len(each_item['remark']) > 0:
@@ -327,7 +324,7 @@ class Economy(commands.Cog):
                 get_inventory_from_backpack = await store.economy_get_user_inventory(str(member.id), 'Gem')
                 if get_inventory_from_backpack and 'numbers' in get_inventory_from_backpack:
                     get_userinfo['gem_credit'] += get_inventory_from_backpack['numbers']
-                embed = discord.Embed(title="{}#{} - Credit {:,.2f}{}/ Gem: {:,.0f}{}".format(member.name, member.discriminator, get_userinfo['credit'], '💵', get_userinfo['gem_credit'], '💎'), description="Economy [Testing]")
+                embed = disnake.Embed(title="{}#{} - Credit {:,.2f}{}/ Gem: {:,.0f}{}".format(member.name, member.discriminator, get_userinfo['credit'], '💵', get_userinfo['gem_credit'], '💎'), description="Economy [Testing]")
                 embed.add_field(name="Health: {0:.2f}%".format(get_userinfo['health_current']/get_userinfo['health_total']*100), value='```{}```'.format(createBox(get_userinfo['health_current'], get_userinfo['health_total'], 20)), inline=False)
                 embed.add_field(name="Energy: {0:.2f}%".format(get_userinfo['energy_current']/get_userinfo['energy_total']*100), value='```{}```'.format(createBox(get_userinfo['energy_current'], get_userinfo['energy_total'], 20)), inline=False)
                 if get_userinfo['exp'] > 0:
@@ -375,7 +372,7 @@ class Economy(commands.Cog):
             except:
                 traceback.print_exc(file=sys.stdout)
                 await logchanbot(traceback.format_exc())
-                error = discord.Embed(title=":exclamation: Error", description=" :warning: You need to mention the user you want this info for!", color=0xe51e1e)
+                error = disnake.Embed(title=":exclamation: Error", description=" :warning: You need to mention the user you want this info for!", color=0xe51e1e)
                 await ctx.reply(embed=error)
         else:
             await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error.')
@@ -401,7 +398,7 @@ class Economy(commands.Cog):
                 if ctx.author.id not in GAME_INTERACTIVE_ECO:
                     GAME_INTERACTIVE_ECO.append(ctx.author.id)
                     # Add work if he needs to do
-                    e = discord.Embed(title="{}#{} Item in backpack".format(ctx.author.name, ctx.author.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
+                    e = disnake.Embed(title="{}#{} Item in backpack".format(ctx.author.name, ctx.author.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
                     all_item_backpack = {}
                     if get_user_inventory and len(get_user_inventory) > 0:
                         for each_item in get_user_inventory:
@@ -493,7 +490,7 @@ class Economy(commands.Cog):
         try:
             get_lumber_inventory = await store.economy_get_timber_user(str(member.id), sold_timber='NO', sold_leaf='NO')
             if len(get_lumber_inventory) > 0:
-                e = discord.Embed(title="{}#{} Lumber/Leaf".format(member.name, member.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
+                e = disnake.Embed(title="{}#{} Lumber/Leaf".format(member.name, member.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
                 e.add_field(name="Timber / Leaf", value="{:,.2f}m3 / {:,.2f}kg".format(get_lumber_inventory['timber_vol'], get_lumber_inventory['leaf_kg']), inline=False)
                 e.set_footer(text=f"Requested by {ctx.author.name}#{ctx.author.discriminator}")
                 e.set_thumbnail(url=member.display_avatar)
@@ -513,7 +510,7 @@ class Economy(commands.Cog):
         try:
             get_fish_inventory_list = await store.economy_get_list_fish_caught(str(member.id), sold='NO', caught='YES')
             if len(get_fish_inventory_list) > 0:
-                e = discord.Embed(title="{}#{} Fishes".format(member.name, member.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
+                e = disnake.Embed(title="{}#{} Fishes".format(member.name, member.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
                 fishes_lists = ""
                 for each_item in get_fish_inventory_list:
                     fishes_lists += each_item['fish_name'] + " " + each_item['fish_emoji'] + " x" +str(each_item['numbers']) + "={:,.2f}kg".format(each_item['Weights']) + "\n"
@@ -540,7 +537,7 @@ class Economy(commands.Cog):
         plant_list_names = [name['plant_name'].lower() for name in plant_list_arr]
 
         if plant_name and plant_name.upper() == "LIST":
-            e = discord.Embed(title="Plant List", description="Economy [Testing]", timestamp=datetime.utcnow())
+            e = disnake.Embed(title="Plant List", description="Economy [Testing]", timestamp=datetime.utcnow())
             for each_crop in plant_list_arr:
                 e.add_field(name=each_crop['plant_name'] + " " + each_crop['plant_emoji'] + " Dur. : {}".format(seconds_str(each_crop['duration_harvest'])), value="Harvested: {} | Credit: {}".format(each_crop['number_of_item'], each_crop['credit_per_item']*each_crop['number_of_item']), inline=False)
             e.set_footer(text=f"Requested by {ctx.author.name}#{ctx.author.discriminator}")
@@ -605,9 +602,9 @@ class Economy(commands.Cog):
             else:
                 # Not tree and not max, let's plant
                 # Using tractor, loss same energy but gain more experience
-                if has_tractor and type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if has_tractor and type(ctx) is not disnake.interactions.app_command_interaction.SlashInteraction:
                     await ctx.message.add_reaction("🚜")
-                elif not has_tractor and type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                elif not has_tractor and type(ctx) is not disnake.interactions.app_command_interaction.SlashInteraction:
                     await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
                 await asyncio.sleep(1.0)
                 exp_gained = config.economy.plant_exp_gained
@@ -768,7 +765,7 @@ class Economy(commands.Cog):
                     cattle = f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n" + cattle
                     cattle += f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n"
 
-                e = discord.Embed(title="{}#{} Dairy Cattle".format(member.name, member.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
+                e = disnake.Embed(title="{}#{} Dairy Cattle".format(member.name, member.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
                 e.add_field(name="Dairy Cattle View", value=cattle, inline=False)
                 if total_can_collect > 0:
                     e.add_field(name="Can Collect: {}".format(total_can_collect), value=can_harvest_string, inline=False)
@@ -852,7 +849,7 @@ class Economy(commands.Cog):
                     cattle = f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n" + cattle
                     cattle += f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n"
 
-                e = discord.Embed(title="{}#{} Chicken Farm".format(member.name, member.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
+                e = disnake.Embed(title="{}#{} Chicken Farm".format(member.name, member.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
                 e.add_field(name="Chicken Farm View", value=cattle, inline=False)
                 if total_can_collect > 0:
                     e.add_field(name="Chicken Can Collect: {}".format(total_can_collect), value=can_harvest_string, inline=False)
@@ -934,7 +931,7 @@ class Economy(commands.Cog):
                     farm = f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n" + farm
                     farm += f"{fence_left}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_h}{fence_right}\n"
 
-                e = discord.Embed(title="{}#{} Farm".format(member.name, member.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
+                e = disnake.Embed(title="{}#{} Farm".format(member.name, member.discriminator), description="Economy [Testing]", timestamp=datetime.utcnow())
                 e.add_field(name="Farm View", value=farm, inline=False)
                 if total_can_harvest > 0:
                     e.add_field(name="Can Harvest: {}".format(total_can_harvest), value=can_harvest_string, inline=False)
@@ -1088,9 +1085,9 @@ class Economy(commands.Cog):
             total_energy_loss = round(total_energy_loss, 2)
             total_exp = round(total_exp, 2)
             if will_fishing > 0: 
-                if has_boat and type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if has_boat and type(ctx) is not disnake.interactions.app_command_interaction.SlashInteraction:
                     await ctx.message.add_reaction("🚣")
-                elif not has_boat and type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                elif not has_boat and type(ctx) is not disnake.interactions.app_command_interaction.SlashInteraction:
                     await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
                 await asyncio.sleep(1.0)
                 insert_item = await store.economy_insert_fishing_multiple(selected_item_list, total_energy_loss, total_exp, str(ctx.author.id))
@@ -1145,7 +1142,7 @@ class Economy(commands.Cog):
 
         try:
             # Get list of items:
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+            if type(ctx) is not disnake.interactions.MessageInteraction:
                 await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
             await asyncio.sleep(1.0)
             timber_volume = math.floor(random.uniform(config.economy.plant_volume_rand_min, config.economy.plant_volume_rand_max)) + 1
@@ -1193,7 +1190,7 @@ class Economy(commands.Cog):
 
         try:
             # Get list of items:
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+            if type(ctx) is not disnake.interactions.MessageInteraction:
                 await ctx.message.add_reaction(EMOJI_HOURGLASS_NOT_DONE)
             await asyncio.sleep(1.0)
             if random.randint(1,100) < config.economy.luck_search:
@@ -1257,7 +1254,7 @@ class Economy(commands.Cog):
             if ctx.author.id not in GAME_INTERACTIVE_ECO:
                 GAME_INTERACTIVE_ECO.append(ctx.author.id)
                     # Add work if he needs to do
-                e = discord.Embed(title="{}#{} Food list in guild: {}".format(ctx.author.name, ctx.author.discriminator, ctx.guild.name), description="Economy [Testing]", timestamp=datetime.utcnow())
+                e = disnake.Embed(title="{}#{} Food list in guild: {}".format(ctx.author.name, ctx.author.discriminator, ctx.guild.name), description="Economy [Testing]", timestamp=datetime.utcnow())
                 get_foodlist_guild = await store.economy_get_guild_foodlist(str(ctx.guild.id), False)
                 all_food_in_guild = {}
                 if get_foodlist_guild and len(get_foodlist_guild) > 0:
@@ -1278,7 +1275,7 @@ class Economy(commands.Cog):
                         except asyncio.TimeoutError:
                             if ctx.author.id in GAME_INTERACTIVE_ECO:
                                 GAME_INTERACTIVE_ECO.remove(ctx.author.id)
-                            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                            if type(ctx) is not disnake.interactions.MessageInteraction:
                                 await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
                             try:
                                 await msg.delete()
@@ -1362,9 +1359,6 @@ class Economy(commands.Cog):
     async def eco_work(self, ctx, claim: str=None):        
         if self.botLogChan is None:
             self.botLogChan = self.bot.get_channel(LOG_CHAN)
-        # disable game for TRTL discord
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:
-            return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, Not available in this guild."}
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         prefix = await get_guild_prefix(ctx)
         if serverinfo and 'enable_economy' in serverinfo and serverinfo['enable_economy'] == "NO":
@@ -1412,7 +1406,7 @@ class Economy(commands.Cog):
                     if ctx.author.id not in GAME_INTERACTIVE_ECO:
                         GAME_INTERACTIVE_ECO.append(ctx.author.id)
                     # Add work if he needs to do
-                    e = discord.Embed(title="{}#{} Work list in guild: {}".format(ctx.author.name, ctx.author.discriminator, ctx.guild.name), description="Economy [Testing]", timestamp=datetime.utcnow())
+                    e = disnake.Embed(title="{}#{} Work list in guild: {}".format(ctx.author.name, ctx.author.discriminator, ctx.guild.name), description="Economy [Testing]", timestamp=datetime.utcnow())
                     get_worklist_guild = await store.economy_get_guild_worklist(str(ctx.guild.id), False)
                     all_work_in_guild = {}
                     if get_worklist_guild and len(get_worklist_guild) > 0:
@@ -1435,7 +1429,7 @@ class Economy(commands.Cog):
                             except asyncio.TimeoutError:
                                 if ctx.author.id in GAME_INTERACTIVE_ECO:
                                     GAME_INTERACTIVE_ECO.remove(ctx.author.id)
-                                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                                if type(ctx) is not disnake.interactions.MessageInteraction:
                                     await ctx.message.add_reaction(EMOJI_ALARMCLOCK)
                                 try:
                                     await msg.delete()
@@ -1460,7 +1454,7 @@ class Economy(commands.Cog):
                                         task_name = "{} {}".format(get_work_id['work_name'], get_work_id['work_emoji'])
                                         await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} You started a new task - {task_name}! {additional_text}')
                                         await msg.delete()
-                                        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                                        if type(ctx) is not disnake.interactions.MessageInteraction:
                                             await ctx.message.add_reaction(reaction.emoji)
                                     else:
                                         return {"error": f"{EMOJI_INFORMATION} {ctx.author.mention}, Internal error."}
@@ -1570,14 +1564,14 @@ class Economy(commands.Cog):
                 if ctx.author.id in GAME_INTERACTIVE_ECO:
                     GAME_INTERACTIVE_ECO.remove(ctx.author.id)
                 traceback.print_exc(file=sys.stdout)
-                error = discord.Embed(title=":exclamation: Error", description=" :warning: internal error!")
+                error = disnake.Embed(title=":exclamation: Error", description=" :warning: internal error!")
                 await ctx.reply(embed=error)
         else:
             return {"error": f"{EMOJI_ERROR} {ctx.author.mention}, Internal error."}
 
 
-    @dislash.guild_only()
-    @inter_client.slash_command(description="Economy game commands.")
+    @commands.guild_only()
+    @commands.slash_command(description="Economy game commands.")
     async def eco(self, ctx):
         pass
 
@@ -1599,14 +1593,14 @@ class Economy(commands.Cog):
     @eco.sub_command(
         usage="eco info <member>", 
         options=[
-            Option('member', 'member', OptionType.USER, required=False)
+            Option('member', 'member', OptionType.user, required=False)
         ],
         description="Get an economy information of a member."
     )
     async def info(
         self, 
         ctx, 
-        member: discord.Member=None
+        member: disnake.Member=None
     ):
         if member is None:
             member = ctx.author
@@ -1619,7 +1613,7 @@ class Economy(commands.Cog):
     @eco.sub_command(
         usage="eco sell <item>", 
         options=[
-            Option('item_name', 'item_name', OptionType.STRING, required=True)
+            Option('item_name', 'item_name', OptionType.string, required=True)
         ],
         description="Sell an economic item."
     )
@@ -1638,7 +1632,7 @@ class Economy(commands.Cog):
     @eco.sub_command(
         usage="eco buy <item>", 
         options=[
-            Option('item_name', 'item_name', OptionType.STRING, required=True)
+            Option('item_name', 'item_name', OptionType.string, required=True)
         ],
         description="Buy an economic item."
     )
@@ -1664,14 +1658,14 @@ class Economy(commands.Cog):
     @eco.sub_command(
         usage="eco lumber <member>", 
         options=[
-            Option('member', 'member', OptionType.USER, required=False)
+            Option('member', 'member', OptionType.user, required=False)
         ],
         description="Get an economy information of a member."
     )
     async def lumber(
         self, 
         ctx, 
-        member: discord.Member=None
+        member: disnake.Member=None
     ):
         if member is None:
             member = ctx.author
@@ -1683,14 +1677,14 @@ class Economy(commands.Cog):
     @eco.sub_command(
         usage="eco fish <member>", 
         options=[
-            Option('member', 'member', OptionType.USER, required=False)
+            Option('member', 'member', OptionType.user, required=False)
         ],
         description="Show fishes of a member."
     )
     async def fish(
         self, 
         ctx, 
-        member: discord.Member=None
+        member: disnake.Member=None
     ):
         if member is None:
             member = ctx.author
@@ -1702,7 +1696,7 @@ class Economy(commands.Cog):
     @eco.sub_command(
         usage="eco plant <crop name>", 
         options=[
-            Option('plant_name', 'plant_name', OptionType.STRING, required=True, choices=[
+            Option('plant_name', 'plant_name', OptionType.string, required=True, choices=[
                 OptionChoice("🥦 broccoli", "broccoli"),
                 OptionChoice("🥕 carrot", "carrot"),
                 OptionChoice("🍒 cherry", "cherry"),
@@ -1731,7 +1725,7 @@ class Economy(commands.Cog):
     @eco.sub_command(
         usage="eco collect <what>", 
         options=[
-            Option('what', 'name', OptionType.STRING, required=True, choices=[
+            Option('what', 'name', OptionType.string, required=True, choices=[
                 OptionChoice("EGG", "EGG"),
                 OptionChoice("MILK", "MILK")
             ]
@@ -1753,14 +1747,14 @@ class Economy(commands.Cog):
     @eco.sub_command(
         usage="eco dairy <member>", 
         options=[
-            Option('member', 'member', OptionType.USER, required=False)
+            Option('member', 'member', OptionType.user, required=False)
         ],
         description="Show dairy of a member."
     )
     async def dairy(
         self, 
         ctx, 
-        member: discord.Member=None
+        member: disnake.Member=None
     ):
         if member is None:
             member = ctx.author
@@ -1772,14 +1766,14 @@ class Economy(commands.Cog):
     @eco.sub_command(
         usage="eco chicken <member>", 
         options=[
-            Option('member', 'member', OptionType.USER, required=True)
+            Option('member', 'member', OptionType.user, required=True)
         ],
         description="Show chicken farm of a member."
     )
     async def chicken(
         self, 
         ctx, 
-        member: discord.Member=None
+        member: disnake.Member=None
     ):
         if member is None:
             member = ctx.author
@@ -1791,14 +1785,14 @@ class Economy(commands.Cog):
     @eco.sub_command(
         usage="eco farm <member>", 
         options=[
-            Option('member', 'member', OptionType.USER, required=False)
+            Option('member', 'member', OptionType.user, required=False)
         ],
         description="Show farm of a member."
     )
     async def farm(
         self, 
         ctx, 
-        member: discord.Member=None
+        member: disnake.Member=None
     ):
         if member is None:
             member = ctx.author
@@ -1875,7 +1869,7 @@ class Economy(commands.Cog):
     @eco.sub_command(
         usage="eco work [claim]", 
         options=[
-            Option('claim', 'claim', OptionType.STRING, required=False, choices=[
+            Option('claim', 'claim', OptionType.string, required=False, choices=[
                 OptionChoice("CLAIM", "CLAIM")
             ]
             )
@@ -1954,7 +1948,7 @@ class Economy(commands.Cog):
     async def info(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
         if member is None:
             member = ctx.author
@@ -1986,7 +1980,7 @@ class Economy(commands.Cog):
     async def lumber(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
         if member is None:
             member = ctx.author
@@ -2004,7 +1998,7 @@ class Economy(commands.Cog):
     async def fish(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
         if member is None:
             member = ctx.author
@@ -2058,7 +2052,7 @@ class Economy(commands.Cog):
     async def dairy(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
         if member is None:
             member = ctx.author
@@ -2076,7 +2070,7 @@ class Economy(commands.Cog):
     async def chicken(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
         if member is None:
             member = ctx.author
@@ -2094,7 +2088,7 @@ class Economy(commands.Cog):
     async def farm(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):        
         if member is None:
             member = ctx.author

@@ -3,9 +3,8 @@ import sys
 import time
 import traceback
 
-import discord
-from discord.ext import commands
-import dislash
+import disnake
+from disnake.ext import commands
 
 from Bot import *
 import store
@@ -73,10 +72,10 @@ class Events(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         # should ignore webhook message
-        if isinstance(message.channel, discord.DMChannel) == False and message.webhook_id:
+        if isinstance(message.channel, disnake.DMChannel) == False and message.webhook_id:
             return
 
-        if isinstance(message.channel, discord.DMChannel) == False and message.author.bot == False and len(message.content) > 0 and message.author != self.bot.user:
+        if isinstance(message.channel, disnake.DMChannel) == False and message.author.bot == False and len(message.content) > 0 and message.author != self.bot.user:
             if config.Enable_Message_Logging == 1:
                 await add_msg_redis(json.dumps([str(message.guild.id), message.guild.name, str(message.channel.id), message.channel.name, 
                                                  str(message.author.id), message.author.name, str(message.id), message.content, int(time.time())]), False)
@@ -85,7 +84,7 @@ class Events(commands.Cog):
                                                  str(message.author.id), message.author.name, str(message.id), '', int(time.time())]), False)
 
         # mute channel
-        if isinstance(message.channel, discord.DMChannel) == False and MUTE_CHANNEL and str(message.guild.id) in MUTE_CHANNEL:
+        if isinstance(message.channel, disnake.DMChannel) == False and MUTE_CHANNEL and str(message.guild.id) in MUTE_CHANNEL:
             if str(message.channel.id) in MUTE_CHANNEL[str(message.guild.id)] and message.content[1:].upper() != "SETTING UNMUTE":
                 # Ignore
                 return
@@ -95,7 +94,7 @@ class Events(commands.Cog):
         try:
             # remove first char
             if LIST_IGNORECHAN:
-                if isinstance(message.channel, discord.DMChannel) == False and str(message.guild.id) in LIST_IGNORECHAN:
+                if isinstance(message.channel, disnake.DMChannel) == False and str(message.guild.id) in LIST_IGNORECHAN:
                     if message.content[1:].upper().startswith(commandList) \
                         and (str(message.channel.id) in LIST_IGNORECHAN[str(message.guild.id)]):
                         await message.add_reaction(EMOJI_ERROR)

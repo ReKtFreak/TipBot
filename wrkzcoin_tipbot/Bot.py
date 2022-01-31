@@ -1,16 +1,15 @@
 import click
 from discord_webhook import DiscordWebhook
 
-import discord
-from discord.ext import commands
-from discord.ext.commands import Bot, AutoShardedBot, when_mentioned_or, CheckFailure
-import dislash
+import disnake
+from disnake.ext import commands
+from disnake.ext.commands import Bot, AutoShardedBot, when_mentioned_or, CheckFailure
+from disnake import ActionRow, Button, ButtonStyle
 
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice, SlashInteraction
-import dislash
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
-from discord.utils import get
-
+from disnake.utils import get
 import time, timeago
 import simplejson as json
 import pyotp
@@ -77,7 +76,7 @@ from wallet import *
 # regex
 import re
 # reaction
-from discord.utils import get
+from disnake.utils import get
 from datetime import datetime
 import math, random
 import os.path
@@ -352,25 +351,32 @@ ROUND_AMOUNT_COIN = {
     }
 
 
-# Create a row of buttons
-row_close_message = ActionRow(
-    Button(
-        style=ButtonStyle.blurple,
-        label="❎ Close",
-        custom_id="close_message"
-    )
-)
+# Defines a simple view of row buttons.
+class RowButton_close_message(disnake.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
 
-row_close_any_message = ActionRow(
-    Button(
-        style=ButtonStyle.green,
-        label="❎ Close",
-        custom_id="close_any_message"
-    )
-)
+    # Creates a row of buttons and when one of them is pressed, it will send a message with the number of the button.
 
-# TRTL discord. Need for some specific tasks later.
-TRTL_DISCORD = 388915017187328002
+    @disnake.ui.button(label="❎ Close", style=ButtonStyle.blurple, custom_id="close_message")
+    async def row_close_message(
+        self, button: disnake.ui.Button, interaction: disnake.MessageInteraction
+    ):
+        #await interaction.response.send_message("This is the first button.")
+        pass
+
+
+# Defines a simple view of row buttons.
+class RowButton_row_close_any_message(disnake.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @disnake.ui.button(label="❎ Close", style=ButtonStyle.green, custom_id="close_any_message")
+    async def row_close_message(
+        self, button: disnake.ui.Button, interaction: disnake.MessageInteraction
+    ):
+        pass
+
 
 NOTIFICATION_OFF_CMD = 'Type: `.notifytip off` to turn off this notification or mention.'
 MSG_LOCKED_ACCOUNT = "Your account is locked. Please contact Pluton#4425 in WrkzCoin discord. Check `.about` for more info."
@@ -437,7 +443,7 @@ def get_notice_txt(coin: str):
 async def get_prefix(bot, message):
     """Gets the prefix for the guild"""
     pre_cmd = config.discord.prefixCmd
-    if isinstance(message.channel, discord.DMChannel):
+    if isinstance(message.channel, disnake.DMChannel):
         pre_cmd = config.discord.prefixCmd
         extras = [pre_cmd, 'tb!', 'tipbot!', '?', '.', '+', '!', '-', '/']
         return when_mentioned_or(*extras)(bot, message)
@@ -468,16 +474,12 @@ async def create_address_eth():
     create_wallet = await bot.loop.run_in_executor(None, wallet_eth)
     return create_wallet
 
-
-intents = discord.Intents.default()
+intents = disnake.Intents.default()
 intents.members = True
 intents.presences = True
 
-bot = AutoShardedBot(command_prefix = get_prefix, case_insensitive=True, owner_id = OWNER_ID_TIPBOT, pm_help = True, intents=discord.Intents.all())
-inter_client = InteractionClient(bot, test_guilds=GUILD_ID_SLASH)
-
+bot = AutoShardedBot(command_prefix = get_prefix, case_insensitive=True, owner_id = OWNER_ID_TIPBOT, pm_help = True, intents=intents, test_guilds=GUILD_ID_SLASH)
 bot.remove_command('help')
-
 
 async def logchanbot(content: str):
     filterword = config.discord.logfilterword.split(",")
@@ -485,7 +487,7 @@ async def logchanbot(content: str):
         content = content.replace(each, config.discord.filteredwith)
     if len(content) > 1500: content = content[:1500]
     try:
-        webhook = DiscordWebhook(url=config.discord.botdbghook, content=f'```{discord.utils.escape_markdown(content)}```')
+        webhook = DiscordWebhook(url=config.discord.botdbghook, content=f'```{disnake.utils.escape_markdown(content)}```')
         webhook.execute()
     except Exception as e:
         traceback.print_exc(file=sys.stdout)
@@ -506,8 +508,8 @@ async def on_ready():
     print("Guilds: {}".format(len(bot.guilds)))
     print("Bot invitation link: " + BOT_INVITELINK)
     if HANGMAN_WORDS and len(HANGMAN_WORDS) > 0: print('Loaded {} words for hangman.'.format(len(HANGMAN_WORDS)))
-    game = discord.Game(name="making crypto fun!")
-    await bot.change_presence(status=discord.Status.online, activity=game)
+    game = disnake.Game(name="making crypto fun!")
+    await bot.change_presence(status=disnake.Status.online, activity=game)
     botLogChan = bot.get_channel(LOG_CHAN)
     await botLogChan.send(f'{EMOJI_REFRESH} I am back :)')
     IS_RESTARTING = False
@@ -533,7 +535,7 @@ async def on_raw_reaction_add(payload):
         channel = bot.get_channel(channel_id)
         if not channel:
             return
-        if isinstance(channel, discord.DMChannel):
+        if isinstance(channel, disnake.DMChannel):
             return
     except Exception as e:
         await logchanbot(traceback.format_exc())
@@ -544,7 +546,7 @@ async def on_raw_reaction_add(payload):
         try:
             message = await channel.fetch_message(message_id)
             author = message.author
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             # No message found
             return
         member = bot.get_user(user_id)
@@ -561,7 +563,7 @@ async def on_raw_reaction_add(payload):
                 except Exception as e:
                     pass
                 return
-            except discord.errors.NotFound as e:
+            except disnake.errors.NotFound as e:
                 # No message found
                 return
 
@@ -591,261 +593,6 @@ async def on_reaction_add(reaction, user):
                 await reaction.message.delete()
             except Exception as e:
                 pass
-        # EMOJI_100
-        elif reaction.emoji == EMOJI_100 \
-            and user.bot == False and reaction.message.author != user and reaction.message.author.bot == False:
-            # check if react_tip_100 is ON in the server
-            serverinfo = await store.sql_info_by_server(str(reaction.message.guild.id))
-            if serverinfo['react_tip'] == "ON":
-                if (str(reaction.message.id) + '.' + str(user.id)) not in REACT_TIP_STORE:
-                    # OK add new message to array                  
-                    pass
-                else:
-                    # he already re-acted and tipped once
-                    return
-                # get the amount of 100 from defined
-                COIN_NAME = serverinfo['react_tip_coin']
-                if COIN_NAME in ENABLE_COIN_ERC:
-                    coin_family = "ERC-20"
-                    token_info = await store.get_token_info(COIN_NAME)
-                    MinTx = token_info['real_min_tip']
-                    MaxTx = token_info['real_max_tip']
-                elif COIN_NAME in ENABLE_COIN_TRC:
-                    coin_family = "TRC-20"
-                    token_info = await store.get_token_info(COIN_NAME)
-                    MinTx = token_info['real_min_tip']
-                    MaxTx = token_info['real_max_tip']
-                else:
-                    coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
-                    MinTx = get_min_mv_amount(COIN_NAME)
-                    MaxTx = get_max_mv_amount(COIN_NAME)
-                real_amount = int(Decimal(amount) * get_decimal(COIN_NAME)) if coin_family in ["BCN", "XMR", "TRTL", "NANO", "XCH"] else float(amount)
-
-                user_from = await store.sql_get_userwallet(str(user.id), COIN_NAME)
-                if user_from is None:
-                    userregister = await store.sql_register_user(str(user.id), COIN_NAME, SERVER_BOT, 0)
-                user_to = await store.sql_get_userwallet(str(reaction.message.author.id), COIN_NAME)
-                if user_to is None:
-                    userregister = await store.sql_register_user(str(reaction.message.author.id), COIN_NAME, SERVER_BOT, 0)
-                userdata_balance = await store.sql_user_balance(str(user.id), COIN_NAME)
-                xfer_in = 0
-                if COIN_NAME not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                    xfer_in = await store.sql_user_balance_get_xfer_in(str(user.id), COIN_NAME)
-                if COIN_NAME in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                    actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
-                elif COIN_NAME in ENABLE_COIN_NANO:
-                    actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-                    actual_balance = round(actual_balance / get_decimal(COIN_NAME), 6) * get_decimal(COIN_NAME)
-                else:
-                    actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-
-                coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
-                # Negative check
-                try:
-                    if actual_balance < 0:
-                        msg_negative = 'Negative balance detected:\nUser: '+str(user.id)+'\nCoin: '+COIN_NAME+'\nAtomic Balance: '+str(actual_balance)
-                        await logchanbot(msg_negative)
-                except Exception as e:
-                    await logchanbot(traceback.format_exc())
-                # process other check balance
-                if real_amount > actual_balance or \
-                    real_amount > MaxTx or real_amount < MinTx:
-                    return
-                else:
-                    # add queue also react-tip
-                    if user.id not in TX_IN_PROCESS:
-                        TX_IN_PROCESS.append(user.id)
-                    else:
-                        try:
-                            msg = await user.send(f'{EMOJI_ERROR} You have another tx in progress. Re-act tip not proceed.')
-                        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                            pass
-                        return
-                    tip = None
-                    try:
-                        tip = await store.sql_mv_cn_single(str(user.id), str(reaction.message.author.id), real_amount, 'REACTTIP', COIN_NAME)
-                    except Exception as e:
-                        await logchanbot(traceback.format_exc())
-
-                    # remove queue from react-tip
-                    if user.id in TX_IN_PROCESS:
-                        TX_IN_PROCESS.remove(user.id)
-
-                    if tip:
-                        notifyList = await store.sql_get_tipnotify()
-                        REACT_TIP_STORE.append((str(reaction.message.id) + '.' + str(user.id)))
-                        if get_emoji(COIN_NAME) not in reaction.message.reactions:
-                            await reaction.message.add_reaction(get_emoji(COIN_NAME))
-                        # tipper shall always get DM. Ignore notifyList
-                        try:
-                            await user.send(
-                                f'{EMOJI_ARROW_RIGHTHOOK} Tip of {num_format_coin(real_amount, COIN_NAME)} '
-                                f'{COIN_NAME} '
-                                f'was sent to {reaction.message.author.name}#{reaction.message.author.discriminator} in server `{reaction.message.guild.name}` by your re-acting {EMOJI_100}')
-                        except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
-                            await store.sql_toggle_tipnotify(str(user.id), "OFF")
-                        if str(reaction.message.author.id) not in notifyList:
-                            try:
-                                await reaction.message.author.send(
-                                    f'{EMOJI_MONEYFACE} You got a tip of {num_format_coin(real_amount, COIN_NAME)} '
-                                    f'{COIN_NAME} from {user.name}#{user.discriminator} in server `{reaction.message.guild.name}` #{reaction.message.channel.name} from their re-acting {EMOJI_100}\n'
-                                    f'{NOTIFICATION_OFF_CMD}')
-                            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
-                                await store.sql_toggle_tipnotify(str(reaction.message.author.id), "OFF")
-                        return
-                    else:
-                        try:
-                            await user.send(f'{user.mention} Can not deliver TX for {COIN_NAME} right now with {EMOJI_100}.')
-                        except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
-                            await store.sql_toggle_tipnotify(str(user.id), "OFF")
-                        # add to failed tx table
-                        await store.sql_add_failed_tx(COIN_NAME, str(user.id), user.name, real_amount, "REACTTIP")
-                        return
-        # EMOJI_99 TRTL_DISCORD Only
-        elif str(reaction.emoji) == EMOJI_99 and reaction.message.guild.id == TRTL_DISCORD \
-            and user.bot == False and reaction.message.author != user and reaction.message.author.bot == False:
-            # check if react_tip_100 is ON in the server
-            serverinfo = await store.sql_info_by_server(str(reaction.message.guild.id))
-            if serverinfo['react_tip'] == "ON":
-                if (str(reaction.message.id) + '.' + str(user.id)) not in REACT_TIP_STORE:
-                    # OK add new message to array                  
-                    pass
-                else:
-                    # he already re-acted and tipped once
-                    return
-                # get the amount of 100 from defined
-                COIN_NAME = "TRTL"
-                real_amount = 99 * get_decimal(COIN_NAME)
-                MinTx = get_min_mv_amount(COIN_NAME)
-                MaxTx = get_max_mv_amount(COIN_NAME)
-
-                user_from = await store.sql_get_userwallet(str(user.id), COIN_NAME)
-                if user_from is None:
-                    userregister = await store.sql_register_user(str(user.id), COIN_NAME, SERVER_BOT, 0)
-
-                userdata_balance = await store.sql_user_balance(str(user.id), COIN_NAME)
-                xfer_in = 0
-                if COIN_NAME not in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                    xfer_in = await store.sql_user_balance_get_xfer_in(str(user.id), COIN_NAME)
-                if COIN_NAME in ENABLE_COIN_DOGE+ENABLE_COIN_ERC+ENABLE_COIN_TRC:
-                    actual_balance = float(xfer_in) + float(userdata_balance['Adjust'])
-                elif COIN_NAME in ENABLE_COIN_NANO:
-                    actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-                    actual_balance = round(actual_balance / get_decimal(COIN_NAME), 6) * get_decimal(COIN_NAME)
-                else:
-                    actual_balance = int(xfer_in) + int(userdata_balance['Adjust'])
-                # Negative check
-                try:
-                    if actual_balance < 0:
-                        msg_negative = 'Negative balance detected:\nUser: '+str(user.id)+'\nCoin: '+COIN_NAME+'\nAtomic Balance: '+str(actual_balance)
-                        await logchanbot(msg_negative)
-                except Exception as e:
-                    await logchanbot(traceback.format_exc())
-                user_to = await store.sql_get_userwallet(str(reaction.message.author.id), COIN_NAME)
-                if user_to is None:
-                    userregister = await store.sql_register_user(str(reaction.message.author.id), COIN_NAME, SERVER_BOT, 0)
-                # process other check balance
-                if real_amount > actual_balance or \
-                    real_amount > MaxTx or real_amount < MinTx:
-                    return
-                else:
-                    # add queue also react-tip
-                    if user.id not in TX_IN_PROCESS:
-                        TX_IN_PROCESS.append(user.id)
-                    else:
-                        try:
-                            msg = await user.send(f'{EMOJI_ERROR} You have another tx in progress. Re-act tip not proceed.')
-                        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                            pass
-                        return
-
-                    tip = None
-                    try:
-                        tip = await store.sql_mv_cn_single(str(user.id), str(reaction.message.author.id), real_amount, 'REACTTIP', COIN_NAME)
-                    except Exception as e:
-                        await logchanbot(traceback.format_exc())
-
-                    # remove queue from react-tip
-                    if user.id in TX_IN_PROCESS:
-                        TX_IN_PROCESS.remove(user.id)
-
-                    if tip:
-                        notifyList = await store.sql_get_tipnotify()
-                        REACT_TIP_STORE.append((str(reaction.message.id) + '.' + str(user.id)))
-                        if get_emoji(COIN_NAME) not in reaction.message.reactions:
-                            await reaction.message.add_reaction(get_emoji(COIN_NAME))
-                        # tipper shall always get DM. Ignore notifyList
-                        try:
-                            await user.send(
-                                f'{EMOJI_ARROW_RIGHTHOOK} Tip of {num_format_coin(real_amount, COIN_NAME)} '
-                                f'{COIN_NAME} '
-                                f'was sent to {reaction.message.author.name}#{reaction.message.author.discriminator} in server `{reaction.message.guild.name}` by your re-acting {EMOJI_99}')
-                        except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
-                            await store.sql_toggle_tipnotify(str(user.id), "OFF")
-                        if str(reaction.message.author.id) not in notifyList:
-                            try:
-                                await reaction.message.author.send(
-                                    f'{EMOJI_MONEYFACE} You got a tip of {num_format_coin(real_amount, COIN_NAME)} '
-                                    f'{COIN_NAME} from {user.name}#{user.discriminator} in server `{reaction.message.guild.name}` #{reaction.message.channel.name} from their re-acting {EMOJI_99}\n'
-                                    f'{NOTIFICATION_OFF_CMD}')
-                            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
-                                await store.sql_toggle_tipnotify(str(reaction.message.author.id), "OFF")
-                        return
-                    else:
-                        try:
-                            await user.send(f'{user.mention} Can not deliver TX for {COIN_NAME} right now with {EMOJI_99}.')
-                        except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
-                            await store.sql_toggle_tipnotify(str(user.id), "OFF")
-                        # add to failed tx table
-                        await store.sql_add_failed_tx(COIN_NAME, str(user.id), user.name, real_amount, "REACTTIP")
-                        return
-            else:
-                return
-        # EMOJI_TIP Only
-        elif str(reaction.emoji) == EMOJI_TIP \
-            and user.bot == False and reaction.message.author != user and reaction.message.author.bot == False:
-            # They re-act TIP emoji
-            # check if react_tip_100 is ON in the server
-            serverinfo = await store.sql_info_by_server(str(reaction.message.guild.id))
-            if serverinfo['react_tip'] == "ON":
-                if (str(reaction.message.id) + '.' + str(user.id)) not in REACT_TIP_STORE:
-                    # OK add new message to array                  
-                    pass
-                else:
-                    # he already re-acted and tipped once
-                    return
-                # get the amount of 100 from defined
-                msg = reaction.message.content
-                # Check if bot re-act TIP also
-                if EMOJI_TIP in reaction.message.reactions:
-                    # bot in re-act list
-                    users_reacted = reaction.message.reactions[reaction.message.reactions.index(EMOJI_TIP)].users()
-                    if users_reacted:
-                        if bot.user in users_reacted:
-                            print('yes, bot also in TIP react')
-                        else:
-                            return
-                args = reaction.message.content.split(" ")
-                try:
-                    amount = float(args[1].replace(",", ""))
-                except ValueError:
-                    return
-
-                COIN_NAME = None
-                try:
-                    COIN_NAME = args[2].upper()
-                    if COIN_NAME in ENABLE_XMR+ENABLE_XCH:
-                        pass
-                    elif COIN_NAME not in ENABLE_COIN:
-                        if COIN_NAME in ENABLE_COIN_DOGE:
-                            pass
-                        elif 'default_coin' in serverinfo:
-                            COIN_NAME = serverinfo['default_coin'].upper()
-                except:
-                    if 'default_coin' in serverinfo:
-                        COIN_NAME = serverinfo['default_coin'].upper()
-                print("TIP REACT COIN_NAME: " + COIN_NAME)
-                await _tip_react(reaction, user, amount, COIN_NAME)
         return
 
 
@@ -855,7 +602,7 @@ async def prefix(ctx):
     try:
         msg = await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention}, the prefix here is **{prefix}**')
         await msg.add_reaction(EMOJI_OK_BOX)
-    except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+    except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
         await msg.add_reaction(EMOJI_ERROR)
         await logchanbot(traceback.format_exc())
     return
@@ -887,7 +634,7 @@ async def alert_if_userlock(ctx, cmd: str):
 
 
 async def get_info_pref_coin(ctx):
-    if isinstance(ctx.channel, discord.DMChannel):
+    if isinstance(ctx.channel, disnake.DMChannel):
         prefixChar = '.'
         return {'server_prefix': prefixChar}
     else:
@@ -1128,7 +875,7 @@ async def erc_trx_notify_new_confirmed_spendable():
                             msg = "You got a new deposit confirmed: ```" + "Amount: {}{}".format(each_notify['real_amount'], coinItem) + "```"
                             try:
                                 await member.send(msg)
-                            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                            except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                                 is_notify_failed = True
                             except Exception as e:
                                 traceback.print_exc(file=sys.stdout)
@@ -1200,7 +947,7 @@ async def notify_new_tx_user_noconfirmation():
                                                 else:
                                                     msg = "You got a new **pending** deposit: ```" + "Coin: {}\nTx: {}\nAmount: {}\nBlock Hash: {}\n{}".format(eachTx['coin_name'], eachTx['txid'], num_format_coin(eachTx['amount'], eachTx['coin_name']), eachTx['blockhash'], confirmation_number_txt) + "```"
                                                 await user_found.send(msg)
-                                            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                                            except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                                                 pass
                                             # TODO:
                                             redis_conn.lpush(key_tx_no_confirmed_sent, tx)
@@ -1217,7 +964,7 @@ async def notify_new_tx_user_noconfirmation():
                                                     else:
                                                         msg = "Your guild got a new **pending** deposit: ```" + "Coin: {}\nTx: {}\nAmount: {}\nBlock Hash: {}\n{}".format(eachTx['coin_name'], eachTx['txid'], num_format_coin(eachTx['amount'], eachTx['coin_name']), eachTx['blockhash'], confirmation_number_txt) + "```"
                                                     await user_found.send(msg)
-                                                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                                                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                                                     pass
                                                 except Exception as e:
                                                     await logchanbot(traceback.format_exc())
@@ -1263,7 +1010,7 @@ async def notify_new_tx_user():
                                     else:
                                         msg = "You got a new deposit confirmed: ```" + "Coin: {}\nTx: {}\nAmount: {}\nBlock Hash: {}".format(eachTx['coin_name'], eachTx['txid'], num_format_coin(eachTx['amount'], eachTx['coin_name']), eachTx['blockhash']) + "```"
                                     await user_found.send(msg)
-                                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                                     is_notify_failed = True
                                     pass
                                 except Exception as e:
@@ -1284,7 +1031,7 @@ async def notify_new_tx_user():
                                         else:
                                             msg = "Your guild got a new deposit confirmed: ```" + "Coin: {}\nTx: {}\nAmount: {}\nBlock Hash: {}".format(eachTx['coin_name'], eachTx['txid'], num_format_coin(eachTx['amount'], eachTx['coin_name']), eachTx['blockhash']) + "```"
                                         await user_found.send(msg)
-                                    except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                                    except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                                         is_notify_failed = True
                                         pass
                                     except Exception as e:
@@ -1317,7 +1064,7 @@ async def notify_new_move_balance_user():
                                 try:
                                     msg = "You got a new tip: ```" + "Coin: {}\nAmount: {}\nFrom: {}@{}".format(eachTx['coin_name'], num_format_coin(eachTx['amount'], eachTx['coin_name']), eachTx['from_name'], eachTx['from_server']) + "```"   
                                     await user_found.send(msg)
-                                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                                     is_notify_failed = True
                                 except Exception as e:
                                     await logchanbot(traceback.format_exc())
@@ -1342,7 +1089,7 @@ async def trade_complete_sale_notify():
                     msg = "**#{}** Order completed!".format(each_notify['order_id'])
                     try:
                         await member.send(msg)
-                    except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                    except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                         is_notify_failed = True
                     except Exception as e:
                         traceback.print_exc(file=sys.stdout)
@@ -1533,17 +1280,17 @@ async def _tip(ctx, amount, coin: str, list_user_ids, if_guild: bool=False):
                         await member.send(f'{EMOJI_MONEYFACE} You got a {tip_type_text} of  {num_format_coin(real_amount, COIN_NAME)} '
                                           f'{COIN_NAME} from {ctx.author.name}#{ctx.author.discriminator} in server `{ctx.guild.name} #{ctx.channel.name}`\n'
                                           f'{NOTIFICATION_OFF_CMD}\n{tipmsg}')
-                    except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                    except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                         traceback.print_exc(file=sys.stdout)
                         await logchanbot(traceback.format_exc())
                         await store.sql_toggle_tipnotify(str(member.id), "OFF")
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
             await logchanbot(traceback.format_exc())
-        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction: await ctx.message.add_reaction(get_emoji(COIN_NAME))
+        if type(ctx) is not disnake.interactions.MessageInteraction: await ctx.message.add_reaction(get_emoji(COIN_NAME))
         # tipper shall always get DM. Ignore notifyList
         try:
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+            if type(ctx) is not disnake.interactions.MessageInteraction:
                 await ctx.reply(f'{EMOJI_ARROW_RIGHTHOOK} Total {tip_type_text} of {num_format_coin(TotalAmount, COIN_NAME)} '
                                 f'{COIN_NAME} '
                                 f'was sent to ({len(list_user_ids)}) members in server `{ctx.guild.name}`.\n'
@@ -1555,18 +1302,18 @@ async def _tip(ctx, amount, coin: str, list_user_ids, if_guild: bool=False):
                                 f'was sent to ({len(list_user_ids)}) members in server `{ctx.guild.name}`.\n'
                                 f'Each: `{num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`'
                                 f'Total spending: `{num_format_coin(TotalAmount, COIN_NAME)} {COIN_NAME}`', ephemeral=True)
-        except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+        except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
             try:
                 await ctx.author.send(f'{EMOJI_ARROW_RIGHTHOOK} Total {tip_type_text} of {num_format_coin(TotalAmount, COIN_NAME)} '
                                 f'{COIN_NAME} '
                                 f'was sent to ({len(list_user_ids)}) members in server `{ctx.guild.name}`.\n'
                                 f'Each: `{num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`'
                                 f'Total spending: `{num_format_coin(TotalAmount, COIN_NAME)} {COIN_NAME}`')
-            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+            except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                 pass
         return
     else:
-        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+        if type(ctx) is not disnake.interactions.MessageInteraction:
             await ctx.message.add_reaction(EMOJI_ERROR)
         msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Tipping failed, try again.')
         await botLogChan.send(f'A user failed to _tip `{num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`.')
@@ -1725,7 +1472,7 @@ async def _tip_talker(ctx, amount, list_talker, if_guild: bool, coin: str):
                                     f'{EMOJI_MONEYFACE} You got a {tip_type_text} of `{num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}` '
                                     f'from {ctx.author.name}#{ctx.author.discriminator} in server `{ctx.guild.name}` #{ctx.channel.name} for active talking.\n'
                                     f'{NOTIFICATION_OFF_CMD}\n{tipmsg}')
-                            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                            except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                                 await store.sql_toggle_tipnotify(str(member.id), "OFF")
         else:
             send_tipped_ping = 0
@@ -1794,35 +1541,35 @@ async def _tip_talker(ctx, amount, list_talker, if_guild: bool, coin: str):
                 f'{COIN_NAME} '
                 f'was sent to ({total_found}) members in server `{ctx.guild.name}` for active talking.\n'
                 f'Each member got: `{num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`\n')
-        except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+        except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
             await store.sql_toggle_tipnotify(str(ctx.author.id), "OFF")
 
-        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+        if type(ctx) is not disnake.interactions.MessageInteraction:
             await ctx.message.add_reaction(get_emoji(COIN_NAME))
         if tip_public == False:
             try:
-                await ctx.reply(f'{discord.utils.escape_markdown(mention_list_name)}\n\n**({total_found})** members got {tip_type_text} :) for active talking in `{ctx.guild.name}` {ctx.channel.mention} :)')
-            except discord.errors.Forbidden:
+                await ctx.reply(f'{disnake.utils.escape_markdown(mention_list_name)}\n\n**({total_found})** members got {tip_type_text} :) for active talking in `{ctx.guild.name}` {ctx.channel.mention} :)')
+            except disnake.errors.Forbidden:
                 serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
                 if serverinfo and 'botchan' in serverinfo and serverinfo['botchan']:
                     bot_channel = bot.get_channel(int(serverinfo['botchan']))
                     try:
-                        msg = await bot_channel.send(f'{discord.utils.escape_markdown(mention_list_name)}\n\n**({total_found})** members got {tip_type_text} :) for active talking in `{ctx.guild.name}` {ctx.channel.mention} :)')
+                        msg = await bot_channel.send(f'{disnake.utils.escape_markdown(mention_list_name)}\n\n**({total_found})** members got {tip_type_text} :) for active talking in `{ctx.guild.name}` {ctx.channel.mention} :)')
                         await msg.add_reaction(EMOJI_OK_BOX)
                     except Exception as e:
                         await logchanbot(traceback.format_exc())
-                    except discord.errors.HTTPException:
+                    except disnake.errors.HTTPException:
                         msg = await bot_channel.send(f'**({total_found})** members got {tip_type_text} :) for active talking in `{ctx.guild.name}` {ctx.channel.mention} :)')
                         await msg.add_reaction(EMOJI_OK_BOX)
                 else:
-                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                    if type(ctx) is not disnake.interactions.MessageInteraction:
                         await ctx.message.add_reaction(EMOJI_SPEAK)
                         await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
-            except discord.errors.HTTPException:
+            except disnake.errors.HTTPException:
                 await ctx.reply(f'**({total_found})** members got {tip_type_text} :) for active talking in `{ctx.guild.name}` {ctx.channel.mention} :)')
             return
     else:
-        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+        if type(ctx) is not disnake.interactions.MessageInteraction:
             await ctx.message.add_reaction(EMOJI_ERROR)
         return
 
@@ -1918,7 +1665,7 @@ async def _tip_react(reaction, user, amount, coin: str):
             await user.send(f'{EMOJI_RED_NO} {user.mention} Insufficient balance {EMOJI_TIP} total of '
                             f'{num_format_coin(TotalAmount, COIN_NAME)} '
                             f'{COIN_NAME}.')
-        except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+        except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
             print(f"_tip_react Can not send DM to {user.id}")
         return
 
@@ -1948,7 +1695,7 @@ async def _tip_react(reaction, user, amount, coin: str):
                             f'was sent to ({len(list_receivers)}) members in server `{reaction.message.guild.name}`.\n'
                             f'Each: `{num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}`'
                             f'Total spending: `{num_format_coin(TotalAmount, COIN_NAME)} {COIN_NAME}`')
-        except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+        except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
             await store.sql_toggle_tipnotify(str(user.id), "OFF")
         for member in reaction.message.mentions:
             if user.id != member.id and reaction.message.author.id != member.id and member.bot == False:
@@ -1957,7 +1704,7 @@ async def _tip_react(reaction, user, amount, coin: str):
                         await member.send(f'{EMOJI_MONEYFACE} You got a {EMOJI_TIP} of  {num_format_coin(real_amount, COIN_NAME)} '
                                           f'{COIN_NAME} from {user.name}#{user.discriminator} in server `{reaction.message.guild.name}`\n'
                                           f'{NOTIFICATION_OFF_CMD}')
-                    except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                    except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                         await store.sql_toggle_tipnotify(str(member.id), "OFF")
         return
     else:
@@ -2223,14 +1970,14 @@ async def add_tx_action_redis(action: str, delete_temp: bool = False):
 
 
 async def get_guild_prefix(ctx):
-    if isinstance(ctx.channel, discord.DMChannel) == True:
+    if isinstance(ctx.channel, disnake.DMChannel) == True:
         return config.discord.prefixCmd
     else:
         return config.discord.slashPrefix
 
 
 async def get_guild_prefix_msg(message):
-    if isinstance(message.channel, discord.DMChannel) == True:
+    if isinstance(message.channel, disnake.DMChannel) == True:
         return config.discord.prefixCmd
     else:
         return config.discord.slashPrefix

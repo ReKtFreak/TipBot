@@ -1,9 +1,11 @@
 import sys, traceback
 import math, random
 
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, Option, OptionType
+import disnake
+from disnake.ext import commands
+
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 from config import config
 from Bot import *
@@ -44,13 +46,13 @@ class RandomNumber(commands.Cog):
             try:
                 msg = await ctx.reply('{} Random number: **{:,}**'.format(ctx.author.mention, rand_numb))
                 await msg.add_reaction(EMOJI_OK_BOX)
-            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+            except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                 return
 
 
-    @inter_client.slash_command(usage="rand [1-100]",
+    @commands.slash_command(usage="rand [1-100]",
                                 options=[
-                                    Option("range_number", "Enter a range from to (ex. 1-100)", OptionType.STRING, required=False)
+                                    Option("range_number", "Enter a range from to (ex. 1-100)", OptionType.string, required=False)
                                 ],
                                 description="Generate a random number with TipBot.")
     async def rand(

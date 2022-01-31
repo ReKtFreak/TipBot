@@ -1,8 +1,7 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
-import dislash
+import disnake
+from disnake.ext import commands
 
 from config import config
 from Bot import *
@@ -90,7 +89,7 @@ class Faucet(commands.Cog):
         info: str=None
     ):
         await self.bot_log()
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             return {"error": f"{EMOJI_RED_NO} This command can not be in private."}
 
         # check if bot is going to restart
@@ -115,15 +114,11 @@ class Faucet(commands.Cog):
         if info and info.upper() not in FAUCET_COINS:
             msg = await ctx.reply(f'{ctx.author.mention} Faucet balance:\n```{remaining}```'
                                   f'Total user claims: **{total_claimed}** times. '
-                                  f'Tip me if you want to feed these faucets.', components=[row_close_message])
-            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                                  f'Tip me if you want to feed these faucets.')
             return
 
-        # disable faucet for TRTL discord
-        if ctx.guild.id == TRTL_DISCORD: return {"error": f"{EMOJI_LOCKED} {ctx.author.mention} Not available in this guild."}
-
         # offline can not take
-        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction and ctx.author.status == discord.Status.offline: return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Offline status cannot claim faucet."}
+        if type(ctx) is not disnake.interactions.app_command_interaction.SlashInteraction and ctx.author.status == disnake.Status.offline: return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Offline status cannot claim faucet."}
 
         # check if account locked
         account_lock = await alert_if_userlock(ctx, 'take')
@@ -132,11 +127,11 @@ class Faucet(commands.Cog):
 
         # check if guild has very small number of online
         try:
-            num_online = len([member for member in ctx.guild.members if member.bot == False and member.status != discord.Status.offline])
+            num_online = len([member for member in ctx.guild.members if member.bot == False and member.status != disnake.Status.offline])
             if num_online < 7 and config.discord.test_mode != 1:
                 await self.botLogChan.send(f'{ctx.author.name}#{ctx.author.discriminator} / {ctx.author.id} using **take** {ctx.guild.name} / {ctx.guild.id} while there are only {str(num_online)} online. Rejected!')
                 return {"error": f"{EMOJI_INFORMATION} {ctx.author.mention} This guild has less than 7 online users. Faucet is disable."}
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             return
         except Exception as e:
             pass
@@ -146,7 +141,7 @@ class Faucet(commands.Cog):
             account_created = ctx.author.created_at
             if (datetime.utcnow() - account_created).total_seconds() <= config.faucet.account_age_to_claim:
                 return {"error": f"{EMOJI_RED_NO} {ctx.author.mention} Your account is very new. Wait a few days before using /take"}
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             pass
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -158,8 +153,7 @@ class Faucet(commands.Cog):
                 if ctx.channel.id != int(serverinfo['botchan']):
                     try:
                         botChan = self.bot.get_channel(int(serverinfo['botchan']))
-                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!', components=[row_close_message])
-                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                        await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention}, {botChan.mention} is the bot channel!!!')
                     except Exception as e:
                         pass
                     # add penalty:
@@ -172,7 +166,7 @@ class Faucet(commands.Cog):
             if serverinfo and serverinfo['enable_faucet'] == "NO":
                 await self.botLogChan.send(f'{ctx.author.name} / {ctx.author.id} tried **take** in {ctx.guild.name} / {ctx.guild.id} which is disable.')
                 return {"error": f"{EMOJI_RED_NO} {ctx.author.mention}, **Faucet** in this guild is disable."}
-        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
             pass
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
@@ -189,9 +183,8 @@ class Faucet(commands.Cog):
                     if half_claim_interval*3600 - int(time.time()) + int(faucet_penalty['penalty_at']) > 0:
                         time_waiting = seconds_str(half_claim_interval*3600 - int(time.time()) + int(faucet_penalty['penalty_at']))
                         try:
-                            msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You claimed in a wrong channel within last {str(half_claim_interval)}h. Waiting time {time_waiting} for next **take** and be sure to be the right channel set by the guild.', components=[row_close_message])
-                            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
-                        except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                            msg = await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} You claimed in a wrong channel within last {str(half_claim_interval)}h. Waiting time {time_waiting} for next **take** and be sure to be the right channel set by the guild.')
+                        except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                             pass
                         return
             except Exception as e:
@@ -212,9 +205,8 @@ class Faucet(commands.Cog):
                                               f'Waiting time {time_waiting} for next **take**. Faucet balance:\n```{remaining}```'
                                               f'Total user claims: **{total_claimed}** times. '
                                               f'You have claimed: **{number_user_claimed}** time(s). '
-                                              f'Tip me if you want to feed these faucets.', components=[row_close_message])
-                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
-                    except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                                              f'Tip me if you want to feed these faucets.')
+                    except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                         return
                     return
         except Exception as e:
@@ -307,8 +299,7 @@ class Faucet(commands.Cog):
                 user_to = await store.sql_get_userwallet(str(ctx.author.id), COIN_NAME)
 
             if real_amount > actual_balance:
-                msg = await ctx.reply(f'{ctx.author.mention} Please try again later. Bot runs out of **{COIN_NAME}**', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                msg = await ctx.reply(f'{ctx.author.mention} Please try again later. Bot runs out of **{COIN_NAME}**')
                 return
             
             tip = None
@@ -334,8 +325,7 @@ class Faucet(commands.Cog):
                             tip = await store.sql_mv_trx_single(str(self.bot.user.id), str(ctx.author.id), real_amount, COIN_NAME, "FAUCET", token_info['contract'])
                     else:
                         try:
-                            msg = await ctx.reply(f'{EMOJI_MONEYFACE} {ctx.author.mention} Simulated faucet {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}. This is a test only. Use without **ticker** to do real faucet claim.', components=[row_close_message])
-                            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                            msg = await ctx.reply(f'{EMOJI_MONEYFACE} {ctx.author.mention} Simulated faucet {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}. This is a test only. Use without **ticker** to do real faucet claim.')
                         except Exception as e:
                             await logchanbot(traceback.format_exc())
                         TX_IN_PROCESS.remove(ctx.author.id)
@@ -344,28 +334,25 @@ class Faucet(commands.Cog):
                     await logchanbot(traceback.format_exc())
                 TX_IN_PROCESS.remove(ctx.author.id)
             else:
-                msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention} You have another tx in progress.')
                 return
             if tip:
                 try:
                     faucet_add = await store.sql_faucet_add(str(ctx.author.id), str(ctx.guild.id), COIN_NAME, real_amount, 10**decimal_pts, SERVER_BOT)
-                    msg = await ctx.reply(f'{EMOJI_MONEYFACE} {ctx.author.mention} You got a random faucet {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}', components=[row_close_message])
+                    msg = await ctx.reply(f'{EMOJI_MONEYFACE} {ctx.author.mention} You got a random faucet {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}')
                     await logchanbot(f'[Discord] User {ctx.author.name}#{ctx.author.discriminator} claimed faucet {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME} in guild {ctx.guild.name}/{ctx.guild.id}')
-                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
-                except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                     msg = await ctx.author.send(f'{EMOJI_MONEYFACE} {ctx.author.mention} You got a random faucet {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}. Claimed in guild `{ctx.guild.name}`.')
                 except Exception as e:
                     await logchanbot(traceback.format_exc())
             else:
-                await ctx.reply(f'{ctx.author.mention} Please try again later. Failed during executing tx **{COIN_NAME}**.', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                await ctx.reply(f'{ctx.author.mention} Please try again later. Failed during executing tx **{COIN_NAME}**.')
 
 
 
-    @inter_client.slash_command(usage="take <info>",
+    @commands.slash_command(usage="take <info>",
                                 options=[
-                                    Option('info', 'info', OptionType.STRING, required=False)
+                                    Option('info', 'info', OptionType.string, required=False)
                                 ],
                                 description="Claim a random coin faucet.")
     async def take(

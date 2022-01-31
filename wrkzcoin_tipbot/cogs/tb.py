@@ -6,11 +6,12 @@ import traceback
 from datetime import datetime
 import random
 
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, Option, OptionType, OptionChoice
+import disnake
+from disnake.ext import commands
 
-import dislash
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
+
 
 import store
 from Bot import *
@@ -32,7 +33,7 @@ class Tb(commands.Cog):
         user_avatar: str
     ):
         # if there is attachment image, we use it to draw
-        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction and ctx.message.attachments and len(ctx.message.attachments) >= 1:
+        if type(ctx) is not disnake.interactions.app_command_interaction.SlashInteraction and ctx.message.attachments and len(ctx.message.attachments) >= 1:
             attachment = ctx.message.attachments[0]
             link = attachment.url # https://cdn.discordapp.com/attachments
             if (attachment.filename.lower()).endswith(('.gif', '.jpeg', '.jpg', '.png')):
@@ -70,20 +71,20 @@ class Tb(commands.Cog):
                 if os.path.exists(random_img_name_png):
                     # send the made file, no need to create new
                     try:
-                        e = discord.Embed(timestamp=datetime.utcnow())
+                        e = disnake.Embed(timestamp=datetime.utcnow())
                         e.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar)
                         e.set_image(url=draw_link)
                         e.set_footer(text=f"Draw requested by {ctx.author.name}#{ctx.author.discriminator}")
-                        msg = await ctx.reply(embed=e, components=[row_close_message])
+                        msg = await ctx.reply(embed=e)
                         await msg.add_reaction(EMOJI_OK_BOX)
                         msg_content = "SLASH COMMAND"
-                        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                        if type(ctx) is not disnake.interactions.MessageInteraction:
                             msg_content = ctx.message.content
                         await store.sql_add_tbfun(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
                                     str(ctx.channel.id), str(ctx.guild.id), ctx.guild.name, 'DRAW', msg_content, SERVER_BOT)
                     except Exception as e:
                         await logchanbot(traceback.format_exc())
-                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                    if type(ctx) is not disnake.interactions.MessageInteraction:
                         await ctx.message.add_reaction(EMOJI_FLOPPY)
                     return
 
@@ -109,23 +110,22 @@ class Tb(commands.Cog):
                 partial_img = functools.partial(async_sketch_image, img, random_img_name_svg, random_img_name_png)
                 lines = await self.bot.loop.run_in_executor(None, partial_img)
                 try:
-                    e = discord.Embed(timestamp=datetime.utcnow())
+                    e = disnake.Embed(timestamp=datetime.utcnow())
                     e.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar)
                     e.set_image(url=draw_link)
                     e.set_footer(text=f"Draw requested by {ctx.author.name}#{ctx.author.discriminator}")
-                    msg = await ctx.reply(embed=e, components=[row_close_message])
-                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                    msg = await ctx.reply(embed=e)
                     await store.sql_add_tbfun(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
                                 str(ctx.channel.id), str(ctx.guild.id), ctx.guild.name, 'DRAW', ctx.message.content, SERVER_BOT)
                 except Exception as e:
                     await logchanbot(traceback.format_exc())
-                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                    if type(ctx) is not disnake.interactions.MessageInteraction:
                         await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
             else:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     await ctx.message.add_reaction(EMOJI_ERROR)
                 else:
-                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error.', components=[row_close_message])
+                    await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Internal error.')
         except Exception as e:
             await logchanbot(traceback.format_exc())
         return
@@ -137,7 +137,7 @@ class Tb(commands.Cog):
         user_avatar: str
     ):
         # if there is attachment image, we use it to draw
-        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction and ctx.message.attachments and len(ctx.message.attachments) >= 1:
+        if type(ctx) is not disnake.interactions.app_command_interaction.SlashInteraction and ctx.message.attachments and len(ctx.message.attachments) >= 1:
             attachment = ctx.message.attachments[0]
             link = attachment.url # https://cdn.discordapp.com/attachments
             if (attachment.filename.lower()).endswith(('.gif', '.jpeg', '.jpg', '.png')):
@@ -188,20 +188,20 @@ class Tb(commands.Cog):
                 if os.path.exists(random_img_name_png):
                     # send the made file, no need to create new
                     try:
-                        e = discord.Embed(timestamp=datetime.utcnow())
+                        e = disnake.Embed(timestamp=datetime.utcnow())
                         e.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar)
                         e.set_image(url=draw_link)
                         e.set_footer(text=f"Sketchme requested by {ctx.author.name}#{ctx.author.discriminator}")
-                        msg = await ctx.reply(embed=e, components=[row_close_message])
-                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                        msg = await ctx.reply(embed=e)
+                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                         msg_content = "SLASH COMMAND"
-                        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                        if type(ctx) is not disnake.interactions.MessageInteraction:
                             msg_content = ctx.message.content
                         await store.sql_add_tbfun(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
                                     str(ctx.channel.id), str(ctx.guild.id), ctx.guild.name, 'SKETCHME', msg_content, SERVER_BOT)
                     except Exception as e:
                         await logchanbot(traceback.format_exc())
-                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                    if type(ctx) is not disnake.interactions.MessageInteraction:
                         await ctx.message.add_reaction(EMOJI_FLOPPY)
                     return
 
@@ -212,7 +212,7 @@ class Tb(commands.Cog):
                 partial_contour = functools.partial(create_line_drawing_image, img)
                 img_contour = await self.bot.loop.run_in_executor(None, partial_contour)
                 if img_contour is None:
-                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                    if type(ctx) is not disnake.interactions.MessageInteraction:
                         await ctx.message.add_reaction(EMOJI_ERROR)
                     return
                 try:
@@ -222,24 +222,24 @@ class Tb(commands.Cog):
                     cv2.imwrite(random_img_name_png, img_contour)
 
                     try:
-                        e = discord.Embed(timestamp=datetime.utcnow())
+                        e = disnake.Embed(timestamp=datetime.utcnow())
                         e.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar)
                         e.set_image(url=draw_link)
                         e.set_footer(text=f"Sketchme requested by {ctx.author.name}#{ctx.author.discriminator}")
-                        msg = await ctx.reply(embed=e, components=[row_close_message])
+                        msg = await ctx.reply(embed=e)
                         await msg.add_reaction(EMOJI_OK_BOX)
                         await store.sql_add_tbfun(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
                                     str(ctx.channel.id), str(ctx.guild.id), ctx.guild.name, 'SKETCHME', ctx.message.content, SERVER_BOT)
                     except Exception as e:
                         await logchanbot(traceback.format_exc())
-                        if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                        if type(ctx) is not disnake.interactions.MessageInteraction:
                             await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                 except asyncio.TimeoutError:
-                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                    if type(ctx) is not disnake.interactions.MessageInteraction:
                         await ctx.message.add_reaction(EMOJI_ERROR)
                     return
             else:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     await ctx.message.add_reaction(EMOJI_ERROR)
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
@@ -259,17 +259,16 @@ class Tb(commands.Cog):
             fun_image = await tb_action(user1, user2, random_gif_name, 'PUNCH', config.tbfun_image.punch_gif)
             if fun_image:
                 tmp_msg = await ctx.reply("Loading...")
-                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                msg = await ctx.reply(file=disnake.File(random_gif_name))
                 await tmp_msg.delete()
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     msg_content = ctx.message.content
                 await store.sql_add_tbfun(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
                 str(ctx.channel.id), str(ctx.guild.id), ctx.guild.name, 'PUNCH', msg_content, SERVER_BOT)
             else:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     await ctx.message.add_reaction(EMOJI_ERROR)
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
@@ -289,17 +288,16 @@ class Tb(commands.Cog):
             fun_image = await tb_action(user1, user2, random_gif_name, 'SPANK', config.tbfun_image.spank_gif)
             if fun_image:
                 tmp_msg = await ctx.reply("Loading...")
-                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                msg = await ctx.reply(file=disnake.File(random_gif_name))
                 await tmp_msg.delete()
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     msg_content = ctx.message.content
                 await store.sql_add_tbfun(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
                 str(ctx.channel.id), str(ctx.guild.id), ctx.guild.name, 'SPANK', msg_content, SERVER_BOT)
             else:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     await ctx.message.add_reaction(EMOJI_ERROR)
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
@@ -319,17 +317,16 @@ class Tb(commands.Cog):
             fun_image = await tb_action(user1, user2, random_gif_name, 'SLAP', config.tbfun_image.slap_gif)
             if fun_image:
                 tmp_msg = await ctx.reply("Loading...")
-                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                msg = await ctx.reply(file=disnake.File(random_gif_name))
                 await tmp_msg.delete()
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     msg_content = ctx.message.content
                 await store.sql_add_tbfun(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
                 str(ctx.channel.id), str(ctx.guild.id), ctx.guild.name, 'SLAP', msg_content, SERVER_BOT)
             else:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     await ctx.message.add_reaction(EMOJI_ERROR)
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -347,17 +344,16 @@ class Tb(commands.Cog):
             fun_image = await tb_action(user1, user2, random_gif_name, 'PRAISE', config.tbfun_image.praise_gif)
             if fun_image:
                 tmp_msg = await ctx.reply("Loading...")
-                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                msg = await ctx.reply(file=disnake.File(random_gif_name))
                 await tmp_msg.delete()
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     msg_content = ctx.message.content
                 await store.sql_add_tbfun(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
                 str(ctx.channel.id), str(ctx.guild.id), ctx.guild.name, 'PRAISE', msg_content, SERVER_BOT)
             else:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     await ctx.message.add_reaction(EMOJI_ERROR)
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -376,17 +372,16 @@ class Tb(commands.Cog):
             fun_image = await tb_action(user1, user2, random_gif_name, 'SHOOT', config.tbfun_image.shoot_gif)
             if fun_image:
                 tmp_msg = await ctx.reply("Loading...")
-                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                msg = await ctx.reply(file=disnake.File(random_gif_name))
                 await tmp_msg.delete()
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     msg_content = ctx.message.content
                 await store.sql_add_tbfun(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
                 str(ctx.channel.id), str(ctx.guild.id), ctx.guild.name, 'SHOOT', msg_content, SERVER_BOT)
             else:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     await ctx.message.add_reaction(EMOJI_ERROR)
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -405,17 +400,16 @@ class Tb(commands.Cog):
             fun_image = await tb_action(user1, user2, random_gif_name, 'KICK', config.tbfun_image.kick_gif)
             if fun_image:
                 tmp_msg = await ctx.reply("Loading...")
-                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                msg = await ctx.reply(file=disnake.File(random_gif_name))
                 await tmp_msg.delete()
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     msg_content = ctx.message.content
                 await store.sql_add_tbfun(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
                 str(ctx.channel.id), str(ctx.guild.id), ctx.guild.name, 'KICK', msg_content, SERVER_BOT)
             else:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     await ctx.message.add_reaction(EMOJI_ERROR)
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -434,17 +428,16 @@ class Tb(commands.Cog):
             fun_image = await tb_action(user1, user2, random_gif_name, 'FISTBUMP', config.tbfun_image.fistbump_gif)
             if fun_image:
                 tmp_msg = await ctx.reply("Loading...")
-                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                msg = await ctx.reply(file=disnake.File(random_gif_name))
                 await tmp_msg.delete()
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     msg_content = ctx.message.content
                 await store.sql_add_tbfun(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
                 str(ctx.channel.id), str(ctx.guild.id), ctx.guild.name, 'FISTBUMP', msg_content, SERVER_BOT)
             else:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     await ctx.message.add_reaction(EMOJI_ERROR)
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -463,17 +456,16 @@ class Tb(commands.Cog):
             fun_image = await tb_action(user1, user2, random_gif_name, 'DANCE', config.tbfun_image.single_dance_gif)
             if fun_image:
                 tmp_msg = await ctx.reply("Loading...")
-                msg = await ctx.reply(file=discord.File(random_gif_name), components=[row_close_message])
+                msg = await ctx.reply(file=disnake.File(random_gif_name))
                 await tmp_msg.delete()
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                 os.remove(random_gif_name)
                 msg_content = "SLASH COMMAND"
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     msg_content = ctx.message.content
                 await store.sql_add_tbfun(str(ctx.author.id), '{}#{}'.format(ctx.author.name, ctx.author.discriminator), \
                 str(ctx.channel.id), str(ctx.guild.id), ctx.guild.name, 'DANCE', msg_content, SERVER_BOT)
             else:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     await ctx.message.add_reaction(EMOJI_ERROR)
         except Exception as e:
             await logchanbot(traceback.format_exc())
@@ -514,43 +506,41 @@ class Tb(commands.Cog):
                         traceback.print_exc(file=sys.stdout)
                         pass
             if emoji_url is None:
-                if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                if type(ctx) is not disnake.interactions.MessageInteraction:
                     await ctx.message.add_reaction(EMOJI_ERROR)
-                msg = await ctx.reply(f'{ctx.author.mention} I could not get that emoji image or it is a unicode text and not supported.', components=[row_close_any_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                msg = await ctx.reply(f'{ctx.author.mention} I could not get that emoji image or it is a unicode text and not supported.')
                 await msg.add_reaction(EMOJI_OK_BOX)
                 return
             else:
                 try:
-                    msg = await ctx.reply(f'{ctx.author.mention} {emoji_url}', components=[row_close_message])
-                    await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
-                except (discord.errors.NotFound, discord.errors.Forbidden) as e:
-                    if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+                    msg = await ctx.reply(f'{ctx.author.mention} {emoji_url}', view=RowButton_row_close_any_message())
+                except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
+                    if type(ctx) is not disnake.interactions.MessageInteraction:
                         await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                 return
         except Exception as e:
-            await ctx.reply(f'{ctx.author.mention} Internal error for getting emoji.', components=[row_close_any_message])
+            await ctx.reply(f'{ctx.author.mention} Internal error for getting emoji.')
             await logchanbot(traceback.format_exc())
         return
 
 
-    @inter_client.slash_command(description="Some fun commands.")
+    @commands.slash_command(description="Some fun commands.")
     async def tb(self, ctx):
         pass
 
     @tb.sub_command(
         usage="tb draw", 
         options=[
-            Option('member', 'member', OptionType.USER, required=False)
+            Option('member', 'member', OptionType.user, required=False)
         ],
         description="Use TipBot to draw someone's avatar."
     )
     async def draw(
         self, 
         ctx,
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
 
         user_avatar = str(ctx.author.display_avatar)
@@ -562,16 +552,16 @@ class Tb(commands.Cog):
     @tb.sub_command(
         usage="tb sketchme", 
         options=[
-            Option('member', 'member', OptionType.USER, required=False)
+            Option('member', 'member', OptionType.user, required=False)
         ],
         description="Use TipBot to sketch someone's avatar."
     )
     async def sketchme(
         self, 
         ctx,
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
 
         user_avatar = str(ctx.author.display_avatar)
@@ -583,16 +573,16 @@ class Tb(commands.Cog):
     @tb.sub_command(
         usage="tb spank", 
         options=[
-            Option('member', 'member', OptionType.USER, required=False)
+            Option('member', 'member', OptionType.user, required=False)
         ],
         description="Use TipBot to spank someone."
     )
     async def spank(
         self, 
         ctx,
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
         if member is None:
             user1 = str(self.bot.user.display_avatar)
@@ -607,22 +597,22 @@ class Tb(commands.Cog):
     @tb.sub_command(
         usage="tb punch", 
         options=[
-            Option('member', 'member', OptionType.USER, required=False)
+            Option('member', 'member', OptionType.user, required=False)
         ],
         description="Use TipBot to punch someone."
     )
     async def punch(
         self, 
         ctx,
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_nsfw' in serverinfo and serverinfo['enable_nsfw'] == "NO":
             prefix = serverinfo['prefix']
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+            if type(ctx) is not disnake.interactions.MessageInteraction:
                 await ctx.message.add_reaction(EMOJI_ERROR)
             return
 
@@ -639,22 +629,22 @@ class Tb(commands.Cog):
     @tb.sub_command(
         usage="tb slap", 
         options=[
-            Option('member', 'member', OptionType.USER, required=False)
+            Option('member', 'member', OptionType.user, required=False)
         ],
         description="Use TipBot to slap someone."
     )
     async def slap(
         self, 
         ctx,
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_nsfw' in serverinfo and serverinfo['enable_nsfw'] == "NO":
             prefix = serverinfo['prefix']
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+            if type(ctx) is not disnake.interactions.MessageInteraction:
                 await ctx.message.add_reaction(EMOJI_ERROR)
             return
 
@@ -671,16 +661,16 @@ class Tb(commands.Cog):
     @tb.sub_command(
         usage="tb praise", 
         options=[
-            Option('member', 'member', OptionType.USER, required=False)
+            Option('member', 'member', OptionType.user, required=False)
         ],
         description="Use TipBot to praise someone."
     )
     async def praise(
         self, 
         ctx,
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
         if member is None:
             user1 = str(self.bot.user.display_avatar)
@@ -695,22 +685,22 @@ class Tb(commands.Cog):
     @tb.sub_command(
         usage="tb shoot", 
         options=[
-            Option('member', 'member', OptionType.USER, required=False)
+            Option('member', 'member', OptionType.user, required=False)
         ],
         description="Use TipBot to shoot someone."
     )
     async def shoot(
         self, 
         ctx,
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_nsfw' in serverinfo and serverinfo['enable_nsfw'] == "NO":
             prefix = serverinfo['prefix']
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+            if type(ctx) is not disnake.interactions.MessageInteraction:
                 await ctx.message.add_reaction(EMOJI_ERROR)
             return
 
@@ -727,22 +717,22 @@ class Tb(commands.Cog):
     @tb.sub_command(
         usage="tb kick", 
         options=[
-            Option('member', 'member', OptionType.USER, required=False)
+            Option('member', 'member', OptionType.user, required=False)
         ],
         description="Use TipBot to fun kick someone."
     )
     async def kick(
         self, 
         ctx,
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
         if serverinfo and 'enable_nsfw' in serverinfo and serverinfo['enable_nsfw'] == "NO":
             prefix = serverinfo['prefix']
-            if type(ctx) is not dislash.interactions.app_command_interaction.SlashInteraction:
+            if type(ctx) is not disnake.interactions.MessageInteraction:
                 await ctx.message.add_reaction(EMOJI_ERROR)
             return
 
@@ -759,16 +749,16 @@ class Tb(commands.Cog):
     @tb.sub_command(
         usage="tb fistbump", 
         options=[
-            Option('member', 'member', OptionType.USER, required=False)
+            Option('member', 'member', OptionType.user, required=False)
         ],
         description="Use TipBot to fistbump someone."
     )
     async def fistbump(
         self, 
         ctx,
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
         if member is None:
             user1 = str(self.bot.user.display_avatar)
@@ -788,7 +778,7 @@ class Tb(commands.Cog):
         self, 
         ctx
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
 
         user1 = str(ctx.author.display_avatar)
@@ -799,7 +789,7 @@ class Tb(commands.Cog):
     @tb.sub_command(
         usage="tb getemoji <emoji>", 
         options=[
-            Option('emoji', 'emoji', OptionType.STRING, required=True)
+            Option('emoji', 'emoji', OptionType.string, required=True)
         ],
         description="Get emoji's url."
     )
@@ -820,10 +810,10 @@ class Tb(commands.Cog):
     )
     async def tb(self, ctx):
         prefix = await get_guild_prefix(ctx)
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
         if ctx.invoked_subcommand is None:
-            await ctx.reply(f'{ctx.author.mention} Invalid {prefix}tb command.\n Please use {prefix}help tb', components=[row_close_message])
+            await ctx.reply(f'{ctx.author.mention} Invalid {prefix}tb command.\n Please use {prefix}help tb')
             return
 
 
@@ -834,9 +824,9 @@ class Tb(commands.Cog):
     async def draw(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
 
         user_avatar = str(ctx.author.display_avatar)
@@ -852,9 +842,9 @@ class Tb(commands.Cog):
     async def sketchme(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
         user_avatar = str(ctx.author.display_avatar)
         if member:
@@ -869,9 +859,9 @@ class Tb(commands.Cog):
     async def spank(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
         if member is None:
             user1 = str(self.bot.user.display_avatar)
@@ -891,9 +881,9 @@ class Tb(commands.Cog):
     async def punch(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -920,9 +910,9 @@ class Tb(commands.Cog):
     async def slap(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -948,9 +938,9 @@ class Tb(commands.Cog):
     async def praise(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
         if member is None:
             user1 = str(self.bot.user.display_avatar)
@@ -969,9 +959,9 @@ class Tb(commands.Cog):
     async def shoot(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -998,9 +988,9 @@ class Tb(commands.Cog):
     async def kick(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
 
         serverinfo = await store.sql_info_by_server(str(ctx.guild.id))
@@ -1027,9 +1017,9 @@ class Tb(commands.Cog):
     async def fistbump(
         self, 
         ctx, 
-        member: discord.Member = None
+        member: disnake.Member = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
         if member is None:
             user1 = str(self.bot.user.display_avatar)
@@ -1046,7 +1036,7 @@ class Tb(commands.Cog):
         description="Bean dance's style."
     )
     async def dance(self, ctx):
-        if isinstance(ctx.channel, discord.DMChannel) == True:
+        if isinstance(ctx.channel, disnake.DMChannel) == True:
             return
 
         user1 = str(ctx.author.display_avatar)

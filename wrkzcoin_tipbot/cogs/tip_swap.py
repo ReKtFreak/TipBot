@@ -1,7 +1,7 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from config import config
 from Bot import *
@@ -37,11 +37,6 @@ class TipSwap(commands.Cog):
             await ctx.reply(f'{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}')
             return
         # end of check if account locked
-
-        # disable swap for TRTL discord	
-        if ctx.guild and ctx.guild.id == TRTL_DISCORD:	
-            await ctx.message.add_reaction(EMOJI_LOCKED)	
-            return
 
         # Check if tx in progress
         if ctx.author.id in TX_IN_PROCESS:

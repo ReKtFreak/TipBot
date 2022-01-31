@@ -1,10 +1,13 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from decimal import getcontext, Decimal
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice
+
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
+
 import addressvalidation, addressvalidation_xch
 
 from config import config
@@ -182,7 +185,7 @@ class TipWithdraw(commands.Cog):
                                 try:
                                     await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} PaymentID: `{paymentid}`\n'
                                                     'Should be in 64 correct format.')
-                                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                                     await ctx.author.send(f'{EMOJI_RED_NO} {ctx.author.mention} PaymentID: `{paymentid}`\nShould be in 64 correct format.')
                                 return
                             else:
@@ -358,10 +361,10 @@ class TipWithdraw(commands.Cog):
             await logchanbot(traceback.format_exc())
 
 
-    @inter_client.slash_command(usage="withdraw <amount> <coin>",
+    @commands.slash_command(usage="withdraw <amount> <coin>",
                                 options=[
-                                    Option('amount', 'Enter amount of coin to withdraw', OptionType.NUMBER, required=True),
-                                    Option("coin", "Enter coin ticker/name", OptionType.STRING)
+                                    Option('amount', 'Enter amount of coin to withdraw', OptionType.number, required=True),
+                                    Option("coin", "Enter coin ticker/name", OptionType.string)
                                 ],
                                 description="Withdraw to your registered address.")
     async def withdraw(
@@ -450,7 +453,7 @@ class TipWithdraw(commands.Cog):
                                     f'{EMOJI_ARROW_RIGHTHOOK} You have withdrawn {num_format_coin(real_amount, COIN_NAME)} '
                                     f'{COIN_NAME} to `{withdrawAddress}`.\n'
                                     f'{withdraw_txt}')
-            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+            except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                 try:
                     await ctx.reply(f'{EMOJI_ARROW_RIGHTHOOK} You have withdrawn {num_format_coin(real_amount, COIN_NAME)} '
                                    f'{COIN_NAME} to `{withdrawAddress}`.\n'
@@ -543,7 +546,7 @@ class TipWithdraw(commands.Cog):
                                     f'{EMOJI_ARROW_RIGHTHOOK} You have withdrawn {num_format_coin(real_amount, COIN_NAME)} '
                                     f'{COIN_NAME} to `{withdrawAddress}`.\n'
                                     f'{withdraw_txt}')
-            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+            except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                 try:
                     await ctx.reply(f'{EMOJI_ARROW_RIGHTHOOK} You have withdrawn {num_format_coin(real_amount, COIN_NAME)} '
                                    f'{COIN_NAME} to `{withdrawAddress}`.\n'

@@ -3,13 +3,12 @@ import traceback
 from datetime import datetime, timedelta
 import time
 
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice, SlashInteraction
-import dislash
+import disnake
+from disnake.ext import commands
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 from Bot import *
-from utils import EmbedPaginator
 
 
 class Core(commands.Cog):
@@ -24,12 +23,11 @@ class Core(commands.Cog):
         ctx
     ):
         uptime_seconds = int(time.time()) - int(bot_start_time)
-        msg = await ctx.reply(f"{EMOJI_INFORMATION} {ctx.author.mention}, Current Uptime: {'{:0>8}'.format(str(timedelta(seconds=uptime_seconds)))}", components=[row_close_message])
-        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+        msg = await ctx.reply(f"{EMOJI_INFORMATION} {ctx.author.mention}, Current Uptime: {'{:0>8}'.format(str(timedelta(seconds=uptime_seconds)))}")
 
 
-    @dislash.guild_only()
-    @inter_client.slash_command(
+    @commands.guild_only()
+    @commands.slash_command(
         usage="uptime", 
         description="Tells how long the bot has been running."
     )
@@ -39,8 +37,7 @@ class Core(commands.Cog):
     ):
         get_uptime = await self.get_uptime(ctx)
         if get_uptime and "error" in get_uptime:
-            msg = await ctx.reply(get_uptime['error'], components=[row_close_message])
-            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+            msg = await ctx.reply(get_uptime['error'])
 
 
     @commands.guild_only()
@@ -51,8 +48,7 @@ class Core(commands.Cog):
     async def uptime(self, ctx):
         get_uptime = await self.get_uptime(ctx)
         if get_uptime and "error" in get_uptime:
-            msg = await ctx.reply(get_uptime['error'], components=[row_close_message])
-            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+            msg = await ctx.reply(get_uptime['error'])
 
 
     @commands.dm_only()
@@ -63,7 +59,7 @@ class Core(commands.Cog):
         aliases=["cmd"]
     )
     async def commandlist(self, ctx):
-        embed = discord.Embed(title="Command List", description="A full list of all available commands.\n", color=discord.Color.teal())
+        embed = disnake.Embed(title="Command List", description="A full list of all available commands.\n", color=disnake.Color.teal())
         for _, cog_name in enumerate(sorted(self.bot.cogs)):
             if cog_name in ["Owner", "Admin"]:
                 continue

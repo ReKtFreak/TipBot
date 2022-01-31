@@ -1,9 +1,10 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType, OptionChoice
-import dislash
+import disnake
+from disnake.ext import commands
+
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 from config import config
 from Bot import *
@@ -36,10 +37,6 @@ class TipTipAll(commands.Cog):
         if account_lock:
             return {"error": f"{EMOJI_RED_NO} {MSG_LOCKED_ACCOUNT}"}
         # end of check if account locked
-
-        # TRTL discord
-        if ctx.guild.id == TRTL_DISCORD and COIN_NAME != "TRTL":
-            return {"error": f"{EMOJI_ERROR} {ctx.author.mention}, Not available for this coin in this guild."}
             
         # Check if tx in progress
         if ctx.author.id in TX_IN_PROCESS:
@@ -90,7 +87,7 @@ class TipTipAll(commands.Cog):
 
         # [x.guild for x in [g.members for g in self.bot.guilds] if x.id = useridyourelookingfor]
         if option == "ONLINE":
-            listMembers = [member for member in ctx.guild.members if member.status != discord.Status.offline and member.bot == False]
+            listMembers = [member for member in ctx.guild.members if member.status != disnake.Status.offline and member.bot == False]
         elif option == "ALL":
             listMembers = [member for member in ctx.guild.members if member.bot == False]
 
@@ -210,7 +207,7 @@ class TipTipAll(commands.Cog):
                                     f'{COIN_NAME} from {ctx.author.name}#{ctx.author.discriminator} `.tipall` in server `{ctx.guild.name}` #{ctx.channel.name}\n'
                                     f'{NOTIFICATION_OFF_CMD}')
                                 numMsg += 1
-                            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                            except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                                 await store.sql_toggle_tipnotify(str(member.id), "OFF")
             else:
                 # mention all user
@@ -281,17 +278,17 @@ class TipTipAll(commands.Cog):
                     f'was sent spread to ({total_found}) members in server `{ctx.guild.name}`.\n'
                     f'Each member got: `{amountDiv_str} {COIN_NAME}`\n'
                     f'Actual spending: `{ActualSpend_str} {COIN_NAME}`')
-            except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+            except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                 await store.sql_toggle_tipnotify(str(ctx.author.id), "OFF")
             return
 
 
-    @dislash.guild_only()
-    @inter_client.slash_command(usage="tipall <amount> <coin> [online|all]",
+    @commands.guild_only()
+    @commands.slash_command(usage="tipall <amount> <coin> [online|all]",
                                 options=[
-                                    Option('amount', 'amount', OptionType.STRING, required=True),
-                                    Option('coin', 'coin', OptionType.STRING, required=True),
-                                    Option('option', 'online | all', OptionType.STRING, required=False)
+                                    Option('amount', 'amount', OptionType.string, required=True),
+                                    Option('coin', 'coin', OptionType.string, required=True),
+                                    Option('option', 'online | all', OptionType.string, required=False)
                                 ],
                                 description="Tip all users in the guild.")
     async def tipall(
@@ -335,8 +332,7 @@ class TipTipAll(commands.Cog):
         if option is None: option = "ONLINE"
         tip_all = await self.tip_all(ctx, amount, coin.upper(), option)
         if tip_all and "error" in tip_all:
-            msg = await ctx.reply(tip_all['error'], components=[row_close_message])
-            await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+            msg = await ctx.reply(tip_all['error'])
 
 
 def setup(bot):

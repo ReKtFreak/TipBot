@@ -1,9 +1,10 @@
 import sys, traceback
 
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType
-import dislash
+import disnake
+from disnake.ext import commands
+
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 from config import config
 from Bot import *
@@ -117,12 +118,6 @@ class Voucher(commands.Cog):
             await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} we do not have voucher feature for **{COIN_NAME}** yet. Try with **{config.Enable_Coin_Voucher}**.')
             return
 
-        if isinstance(ctx.channel, discord.DMChannel) == False:
-            if COIN_NAME != "TRTL" and ctx.guild.id == TRTL_DISCORD:
-                # TRTL discord not allowed
-                await ctx.message.add_reaction(EMOJI_ERROR)
-                return
-
         coin_family = getattr(getattr(config,"daemon"+COIN_NAME),"coin_family","TRTL")
         real_amount = int(voucher_each * get_decimal(COIN_NAME)) if coin_family in ["XMR", "TRTL", "BCN", "NANO", "XCH"] else float(voucher_each)
         total_real_amount = int(total_amount * get_decimal(COIN_NAME)) if coin_family in ["XMR", "TRTL", "BCN", "NANO", "XCH"] else float(total_amount)
@@ -206,15 +201,15 @@ class Voucher(commands.Cog):
             # Check if bot can DM him first. If failed reject
             try:
                 await ctx.author.send(f'{ctx.author.mention} I am creating a voucher for you and will direct message to you the pack of vouchers.')
-            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+            except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                 # If failed to DM, message we stop
                 await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} Voucher batch will not work if you disable DM or I failed to DM you.')
                 return
             await ctx.message.add_reaction(EMOJI_OK_HAND)
-            if isinstance(ctx.channel, discord.DMChannel) == False:
+            if isinstance(ctx.channel, disnake.DMChannel) == False:
                 try:
                     await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
-                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                     pass   
             for i in range(voucher_numb):
                 secret_string = str(uuid.uuid4())
@@ -295,7 +290,7 @@ class Voucher(commands.Cog):
                                             f'Amount: {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}\n'
                                             f'Voucher Fee (Incl. network fee): {num_format_coin(fee_voucher_amount, COIN_NAME)} {COIN_NAME}\n'
                                             f'Voucher comment: {comment}```')
-                    except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                    except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                         await logchanbot(traceback.format_exc())
                         await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention}, Failed to DM!')
                 else:
@@ -372,26 +367,26 @@ class Voucher(commands.Cog):
                 return
 
             if voucher_make:
-                if isinstance(ctx.channel, discord.DMChannel) == False:
+                if isinstance(ctx.channel, disnake.DMChannel) == False:
                     try:
                         await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
-                    except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                    except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                         pass                
                 try:
-                    if isinstance(ctx.channel, discord.DMChannel) == False:
+                    if isinstance(ctx.channel, disnake.DMChannel) == False:
                         msg = await ctx.reply(f'New Voucher Link: {qrstring}\n'
                                             '```'
                                             f'Amount: {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}\n'
                                             f'Voucher Fee (Incl. network fee): {num_format_coin(fee_voucher_amount, COIN_NAME)} {COIN_NAME}\n'
-                                            f'Voucher comment: {comment}```', components=[row_close_message])
-                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+                                            f'Voucher comment: {comment}```', view=RowButton_close_message())
+                        await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
                     else:
                         msg = await ctx.reply(f'New Voucher Link: {qrstring}\n'
                                             '```'
                                             f'Amount: {num_format_coin(real_amount, COIN_NAME)} {COIN_NAME}\n'
                                             f'Voucher Fee (Incl. network fee): {num_format_coin(fee_voucher_amount, COIN_NAME)} {COIN_NAME}\n'
                                             f'Voucher comment: {comment}```')
-                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                     await logchanbot(traceback.format_exc())
             else:
                 msg = await ctx.reply(f'{EMOJI_ERROR} {ctx.author.mention}, error voucher creation!')
@@ -418,14 +413,14 @@ class Voucher(commands.Cog):
             table = AsciiTable(table_data)
             table.padding_left = 1
             table.padding_right = 1
-            if isinstance(ctx.channel, discord.DMChannel) == False:
+            if isinstance(ctx.channel, disnake.DMChannel) == False:
                 try:
                     await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
-                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                     pass
-            if isinstance(ctx.channel, discord.DMChannel) == False:
-                msg = await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n```{table.table}```', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+            if isinstance(ctx.channel, disnake.DMChannel) == False:
+                msg = await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n```{table.table}```', view=RowButton_close_message())
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
             else:
                 await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n```{table.table}```')
             return
@@ -440,7 +435,7 @@ class Voucher(commands.Cog):
         description="View list of unclaimed vouchers."
     )
     async def unclaim(self, ctx):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
+        if isinstance(ctx.channel, disnake.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
             return
@@ -462,14 +457,14 @@ class Voucher(commands.Cog):
             table = AsciiTable(table_data)
             table.padding_left = 1
             table.padding_right = 1
-            if isinstance(ctx.channel, discord.DMChannel) == False:
+            if isinstance(ctx.channel, disnake.DMChannel) == False:
                 try:
                     await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
-                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                     pass
-            if isinstance(ctx.channel, discord.DMChannel) == False:
-                msg = await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n```{table.table}```', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+            if isinstance(ctx.channel, disnake.DMChannel) == False:
+                msg = await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n```{table.table}```', view=RowButton_close_message())
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
             else:
                 await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n```{table.table}```')
             return
@@ -485,7 +480,7 @@ class Voucher(commands.Cog):
         description="View list of claimed vouchers."
     )
     async def claim(self, ctx):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
+        if isinstance(ctx.channel, disnake.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
             return
@@ -507,15 +502,15 @@ class Voucher(commands.Cog):
             table = AsciiTable(table_data)
             table.padding_left = 1
             table.padding_right = 1
-            if isinstance(ctx.channel, discord.DMChannel) == False:
+            if isinstance(ctx.channel, disnake.DMChannel) == False:
                 try:
                     await ctx.reply(f'{EMOJI_INFORMATION} {ctx.author.mention} You should do this in Direct Message.')
-                except (discord.Forbidden, discord.errors.Forbidden, discord.errors.HTTPException) as e:
+                except (disnake.Forbidden, disnake.errors.Forbidden, disnake.errors.HTTPException) as e:
                     pass
             await ctx.message.add_reaction(EMOJI_OK_HAND)
-            if isinstance(ctx.channel, discord.DMChannel) == False:
-                msg = await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n```{table.table}```', components=[row_close_message])
-                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, discord.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
+            if isinstance(ctx.channel, disnake.DMChannel) == False:
+                msg = await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n```{table.table}```', view=RowButton_close_message())
+                await store.add_discord_bot_message(str(msg.id), "DM" if isinstance(ctx.channel, disnake.DMChannel) else str(ctx.guild.id), str(ctx.author.id))
             else:
                 await ctx.reply(f'**[ YOUR VOUCHER LIST ]**\n```{table.table}```')
             return
@@ -530,7 +525,7 @@ class Voucher(commands.Cog):
         description="Get a list of unclaimed vouchers as a file."
     )
     async def getunclaim(self, ctx):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
+        if isinstance(ctx.channel, disnake.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
             return
@@ -545,7 +540,7 @@ class Voucher(commands.Cog):
                 if os.path.exists(filename):
                     try:
                         await ctx.author.send(f"YOUR UNCLAIMED VOUCHER LIST IN CSV FILE:",
-                                                      file=discord.File(filename))
+                                                      file=disnake.File(filename))
                     except Exception as e:
                         await ctx.message.add_reaction(EMOJI_ERROR) 
                         await ctx.reply(f'{ctx.author.mention} I failed to send CSV file to you.')
@@ -564,7 +559,7 @@ class Voucher(commands.Cog):
         description="Get a list of claimed vouchers as a file."
     )
     async def getclaim(self, ctx):
-        if isinstance(ctx.channel, discord.DMChannel) == False:
+        if isinstance(ctx.channel, disnake.DMChannel) == False:
             await ctx.message.add_reaction(EMOJI_ERROR) 
             await ctx.reply(f'{ctx.author.mention} This command can not be in public.')
             return
@@ -579,7 +574,7 @@ class Voucher(commands.Cog):
                 if os.path.exists(filename):
                     try:
                         await ctx.author.send(f"YOUR CLAIMED VOUCHER LIST IN CSV FILE:",
-                                                      file=discord.File(filename))
+                                                      file=disnake.File(filename))
                     except Exception as e:
                         await ctx.message.add_reaction(EMOJI_ERROR) 
                         await ctx.reply(f'{ctx.author.mention} I failed to send CSV file to you.')

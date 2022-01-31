@@ -1,8 +1,8 @@
 import logging
 import traceback
 
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from Bot import logchanbot
 
@@ -13,7 +13,7 @@ class Error(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx: discord.ext.commands.Context, error):
+    async def on_command_error(self, ctx: disnake.ext.commands.Context, error):
         """Handles command errors"""
         if hasattr(ctx.command, "on_error"):
             return  # Don't interfere with custom error handlers
@@ -43,7 +43,7 @@ class Error(commands.Cog):
             return await ctx.reply(f"The maximum number of concurrent usages of this command has been reached ({error.number}/{error.number})! Please wait until the previous execution of the command `{ctx.prefix}{ctx.command.name}` is completed!")
 
         if isinstance(error, commands.MissingRequiredArgument):
-            embed = discord.Embed(title="Error!", description="You appear to be missing a required argument!", color=discord.Color.red())
+            embed = disnake.Embed(title="Error!", description="You appear to be missing a required argument!", color=disnake.Color.red())
             embed.add_field(name="Missing argument", value=f'`{error.args[0]}`', inline=False)
             embed.add_field(name="Command Usage", value=f'`{ctx.command.usage}`', inline=False)
             if ctx.command.aliases:
@@ -52,7 +52,7 @@ class Error(commands.Cog):
             return await ctx.reply(embed=embed)
 
         if isinstance(error, commands.BadArgument):
-            embed = discord.Embed(title="Error!", description="An argument you entered is invalid!", color=discord.Color.red())
+            embed = disnake.Embed(title="Error!", description="An argument you entered is invalid!", color=disnake.Color.red())
             embed.add_field(name="Bad Argument", value=f'`{error.args[0]}`', inline=False)
             embed.add_field(name="Command Usage", value=f'`{ctx.command.usage}`', inline=False)
             if ctx.command.aliases:
@@ -60,14 +60,14 @@ class Error(commands.Cog):
                 embed.add_field(name="Command Aliases", value=f"{aliases}", inline=False)
             return await ctx.reply(embed=embed)
 
-        if isinstance(error, discord.ext.commands.errors.ExtensionNotLoaded):
-            embed = discord.Embed(title="Error!", description="Cog not found!", color=discord.Color.red())
+        if isinstance(error, disnake.ext.commands.errors.ExtensionNotLoaded):
+            embed = disnake.Embed(title="Error!", description="Cog not found!", color=disnake.Color.red())
             embed.add_field(name="Bad Argument", value=f'`{error.args[0]}`', inline=False)
             embed.add_field(name="Command Usage", value=f'`{ctx.command.usage}`', inline=False)
             embed.add_field(name='Loaded Cogs:', value="".join("`" + c + "`\n" for c in sorted(self.bot.cogs)), inline=False)
             return await ctx.reply(embed=embed)
 
-        if isinstance(error, discord.ext.commands.errors.CommandNotFound):
+        if isinstance(error, disnake.ext.commands.errors.CommandNotFound):
             #if ctx.command: return await ctx.reply(f"Command not found `{ctx.command.name}`: {str(error)}")
             return # ignore
 

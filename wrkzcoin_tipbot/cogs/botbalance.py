@@ -1,8 +1,9 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
-from dislash import InteractionClient, ActionRow, Button, ButtonStyle, Option, OptionType
+import disnake
+from disnake.ext import commands
+from disnake.enums import OptionType
+from disnake.app_commands import Option, OptionChoice
 
 from config import config
 from Bot import *
@@ -14,19 +15,19 @@ class BotBalance(commands.Cog):
 
 
 
-    @inter_client.slash_command(usage="botbalance <bot> <coin>",
+    @commands.slash_command(usage="botbalance <bot> <coin>",
                                 options=[
-                                    Option("botname", "Enter a bot", OptionType.USER, required=True),
-                                    Option("coin", "Enter coin ticker/name", OptionType.STRING, required=True),
+                                    Option("botname", "Enter a bot", OptionType.user, required=True),
+                                    Option("coin", "Enter coin ticker/name", OptionType.string, required=True),
                                 ],
                                 description="Get Bot's balance by mention it.")
     async def botbalance(
         self, 
         ctx, 
-        botname: discord.Member, 
+        botname: disnake.Member, 
         coin: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} This command can not be in DM.')
             return
 
@@ -40,7 +41,7 @@ class BotBalance(commands.Cog):
             user_id = botname.id
             COIN_NAME = coin.upper()
             balance_user = await get_balance_coin_user(user_id, COIN_NAME, discord_guild=False, server__bot=SERVER_BOT)
-            embed = discord.Embed(title=f'Deposit for {botname.name}#{botname.discriminator}', description='`This is bot\'s tipjar address. Do not deposit here unless you want to deposit to this bot`', timestamp=datetime.utcnow(), colour=7047495)
+            embed = disnake.Embed(title=f'Deposit for {botname.name}#{botname.discriminator}', description='`This is bot\'s tipjar address. Do not deposit here unless you want to deposit to this bot`', timestamp=datetime.utcnow(), colour=7047495)
             embed.set_author(name=botname.name, icon_url=botname.display_avatar)
             embed.add_field(name="{} Deposit Address".format(COIN_NAME), value="`{}`".format(balance_user['balance_wallet_address']), inline=False)
             if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
@@ -63,15 +64,15 @@ class BotBalance(commands.Cog):
     async def botbalance(
         self, 
         ctx, 
-        member: discord.Member, 
+        member: disnake.Member, 
         coin: str
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} This command can not be in DM.')
             return
             
         # if public and there is a bot channel
-        if isinstance(ctx.channel, discord.DMChannel) == False:
+        if isinstance(ctx.channel, disnake.DMChannel) == False:
             serverinfo = await get_info_pref_coin(ctx)
             server_prefix = serverinfo['server_prefix']
             # check if bot channel is set:
@@ -96,10 +97,6 @@ class BotBalance(commands.Cog):
             await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} **INVALID TICKER {COIN_NAME}**!')
             return
 
-        # TRTL discord
-        if ctx.guild.id == TRTL_DISCORD and COIN_NAME != "TRTL":
-            return
-
         if is_maintenance_coin(COIN_NAME):
             await ctx.message.add_reaction(EMOJI_MAINTENANCE)
             await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {COIN_NAME} in maintenance.')
@@ -111,7 +108,6 @@ class BotBalance(commands.Cog):
             if int(ctx.author.id) in MAINTENANCE_OWNER:
                 pass
             else:
-                await ctx.message.add_reaction(EMOJI_WARNING)
                 await ctx.reply(f'{EMOJI_RED_NO} {ctx.author.mention} {config.maintenance_msg}')
                 return
         else:
@@ -164,7 +160,7 @@ class BotBalance(commands.Cog):
             except Exception as e:
                 await logchanbot(traceback.format_exc())
 
-            embed = discord.Embed(title=f'Deposit for {member.name}#{member.discriminator}', description='`This is bot\'s tipjar address. Do not deposit here unless you want to deposit to this bot`', timestamp=datetime.utcnow(), colour=7047495)
+            embed = disnake.Embed(title=f'Deposit for {member.name}#{member.discriminator}', description='`This is bot\'s tipjar address. Do not deposit here unless you want to deposit to this bot`', timestamp=datetime.utcnow(), colour=7047495)
             embed.set_author(name=member.name, icon_url=member.display_avatar)
             embed.add_field(name="{} Deposit Address".format(COIN_NAME), value="`{}`".format(userwallet['balance_wallet_address']), inline=False)
             if COIN_NAME in ENABLE_COIN_ERC+ENABLE_COIN_TRC:
@@ -180,7 +176,7 @@ class BotBalance(commands.Cog):
                 msg = await ctx.reply(embed=embed)
                 await msg.add_reaction(EMOJI_OK_BOX)
                 await ctx.message.add_reaction(EMOJI_OK_HAND)
-            except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+            except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                 msg = await ctx.reply(
                         f'**[ <@{member.id}> BALANCE]**\n'
                         f' Deposit Address: `{depositAddress}`\n'

@@ -1,7 +1,7 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from config import config
 from Bot import *
@@ -15,7 +15,7 @@ class TipTag(commands.Cog):
     ## TODO: Improve this usage.
     @commands.command(usage="tag <arguments>", description="Manage or display tag(s).")
     async def tag(self, ctx, *args):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.reply(f'{ctx.author.mention} {EMOJI_RED_NO} This command can not be in private.')
             return
 
@@ -56,7 +56,7 @@ class TipTag(commands.Cog):
                     else:
                         msg = await ctx.reply(f'{ctx.author.mention} {tagDesc}')
                     await msg.add_reaction(EMOJI_OK_BOX)
-                except (discord.errors.NotFound, discord.errors.Forbidden) as e:
+                except (disnake.errors.NotFound, disnake.errors.Forbidden) as e:
                     await ctx.message.add_reaction(EMOJI_ZIPPED_MOUTH)
                 except Exception as e:
                     print(traceback.format_exc())
@@ -137,7 +137,7 @@ class TipTag(commands.Cog):
         *, 
         itag_text: str = None
     ):
-        if isinstance(ctx.channel, discord.DMChannel):
+        if isinstance(ctx.channel, disnake.DMChannel):
             await ctx.reply(f'{EMOJI_RED_NO} This command can not be in private.')
             return
         ListiTag = await store.sql_itag_by_server(str(ctx.guild.id))

@@ -1,7 +1,7 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from config import config
 from Bot import *
@@ -50,7 +50,7 @@ class TipRegister(commands.Cog):
         # End Check if maintenance
 
         # if public and there is a bot channel
-        if isinstance(ctx.channel, discord.DMChannel) == False:
+        if isinstance(ctx.channel, disnake.DMChannel) == False:
             serverinfo = await get_info_pref_coin(ctx)
             server_prefix = serverinfo['server_prefix']
             # check if bot channel is set:

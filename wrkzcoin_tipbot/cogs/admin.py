@@ -1,7 +1,7 @@
 import sys, traceback
 
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from config import config
 from Bot import *
@@ -830,7 +830,7 @@ class Admin(commands.Cog):
         ctx
     ):
         ts = datetime.utcnow()
-        embed = discord.Embed(title='Pending Actions', timestamp=ts)
+        embed = disnake.Embed(title='Pending Actions', timestamp=ts)
         embed.add_field(name="TX_IN_PROCESS", value=str(len(TX_IN_PROCESS)), inline=True)
         embed.add_field(name="GAME_INTERACTIVE", value=str(len(GAME_INTERACTIVE_PRGORESS)), inline=True)
         embed.add_field(name="GAME_INTERACTIVE_ECO", value=str(len(GAME_INTERACTIVE_ECO)), inline=True)

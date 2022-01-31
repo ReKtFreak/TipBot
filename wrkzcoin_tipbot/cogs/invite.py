@@ -1,7 +1,7 @@
 import sys, traceback
 import time, timeago
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from config import config
 from Bot import *
@@ -12,7 +12,7 @@ class Invite(commands.Cog):
         self.bot = bot
 
 
-    @inter_client.slash_command(description="Get TipBpt's invite link.")
+    @commands.slash_command(description="Get TipBpt's invite link.")
     async def invite(self, ctx):
         await ctx.reply(f"**[INVITE LINK]**: {BOT_INVITELINK_PLAIN}", ephemeral=False)
 
