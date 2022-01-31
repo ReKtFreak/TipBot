@@ -18,7 +18,7 @@ class About(commands.Cog):
         botdetails = disnake.Embed(title='About Me', description='')
         botdetails.add_field(name='Creator\'s Discord Name:', value='pluton#8888', inline=True)
         botdetails.add_field(name='My Github:', value="[TipBot Github](https://github.com/wrkzcoin/TipBot)", inline=True)
-        botdetails.add_field(name='Invite Me:', value=f'{BOT_INVITELINK}', inline=True)
+        botdetails.add_field(name='Invite Me:', value=config.discord.invite_link, inline=True)
         botdetails.add_field(name='Servers I am in:', value=len(self.bot.guilds), inline=True)
         botdetails.add_field(name='Support Me:', value=f'<@{self.bot.user.id}> donate AMOUNT ticker', inline=True)
         botdetails.set_footer(text='Made in Python3.8+', icon_url='http://findicons.com/files/icons/2804/plex/512/python.png')

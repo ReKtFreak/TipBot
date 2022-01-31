@@ -390,7 +390,7 @@ class Games(commands.Cog):
         embed.add_field(name="Result", value=slotOutput, inline=False)
         embed.add_field(name="Comment", value=slotOutput_2, inline=False)
         embed.add_field(name="Reward", value=result, inline=False)
-        embed.add_field(name='More', value=f'[TipBot Github](https://github.com/wrkzcoin/TipBot) | {BOT_INVITELINK} ', inline=False)
+        embed.add_field(name='More', value=f'[TipBot Github]({config.discord.github_link}) | {config.discord.invite_link} ', inline=False)
         if won == False:
             embed.set_footer(text="Randomed Coin: {} | Message shall be deleted after 5s.".format(config.game.coin_game))
         else:
@@ -1362,8 +1362,7 @@ class Games(commands.Cog):
 
             embed = disnake.Embed(title=f'SOKOBAN GAME {ctx.author.name}#{ctx.author.discriminator}', description='**SOKOBAN GAME** starts...', timestamp=datetime.utcnow(), colour=7047495)
             embed.add_field(name="LEVEL", value=f'{level}')
-            embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", 
-                            "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+            embed.add_field(name="OTHER LINKS", value="[Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format(config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
             try:
                 msg = await ctx.reply(embed=embed)
             except Exception as e:
@@ -1410,8 +1409,7 @@ class Games(commands.Cog):
                 display_level = displayLevel(currentLevel)
                 embed = disnake.Embed(title=f'SOKOBAN GAME {ctx.author.name}#{ctx.author.discriminator}', description=f'{display_level}', timestamp=datetime.utcnow(), colour=7047495)
                 embed.add_field(name="LEVEL", value=f'{level}')
-                embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", 
-                                "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                embed.add_field(name="OTHER LINKS", value="[Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format(config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
                 try:
                     if inter_msg ==False:
                         await msg.edit(embed=embed, components=[row])
@@ -1576,8 +1574,7 @@ class Games(commands.Cog):
                     embed.add_field(name="LEVEL", value=f'{level}')
                     duration = seconds_str(int(time.time()) - time_start)
                     embed.add_field(name="DURATION", value=f'{duration}')
-                    embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", 
-                                    "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                    embed.add_field(name="OTHER LINKS", value="[Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format(config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
                     inter_msg = True
                     await inter.create_response(embed=embed, components=[row], type=dislash.ResponseType.UpdateMessage)
                     game_over = True
@@ -1778,7 +1775,7 @@ class Games(commands.Cog):
             stat.add_field(name='Total Paid Plays', value='{}'.format(get_game_stat['paid_play']), inline=True)
             for COIN_NAME in GAME_COIN:
                 stat.add_field(name='Paid in {}'.format(COIN_NAME), value='{}{}'.format(num_format_coin(get_game_stat[COIN_NAME], COIN_NAME), COIN_NAME), inline=True)
-            stat.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+            stat.add_field(name="OTHER LINKS", value="[Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format(config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
             try:
                 msg = await ctx.reply(embed=stat)
                 await ctx.message.add_reaction(EMOJI_OK_HAND)
@@ -2820,8 +2817,7 @@ class Games(commands.Cog):
 
         embed = disnake.Embed(title=f'SOKOBAN GAME TEST RUN {ctx.author.name}#{ctx.author.discriminator}', description=f'{display_level}', timestamp=datetime.utcnow(), colour=7047495)
         embed.add_field(name="LEVEL", value=f'{level}')
-        embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", 
-                        "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+        embed.add_field(name="OTHER LINKS", value="[Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format(config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
         try:
             msg = await ctx.reply(embed=embed)
         except Exception as e:

@@ -71,7 +71,7 @@ class Stats(commands.Cog):
                 embed.add_field(name="You have tipped", value='Last 10mn: {:,.0f}, 24h: {:,.0f}, 7d: {:,.0f}, 30d: {:,.0f}'.format(your_tip_count_10mn, your_tip_count_24h, your_tip_count_7d, your_tip_count_30d), inline=False)
             except Exception as e:
                 await logchanbot(traceback.format_exc())
-            embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+            embed.add_field(name="OTHER LINKS", value="[Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format(config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
             try:
                 msg = await ctx.reply(embed=embed)
                 await msg.add_reaction(EMOJI_OK_BOX)

@@ -106,7 +106,7 @@ class Help(commands.Cog):
                 embed.add_field(name="GUILD INFO", value="`ID: {}, Name: {}, Default Coin: {}, Prefix: {}`".format(ctx.guild.id, ctx.guild.name, coin_name, prefix), inline=False)
 
             if help_specific == False:
-                embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                embed.add_field(name="OTHER LINKS", value="[Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format(config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
                 embed.set_footer(text=f"Required - <>, Optional - [], Help: {EMOJI_HELP_HOUSE} Home, Help: {EMOJI_HELP_GUILD} Guild, {EMOJI_HELP_TIP} Tipping, {EMOJI_HELP_GAME} Game, {EMOJI_HELP_CG} Market, {EMOJI_HELP_TOOL} Tool, {EMOJI_HELP_NOTE} Disclaimer")
             else:
                 embed.set_footer(text=f"Help requested by {ctx.author.name}#{ctx.author.discriminator}")
@@ -232,7 +232,7 @@ class Help(commands.Cog):
             embed.add_field(name=f"{prefix}setting botchan #channel_name", value="`Restrict most bot command in #channel_name`", inline=False)
             embed.add_field(name=f"{prefix}setting game", value="`Enable / Disable game feature / command`", inline=False)
             embed.add_field(name=f"{prefix}setting <mute/unmute>", value="`Mute / Unmute the said text channel`", inline=False)
-            embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+            embed.add_field(name="OTHER LINKS", value="[Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format(config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
             embed.set_footer(text="Required - <>, Optional - []")
         try:
             msg = await message.channel.send(embed=embed)

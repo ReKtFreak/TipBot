@@ -155,10 +155,6 @@ SAME_TICKERS = config.price.multiple_same_tickers.split(",")
 # Fee per byte coin
 FEE_PER_BYTE_COIN = config.Fee_Per_Byte_Coin.split(",")
 
-# Bot invitation link
-BOT_INVITELINK = "[Invite TipBot](http://invite.discord.bot.tips)"
-BOT_INVITELINK_PLAIN = "http://invite.discord.bot.tips"
-
 # DOGE will divide by 10 after random
 FAUCET_MINMAX = {
     "WRKZ": [config.Faucet_min_max.wrkz_min, config.Faucet_min_max.wrkz_max],
@@ -495,7 +491,7 @@ async def logchanbot(content: str):
 
 @bot.event
 async def on_ready():
-    global LIST_IGNORECHAN, MUTE_CHANNEL, IS_RESTARTING, BOT_INVITELINK, HANGMAN_WORDS
+    global LIST_IGNORECHAN, MUTE_CHANNEL, IS_RESTARTING, HANGMAN_WORDS
     HANGMAN_WORDS = hm_load_words()
     print('Ready!')
     print("Hello, I am TipBot Bot!")
@@ -506,7 +502,6 @@ async def on_ready():
     print(bot.user.id)
     print('------')
     print("Guilds: {}".format(len(bot.guilds)))
-    print("Bot invitation link: " + BOT_INVITELINK)
     if HANGMAN_WORDS and len(HANGMAN_WORDS) > 0: print('Loaded {} words for hangman.'.format(len(HANGMAN_WORDS)))
     game = disnake.Game(name="making crypto fun!")
     await bot.change_presence(status=disnake.Status.online, activity=game)

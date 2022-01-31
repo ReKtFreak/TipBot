@@ -33,7 +33,7 @@ class TipDonate(commands.Cog):
                 coin_value = num_format_coin(value, key.upper())+key.upper()
                 item_list.append(coin_value)
                 embed.add_field(name=key.upper(), value=num_format_coin(value, key.upper())+key.upper(), inline=True)
-        embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+        embed.add_field(name="OTHER LINKS", value="[Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format(config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
         if len(item_list) > 0:
             try:
                 msg = await ctx.reply(embed=embed)

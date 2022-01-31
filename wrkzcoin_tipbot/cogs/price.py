@@ -154,7 +154,7 @@ class CoinGecko(commands.Cog):
             embed.add_field(name="Change (7d)", value='{:,.2f}%{}'.format(get_cg['price_change7d_percent'], EMOJI_CHART_DOWN if float(get_cg['price_change7d_percent']) < 0 else EMOJI_CHART_UP), inline=True)
             embed.add_field(name="Change (14d)", value='{:,.2f}%{}'.format(get_cg['price_change14d_percent'], EMOJI_CHART_DOWN if float(get_cg['price_change14d_percent']) < 0 else EMOJI_CHART_UP), inline=True)
             embed.add_field(name="Change (30d)", value='{:,.2f}%{}'.format(get_cg['price_change30d_percent'], EMOJI_CHART_DOWN if float(get_cg['price_change30d_percent']) < 0 else EMOJI_CHART_UP), inline=True)
-            embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+            embed.add_field(name="OTHER LINKS", value="[Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format(config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
             
             # Add image
             name_png = 'tmp_' + str(uuid.uuid4())
@@ -272,7 +272,7 @@ class CoinGecko(commands.Cog):
                 else:
                     embed.add_field(name=coin_list.upper(), value='```{}```'.format(table.table), inline=False)
                     embed.add_field(name="INFO", value='```CMC updated: {}\nCG updated: {}```'.format(cmc_ago, cg_ago), inline=False)
-                embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                embed.add_field(name="OTHER LINKS", value="[Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format(config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
                 embed.set_footer(text=f"Market command requested by {ctx.author.name}#{ctx.author.discriminator}. To disable Market Command, {prefix}setting market")
                 try:
                     msg = await ctx.reply(embed=embed)
@@ -482,7 +482,7 @@ class CoinGecko(commands.Cog):
                             embed.add_field(name="From CoinGecko", value='`1 {} = {}USD. Updated {} from CoinGecko`'.format(ticker, format_amount(market_price['cg_price']), ago), inline=False)
                     if note:
                         embed.add_field(name="NOTE", value="`{}`".format(note), inline=False)
-                    embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                    embed.add_field(name="OTHER LINKS", value="[Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format(config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
                     embed.set_footer(text=f"Market command requested by {ctx.author.name}#{ctx.author.discriminator}. To disable Market Command, {prefix}setting market")
                     try:
                         msg = await ctx.reply(embed=embed)
@@ -545,7 +545,7 @@ class CoinGecko(commands.Cog):
                             embed.add_field(name="From CoinGecko", value='`{} {} = {}USD. Updated {} from CoinGecko`'.format(PriceQ[0], PriceQ[1].upper(), format_amount(market_price['cg_price'] * float(PriceQ[0])), ago), inline=False)
                     if note:
                         embed.add_field(name="NOTE", value="`{}`".format(note), inline=False)
-                    embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                    embed.add_field(name="OTHER LINKS", value="[Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format(config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
                     embed.set_footer(text=f"Market command requested by {ctx.author.name}#{ctx.author.discriminator}. To disable Market Command, {prefix}setting market")
                     try:
                         msg = await ctx.reply(embed=embed)
@@ -592,7 +592,7 @@ class CoinGecko(commands.Cog):
                         embed.add_field(name="From CoinGecko", value='`1 {} = {:,.8f}{} from CoinGecko`'.format(PriceQ[0].upper(), totalValue, PriceQ[2].upper()), inline=False)
                     if note:
                         embed.add_field(name="NOTE", value="`{}`".format(note), inline=False)
-                    embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                    embed.add_field(name="OTHER LINKS", value="[Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format(config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
                     embed.set_footer(text=f"Market command requested by {ctx.author.name}#{ctx.author.discriminator}. To disable Market Command, {prefix}setting market")
                     try:
                         msg = await ctx.reply(embed=embed)
@@ -667,7 +667,7 @@ class CoinGecko(commands.Cog):
                             embed.add_field(name="From CoinGecko", value='`{} {} = {}{} from CoinGecko`'.format(PriceQ[0], PriceQ[1].upper(), format_amount(totalValue), PriceQ[3].upper()), inline=False)
                     if note:
                         embed.add_field(name="NOTE", value="`{}`".format(note), inline=False)
-                    embed.add_field(name="OTHER LINKS", value="{} / {} / {}".format("[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                    embed.add_field(name="OTHER LINKS", value="[Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format(config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
                     embed.set_footer(text=f"Market command requested by {ctx.author.name}#{ctx.author.discriminator}. To disable Market Command, {prefix}setting market")
                     try:
                         msg = await ctx.reply(embed=embed)

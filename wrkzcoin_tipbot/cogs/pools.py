@@ -145,7 +145,7 @@ class Pools(commands.Cog):
                                 embed.add_field(name="Pool List", value=pool_links)
                             except Exception as e:
                                 await logchanbot(traceback.format_exc())
-                        embed.add_field(name="OTHER LINKS", value="{} / {} / {} / {}".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), "[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                        embed.add_field(name="OTHER LINKS", value="{} / [Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
                         embed.set_footer(text="Data from https://miningpoolstats.stream")
                         try:
                             if isinstance(ctx.channel, disnake.DMChannel) == True:
@@ -204,7 +204,7 @@ class Pools(commands.Cog):
                                 num_pool += 1
                                 if num_pool > 0 and num_pool % pool_nos_per_page == 0:
                                     page.add_field(name="Pool List", value=pool_links)
-                                    page.add_field(name="OTHER LINKS", value="{} / {} / {} / {}".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), "[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                                    embed.add_field(name="OTHER LINKS", value="{} / [Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
                                     page.set_footer(text=f"Data from https://miningpoolstats.stream | Requested by: {ctx.author.name}#{ctx.author.discriminator}")
                                     all_pages.append(page)
                                     if num_pool < len(pool_list):
@@ -219,13 +219,13 @@ class Pools(commands.Cog):
                                         page.set_footer(text=f"Data from https://miningpoolstats.stream | Requested by: {ctx.author.name}#{ctx.author.discriminator}")
                                     else:
                                         page.add_field(name="Pool List", value=pool_links)
-                                        page.add_field(name="OTHER LINKS", value="{} / {} / {} / {}".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), "[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                                        embed.add_field(name="OTHER LINKS", value="{} / [Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
                                         page.set_footer(text=f"Data from https://miningpoolstats.stream | Requested by: {ctx.author.name}#{ctx.author.discriminator}")
                                         all_pages.append(page)
                                         break
                                 elif num_pool == len(pool_list):
                                     page.add_field(name="Pool List", value=pool_links)
-                                    page.add_field(name="OTHER LINKS", value="{} / {} / {} / {}".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), "[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                                    embed.add_field(name="OTHER LINKS", value="{} / [Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
                                     page.set_footer(text=f"Data from https://miningpoolstats.stream | Requested by: {ctx.author.name}#{ctx.author.discriminator}")
                                     all_pages.append(page)
                                     break
@@ -295,7 +295,7 @@ class Pools(commands.Cog):
                                             embed.add_field(name="List", value=pool_links)
                                         except Exception as e:
                                             await logchanbot(traceback.format_exc())
-                                    embed.add_field(name="OTHER LINKS", value="{} / {} / {} / {}".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), "[Invite TipBot](http://invite.discord.bot.tips)", "[Support Server](https://discord.com/invite/GpHzURM)", "[TipBot Github](https://github.com/wrkzcoin/TipBot)"), inline=False)
+                                    embed.add_field(name="OTHER LINKS", value="{} / [Invite TipBot]({}) / [Support Server]({}) / [TipBot Github]({})".format("[More pools](https://miningpoolstats.stream/{})".format(COIN_NAME.lower()), config.discord.invite_link, config.discord.support_server_link, config.discord.github_link), inline=False)
                                     embed.set_footer(text="Data from https://miningpoolstats.stream")
                                     if isinstance(ctx.channel, disnake.DMChannel) == True:
                                         msg = await ctx.reply(embed=embed)
